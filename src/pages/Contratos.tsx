@@ -80,7 +80,7 @@ const Contratos = () => {
         <NovoContratoDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          entidade={entidade}
+          entidadeInicial={entidade}
         />
       </div>
     </AppLayout>
