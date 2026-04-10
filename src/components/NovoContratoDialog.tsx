@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 import { type Entidade } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
@@ -16,11 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 interface NovoContratoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entidade: Entidade;
+  entidadeInicial?: Entidade;
 }
 
-export function NovoContratoDialog({ open, onOpenChange, entidade }: NovoContratoDialogProps) {
+export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
+  const [entidade, setEntidade] = useState<Entidade>(entidadeInicial);
   const [cliente, setCliente] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [servico, setServico] = useState("");
@@ -40,6 +42,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidade }: NovoContrat
   };
 
   const resetForm = () => {
+    setEntidade("SESI");
     setCliente("");
     setCnpj("");
     setServico("");
@@ -52,11 +55,23 @@ export function NovoContratoDialog({ open, onOpenChange, entidade }: NovoContrat
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            Novo Contrato — {entidade === "SESI" ? "SESI Educação" : "SENAI Ed. Profissional"}
-          </DialogTitle>
+          <DialogTitle>Novo Contrato</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Entidade selector */}
+          <div className="space-y-2">
+            <Label>Entidade *</Label>
+            <Select value={entidade} onValueChange={(v) => setEntidade(v as Entidade)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a entidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SESI">SESI Educação</SelectItem>
+                <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
