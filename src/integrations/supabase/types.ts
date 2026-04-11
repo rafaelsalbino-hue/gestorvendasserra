@@ -14,7 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contratos: {
+        Row: {
+          abertura_chamado: string
+          cadastro_estudantes: string
+          cliente: string
+          cnpj: string
+          created_at: string
+          crm: string
+          dados_estudantes: string
+          dados_proposta: string
+          ensalamento_pcp: string
+          entidade: Database["public"]["Enums"]["entidade_type"]
+          etapa_atual: Database["public"]["Enums"]["etapa_contrato"]
+          execucao_faturamento: string
+          id: string
+          info_execucao: string
+          numero_chamado: string
+          numero_rpc: string
+          observacao_terceiro: string
+          planilha_info_gerais: string
+          servico_produto: string
+          status_proposta_crm: string
+          status_rpc: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          abertura_chamado?: string
+          cadastro_estudantes?: string
+          cliente: string
+          cnpj?: string
+          created_at?: string
+          crm?: string
+          dados_estudantes?: string
+          dados_proposta?: string
+          ensalamento_pcp?: string
+          entidade: Database["public"]["Enums"]["entidade_type"]
+          etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
+          execucao_faturamento?: string
+          id?: string
+          info_execucao?: string
+          numero_chamado?: string
+          numero_rpc?: string
+          observacao_terceiro?: string
+          planilha_info_gerais?: string
+          servico_produto?: string
+          status_proposta_crm?: string
+          status_rpc?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          abertura_chamado?: string
+          cadastro_estudantes?: string
+          cliente?: string
+          cnpj?: string
+          created_at?: string
+          crm?: string
+          dados_estudantes?: string
+          dados_proposta?: string
+          ensalamento_pcp?: string
+          entidade?: Database["public"]["Enums"]["entidade_type"]
+          etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
+          execucao_faturamento?: string
+          id?: string
+          info_execucao?: string
+          numero_chamado?: string
+          numero_rpc?: string
+          observacao_terceiro?: string
+          planilha_info_gerais?: string
+          servico_produto?: string
+          status_proposta_crm?: string
+          status_rpc?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      responsaveis: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email: string
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string
+          funcao?: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +130,22 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      entidade_type: "SESI" | "SENAI"
+      etapa_contrato:
+        | "proposta"
+        | "rpc"
+        | "execucao"
+        | "matricula"
+        | "ensalamento"
+        | "faturamento"
+      funcao_responsavel:
+        | "Agente de Mercado PJ"
+        | "Supervisor SESI"
+        | "Supervisor SENAI"
+        | "Backoffice Comercial"
+        | "Secretaria"
+        | "PCP"
+        | "Analista Financeiro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +272,25 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      entidade_type: ["SESI", "SENAI"],
+      etapa_contrato: [
+        "proposta",
+        "rpc",
+        "execucao",
+        "matricula",
+        "ensalamento",
+        "faturamento",
+      ],
+      funcao_responsavel: [
+        "Agente de Mercado PJ",
+        "Supervisor SESI",
+        "Supervisor SENAI",
+        "Backoffice Comercial",
+        "Secretaria",
+        "PCP",
+        "Analista Financeiro",
+      ],
+    },
   },
 } as const
