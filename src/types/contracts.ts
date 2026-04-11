@@ -43,6 +43,37 @@ export const ETAPAS: EtapaInfo[] = [
   { id: "faturamento", label: "Faturamento", responsavel: "Analista Financeiro", colorClass: "step-financeiro" },
 ];
 
+// Status options per field, extracted from the spreadsheet validations
+export const STATUS_OPTIONS = {
+  dados_proposta: ["Aguardando", "Dados entregues"],
+  status_proposta_crm: [
+    "Em elaboração",
+    "Aguardando Assinatura Gerex",
+    "Aguardando Assinatura Cliente",
+    "Ganha",
+  ],
+  info_execucao: ["Aguardando", "Dados entregues"],
+  status_rpc: [
+    "Em elaboração",
+    "Aguardando Informações",
+    "Aguardando Assinatura cliente",
+    "Concluído",
+  ],
+  dados_estudantes: ["Aguardando", "Dados entregues"],
+  cadastro_estudantes: ["Em elaboração", "Concluído"],
+  ensalamento_pcp: ["Em elaboração", "Concluído"],
+  abertura_chamado: [
+    "A executar",
+    "Aguardando empenho",
+    "Chamado aberto",
+  ],
+  execucao_faturamento: [
+    "Aguardando retorno da sede",
+    "Aguardando integração",
+    "Faturado",
+  ],
+} as const;
+
 export interface Contrato {
   id: string;
   entidade: Entidade;
@@ -52,6 +83,7 @@ export interface Contrato {
   crm: string;
   servico_produto: string;
   valor: number;
+  planilha_info_gerais: string;
   status_proposta_crm: string;
   numero_rpc: string;
   info_execucao: string;
