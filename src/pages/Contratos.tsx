@@ -7,12 +7,17 @@ import { Plus, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ETAPAS, type Entidade } from "@/types/contracts";
 import { NovoContratoDialog } from "@/components/NovoContratoDialog";
+import { ContratoDetailDialog } from "@/components/ContratoDetailDialog";
 import { useContratos } from "@/hooks/useContratos";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Contrato = Tables<"contratos">;
 
 const Contratos = () => {
   const [entidade, setEntidade] = useState<Entidade>("SESI");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selected, setSelected] = useState<Contrato | null>(null);
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
 
@@ -66,7 +71,11 @@ const Contratos = () => {
                           <p className="text-xs text-muted-foreground text-center py-8">Nenhum contrato nesta etapa</p>
                         ) : (
                           items.map((c) => (
-                            <div key={c.id} className="rounded-md border bg-card p-3 space-y-1 shadow-sm">
+                            <div
+                              key={c.id}
+                              onClick={() => setSelected(c)}
+                              className="rounded-md border bg-card p-3 space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+                            >
                               <p className="text-sm font-medium truncate">{c.cliente}</p>
                               <p className="text-xs text-muted-foreground">{c.cnpj}</p>
                               {c.servico_produto && <p className="text-xs text-muted-foreground truncate">{c.servico_produto}</p>}
@@ -88,6 +97,7 @@ const Contratos = () => {
         </Tabs>
 
         <NovoContratoDialog open={dialogOpen} onOpenChange={setDialogOpen} entidadeInicial={entidade} />
+        <ContratoDetailDialog contrato={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
       </div>
     </AppLayout>
   );
