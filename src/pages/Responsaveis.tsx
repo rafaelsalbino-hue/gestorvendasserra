@@ -11,10 +11,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Mail, UserCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Mail, UserCircle, Loader2, Send } from "lucide-react";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
+import { supabase } from "@/integrations/supabase/client";
 
 const funcaoColors: Record<FuncaoResponsavel, string> = {
   "Agente de Mercado PJ": "step-pj",
