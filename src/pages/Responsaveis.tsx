@@ -11,10 +11,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Mail, UserCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Mail, UserCircle, Loader2, Send } from "lucide-react";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
+import { supabase } from "@/integrations/supabase/client";
 
 const funcaoColors: Record<FuncaoResponsavel, string> = {
   "Agente de Mercado PJ": "step-pj",
@@ -37,6 +38,27 @@ const Responsaveis = () => {
   const { data: responsaveis = [], isLoading } = useResponsaveis();
   const addMutation = useAddResponsavel();
   const deleteMutation = useDeleteResponsavel();
+  const [sending, setSending] = useState(false);
+
+  const handleSendTestEmails = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email");
+      if (error) throw error;
+      const results = data?.results || [];
+      const ok = results.filter((r: any) => r.success).length;
+      const fail = results.filter((r: any) => !r.success).length;
+      toast({
+        title: `E-mails enviados: ${ok} sucesso, ${fail} falha(s)`,
+        description: results.map((r: any) => `${r.nome}: ${r.success ? "✅" : "❌"}`).join(" | "),
+        variant: fail > 0 ? "destructive" : "default",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar e-mails", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleAdd = () => {
     if (!nome || !email || !funcao) {
@@ -79,10 +101,11 @@ const Responsaveis = () => {
             <h1 className="text-2xl font-bold tracking-tight">Responsáveis</h1>
             <p className="text-muted-foreground">Cadastre as pessoas responsáveis por cada etapa do fluxo</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Cadastrar Responsável</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
@@ -113,6 +136,11 @@ const Responsaveis = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <Button variant="outline" onClick={handleSendTestEmails} disabled={sending}>
+            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Enviar E-mail Teste
+          </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
