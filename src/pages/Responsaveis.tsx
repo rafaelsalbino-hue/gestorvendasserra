@@ -38,6 +38,27 @@ const Responsaveis = () => {
   const { data: responsaveis = [], isLoading } = useResponsaveis();
   const addMutation = useAddResponsavel();
   const deleteMutation = useDeleteResponsavel();
+  const [sending, setSending] = useState(false);
+
+  const handleSendTestEmails = async () => {
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email");
+      if (error) throw error;
+      const results = data?.results || [];
+      const ok = results.filter((r: any) => r.success).length;
+      const fail = results.filter((r: any) => !r.success).length;
+      toast({
+        title: `E-mails enviados: ${ok} sucesso, ${fail} falha(s)`,
+        description: results.map((r: any) => `${r.nome}: ${r.success ? "✅" : "❌"}`).join(" | "),
+        variant: fail > 0 ? "destructive" : "default",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar e-mails", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const handleAdd = () => {
     if (!nome || !email || !funcao) {
