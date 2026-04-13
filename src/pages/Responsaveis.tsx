@@ -101,15 +101,11 @@ const Responsaveis = () => {
             <h1 className="text-2xl font-bold tracking-tight">Responsáveis</h1>
             <p className="text-muted-foreground">Cadastre as pessoas responsáveis por cada etapa do fluxo</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
-            </DialogTrigger>
-          </Dialog>
-          <Button variant="outline" onClick={handleSendTestEmails} disabled={sending}>
-            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Enviar E-mail Teste
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Cadastrar Responsável</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
