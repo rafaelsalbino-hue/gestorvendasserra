@@ -105,6 +105,11 @@ const Responsaveis = () => {
             <DialogTrigger asChild>
               <Button><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
             </DialogTrigger>
+          </Dialog>
+          <Button variant="outline" onClick={handleSendTestEmails} disabled={sending}>
+            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Enviar E-mail Teste
+          </Button>
             <DialogContent>
               <DialogHeader><DialogTitle>Cadastrar Responsável</DialogTitle></DialogHeader>
               <div className="space-y-4 py-4">
