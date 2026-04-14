@@ -6,7 +6,7 @@ type Contrato = Tables<"contratos">;
 type ContratoInsert = TablesInsert<"contratos">;
 type ContratoUpdate = TablesUpdate<"contratos">;
 
-export function useContratos(entidade?: "SESI" | "SENAI") {
+export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   return useQuery({
     queryKey: ["contratos", entidade],
     queryFn: async () => {

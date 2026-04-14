@@ -29,6 +29,8 @@ const funcaoColors: Record<FuncaoResponsavel, string> = {
   "Secretaria": "step-secretaria",
   "PCP": "step-pcp",
   "Analista Financeiro": "step-financeiro",
+  "Coordenador de Mercado": "step-pj",
+  "Analista Comercial": "step-pj",
 };
 
 const Responsaveis = () => {

@@ -143,6 +143,7 @@ const Contratos = () => {
           <TabsList>
             <TabsTrigger value="SESI">SESI Educação</TabsTrigger>
             <TabsTrigger value="SENAI">SENAI Ed. Profissional</TabsTrigger>
+            <TabsTrigger value="SESI Saúde">SESI Saúde</TabsTrigger>
           </TabsList>
 
           <div className="mt-4">
