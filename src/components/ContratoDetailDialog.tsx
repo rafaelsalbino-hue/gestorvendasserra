@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Save, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato } from "@/hooks/useContratos";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
+type FuncaoResponsavel = Tables<"responsaveis">["funcao"];
 
 interface ContratoDetailDialogProps {
   contrato: Contrato | null;
@@ -24,13 +27,45 @@ interface ContratoDetailDialogProps {
 
 const EMPTY = "__empty__";
 
-function StatusSelect({ label, value, options, onChange }: {
-  label: string; value: string; options: readonly string[]; onChange: (v: string) => void;
+// Map: which roles can edit which sections
+// "dados_basicos" = basic data + etapa selector
+// "proposta" = stage 1 fields
+// "rpc" = stage 2 fields
+// "execucao" = stage 3 fields
+// "matricula" = stage 4 fields
+// "ensalamento" = stage 5 fields
+// "faturamento" = stage 6 fields
+const ROLE_PERMISSIONS: Record<string, string[]> = {
+  "Agente de Mercado PJ": ["dados_basicos", "proposta"],
+  "Supervisor SESI": ["dados_basicos", "proposta"],
+  "Supervisor SENAI": ["dados_basicos", "proposta"],
+  "Backoffice Comercial": ["rpc", "execucao"],
+  "Secretaria": ["matricula"],
+  "PCP": ["ensalamento"],
+  "Analista Financeiro": ["faturamento"],
+};
+
+function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
+  if (!funcao) return false;
+  return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
+}
+
+function SectionLock({ locked }: { locked: boolean }) {
+  if (!locked) return null;
+  return (
+    <Badge variant="outline" className="text-xs gap-1 text-muted-foreground font-normal">
+      <Lock className="h-3 w-3" /> Somente leitura
+    </Badge>
+  );
+}
+
+function StatusSelect({ label, value, options, onChange, disabled }: {
+  label: string; value: string; options: readonly string[]; onChange: (v: string) => void; disabled?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
-      <Select value={value || EMPTY} onValueChange={(v) => onChange(v === EMPTY ? "" : v)}>
+      <Select value={value || EMPTY} onValueChange={(v) => onChange(v === EMPTY ? "" : v)} disabled={disabled}>
         <SelectTrigger className="h-9 text-xs">
           <SelectValue placeholder="Selecione..." />
         </SelectTrigger>
@@ -46,6 +81,7 @@ function StatusSelect({ label, value, options, onChange }: {
 export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoDetailDialogProps) {
   const { toast } = useToast();
   const updateMutation = useUpdateContrato();
+  const { currentUser } = useCurrentUser();
   const [form, setForm] = useState<Partial<Contrato>>({});
 
   useEffect(() => {
@@ -54,10 +90,21 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   if (!contrato) return null;
 
+  const funcao = currentUser?.funcao;
+  const canEdit = (section: string) => canEditSection(funcao, section);
+  const hasAnyPermission = funcao ? Object.values(ROLE_PERMISSIONS).some((sections) =>
+    ROLE_PERMISSIONS[funcao]?.length > 0
+  ) : false;
+
   const set = (field: keyof Contrato, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSave = async () => {
+    if (!currentUser) {
+      toast({ title: "Selecione seu perfil na barra lateral antes de salvar.", variant: "destructive" });
+      return;
+    }
+
     const etapaChanged = contrato.etapa_atual !== form.etapa_atual;
 
     updateMutation.mutate(
@@ -99,34 +146,43 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           </DialogTitle>
         </DialogHeader>
 
+        {!currentUser && (
+          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            ⚠️ Selecione seu perfil na barra lateral para poder editar os campos da sua responsabilidade.
+          </div>
+        )}
+
         <div className="space-y-6 py-2">
           {/* Dados básicos */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h3>
+              <SectionLock locked={!canEdit("dados_basicos")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Cliente</Label>
-                <Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">CNPJ</Label>
-                <Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Serviço / Produto</Label>
-                <Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Valor (R$)</Label>
-                <Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} />
+                <Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} disabled={!canEdit("dados_basicos")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">CRM</Label>
-                <Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Etapa Atual</Label>
-                <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)}>
+                <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}
@@ -138,72 +194,90 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
           {/* Etapa 1 - Proposta */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">1. Proposta / CRM</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">1. Proposta / CRM</h3>
+              <SectionLock locked={!canEdit("proposta")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} />
-              <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} />
+              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canEdit("proposta")} />
+              <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canEdit("proposta")} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
-              <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." />
+              <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
             </div>
           </div>
 
           {/* Etapa 2 - RPC */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. RPC / Execução</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. RPC / Execução</h3>
+              <SectionLock locked={!canEdit("rpc")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Nº RPC</Label>
-                <Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} />
               </div>
-              <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} />
+              <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canEdit("rpc")} />
             </div>
           </div>
 
           {/* Etapa 3 - Status RPC */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. Status RPC</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. Status RPC</h3>
+              <SectionLock locked={!canEdit("execucao")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatusSelect label="Status RPC" value={form.status_rpc || ""} options={STATUS_OPTIONS.status_rpc} onChange={(v) => set("status_rpc", v)} />
+              <StatusSelect label="Status RPC" value={form.status_rpc || ""} options={STATUS_OPTIONS.status_rpc} onChange={(v) => set("status_rpc", v)} disabled={!canEdit("execucao")} />
               <div className="space-y-1.5">
                 <Label className="text-xs">Aguardando terceiro: Observação</Label>
-                <Textarea className="text-sm min-h-[60px]" value={form.observacao_terceiro || ""} onChange={(e) => set("observacao_terceiro", e.target.value)} />
+                <Textarea className="text-sm min-h-[60px]" value={form.observacao_terceiro || ""} onChange={(e) => set("observacao_terceiro", e.target.value)} disabled={!canEdit("execucao")} />
               </div>
             </div>
           </div>
 
           {/* Etapa 4 - Matrícula */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">4. Matrícula / Dados</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">4. Matrícula / Dados</h3>
+              <SectionLock locked={!canEdit("matricula")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} />
-              <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} />
+              <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canEdit("matricula")} />
+              <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canEdit("matricula")} />
             </div>
           </div>
 
           {/* Etapa 5 - Ensalamento */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">5. Ensalamento</h3>
-            <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} />
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">5. Ensalamento</h3>
+              <SectionLock locked={!canEdit("ensalamento")} />
+            </div>
+            <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canEdit("ensalamento")} />
           </div>
 
           {/* Etapa 6 - Faturamento */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">6. Faturamento</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">6. Faturamento</h3>
+              <SectionLock locked={!canEdit("faturamento")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} />
+              <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} disabled={!canEdit("faturamento")} />
               <div className="space-y-1.5">
                 <Label className="text-xs">Nº Chamado</Label>
-                <Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} />
+                <Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} />
               </div>
             </div>
-            <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} />
+            <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
           </div>
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          <Button onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
             {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar Alterações
           </Button>
