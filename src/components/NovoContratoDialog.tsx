@@ -93,6 +93,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               <SelectContent>
                 <SelectItem value="SESI">SESI Educação</SelectItem>
                 <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
               </SelectContent>
             </Select>
           </div>
