@@ -1,4 +1,4 @@
-import { FileText, Users, LayoutDashboard, Building2 } from "lucide-react";
+import { FileText, Users, LayoutDashboard, Building2, UserCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -11,8 +11,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -24,6 +30,10 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const { data: responsaveis = [] } = useResponsaveis();
+  const { currentUser, setCurrentUser } = useCurrentUser();
+
+  const ativos = responsaveis.filter((r) => r.ativo);
 
   return (
     <Sidebar collapsible="icon">
@@ -69,6 +79,45 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        {!collapsed && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60">
+              <UserCircle className="h-4 w-4" />
+              <span>Acessando como:</span>
+            </div>
+            <Select
+              value={currentUser?.id || "__none__"}
+              onValueChange={(v) => {
+                if (v === "__none__") {
+                  setCurrentUser(null);
+                } else {
+                  const user = ativos.find((r) => r.id === v);
+                  if (user) setCurrentUser(user);
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Selecione seu nome..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Selecione —</SelectItem>
+                {ativos.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.nome} ({r.funcao})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {collapsed && currentUser && (
+          <div className="flex justify-center" title={`${currentUser.nome} (${currentUser.funcao})`}>
+            <UserCircle className="h-5 w-5 text-sidebar-primary" />
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
