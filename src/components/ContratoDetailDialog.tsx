@@ -1,18 +1,23 @@
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Lock } from "lucide-react";
+import { Loader2, Save, Lock, Trash2, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateContrato } from "@/hooks/useContratos";
+import { useUpdateContrato, useDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
+import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -27,14 +32,6 @@ interface ContratoDetailDialogProps {
 
 const EMPTY = "__empty__";
 
-// Map: which roles can edit which sections
-// "dados_basicos" = basic data + etapa selector
-// "proposta" = stage 1 fields
-// "rpc" = stage 2 fields
-// "execucao" = stage 3 fields
-// "matricula" = stage 4 fields
-// "ensalamento" = stage 5 fields
-// "faturamento" = stage 6 fields
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   "Agente de Mercado PJ": ["dados_basicos", "proposta"],
   "Supervisor SESI": ["dados_basicos", "proposta"],
@@ -66,9 +63,7 @@ function StatusSelect({ label, value, options, onChange, disabled }: {
     <div className="space-y-1.5">
       <Label className="text-xs font-medium">{label}</Label>
       <Select value={value || EMPTY} onValueChange={(v) => onChange(v === EMPTY ? "" : v)} disabled={disabled}>
-        <SelectTrigger className="h-9 text-xs">
-          <SelectValue placeholder="Selecione..." />
-        </SelectTrigger>
+        <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
         <SelectContent>
           <SelectItem value={EMPTY}>— Não definido —</SelectItem>
           {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -78,11 +73,25 @@ function StatusSelect({ label, value, options, onChange, disabled }: {
   );
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  cliente: "Cliente", cnpj: "CNPJ", servico_produto: "Serviço/Produto", valor: "Valor",
+  crm: "CRM", etapa_atual: "Etapa Atual", dados_proposta: "Dados Proposta",
+  status_proposta_crm: "Status Proposta CRM", planilha_info_gerais: "Planilha Info",
+  numero_rpc: "Nº RPC", info_execucao: "Info Execução", status_rpc: "Status RPC",
+  observacao_terceiro: "Observação", dados_estudantes: "Dados Estudantes",
+  cadastro_estudantes: "Cadastro Estudantes", ensalamento_pcp: "Ensalamento PCP",
+  abertura_chamado: "Abertura Chamado", numero_chamado: "Nº Chamado",
+  execucao_faturamento: "Execução Faturamento",
+};
+
 export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoDetailDialogProps) {
   const { toast } = useToast();
   const updateMutation = useUpdateContrato();
+  const deleteMutation = useDeleteContrato();
   const { currentUser } = useCurrentUser();
   const [form, setForm] = useState<Partial<Contrato>>({});
+  const [showHistory, setShowHistory] = useState(false);
+  const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
 
   useEffect(() => {
     if (contrato) setForm({ ...contrato });
@@ -92,12 +101,31 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const funcao = currentUser?.funcao;
   const canEdit = (section: string) => canEditSection(funcao, section);
-  const hasAnyPermission = funcao ? Object.values(ROLE_PERMISSIONS).some((sections) =>
-    ROLE_PERMISSIONS[funcao]?.length > 0
-  ) : false;
 
   const set = (field: keyof Contrato, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const logChanges = async (contratoId: string, original: Contrato, updated: Partial<Contrato>) => {
+    const changes: { contrato_id: string; campo: string; valor_anterior: string; valor_novo: string; usuario_nome: string; usuario_funcao: string }[] = [];
+    for (const key of Object.keys(updated) as (keyof Contrato)[]) {
+      if (key === "id" || key === "created_at" || key === "updated_at") continue;
+      const oldVal = String(original[key] ?? "");
+      const newVal = String(updated[key] ?? "");
+      if (oldVal !== newVal) {
+        changes.push({
+          contrato_id: contratoId,
+          campo: FIELD_LABELS[key] || key,
+          valor_anterior: oldVal,
+          valor_novo: newVal,
+          usuario_nome: currentUser?.nome || "Desconhecido",
+          usuario_funcao: currentUser?.funcao || "",
+        });
+      }
+    }
+    if (changes.length > 0) {
+      await supabase.from("contratos_historico").insert(changes);
+    }
+  };
 
   const handleSave = async () => {
     if (!currentUser) {
@@ -111,6 +139,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
       { id: contrato.id, ...form },
       {
         onSuccess: async () => {
+          await logChanges(contrato.id, contrato, form);
           toast({ title: "Contrato atualizado!" });
 
           if (etapaChanged && form.etapa_atual) {
@@ -123,17 +152,23 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   etapa_anterior: contrato.etapa_atual,
                 },
               });
-              toast({ title: "Notificação enviada", description: "Os responsáveis da nova etapa foram notificados por e-mail." });
-            } catch {
-              toast({ title: "Aviso", description: "Contrato atualizado, mas falha ao notificar responsáveis.", variant: "destructive" });
-            }
+            } catch { /* silent */ }
           }
-
           onOpenChange(false);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
+  };
+
+  const handleDelete = () => {
+    deleteMutation.mutate(contrato.id, {
+      onSuccess: () => {
+        toast({ title: "Contrato excluído!" });
+        onOpenChange(false);
+      },
+      onError: (e) => toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
+    });
   };
 
   return (
@@ -144,6 +179,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             {form.cliente}
             <span className="text-xs font-normal text-muted-foreground">({form.entidade})</span>
           </DialogTitle>
+          <DialogDescription>Gerencie os detalhes e etapas deste contrato</DialogDescription>
         </DialogHeader>
 
         {!currentUser && (
@@ -160,33 +196,16 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("dados_basicos")} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Cliente</Label>
-                <Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">CNPJ</Label>
-                <Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Serviço / Produto</Label>
-                <Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor (R$)</Label>
-                <Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} disabled={!canEdit("dados_basicos")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">CRM</Label>
-                <Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} />
-              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Cliente</Label><Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Serviço / Produto</Label><Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Valor (R$)</Label><Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">CRM</Label><Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Etapa Atual</Label>
                 <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -215,10 +234,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("rpc")} />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nº RPC</Label>
-                <Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} />
-              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Nº RPC</Label><Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} /></div>
               <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canEdit("rpc")} />
             </div>
           </div>
@@ -267,16 +283,66 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </div>
             <div className="grid grid-cols-2 gap-3">
               <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} disabled={!canEdit("faturamento")} />
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nº Chamado</Label>
-                <Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} />
-              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
             <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
           </div>
+
+          {/* Histórico */}
+          <div className="space-y-3">
+            <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+              <History className="mr-2 h-4 w-4" />
+              {showHistory ? "Ocultar Histórico" : "Ver Histórico de Alterações"}
+            </Button>
+            {showHistory && (
+              <div className="border rounded-md max-h-48 overflow-y-auto">
+                {historico.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhuma alteração registrada</p>
+                ) : (
+                  <div className="divide-y">
+                    {historico.map((h) => (
+                      <div key={h.id} className="p-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="font-medium">{h.campo}</span>
+                          <span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                        </div>
+                        <div className="text-muted-foreground mt-0.5">
+                          <span className="line-through">{h.valor_anterior || "—"}</span> → <span className="text-foreground">{h.valor_novo || "—"}</span>
+                        </div>
+                        <div className="text-muted-foreground">{h.usuario_nome} ({h.usuario_funcao})</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-between pt-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="mr-2 h-4 w-4" />Excluir Contrato
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é irreversível. O contrato "{contrato.cliente}" será excluído permanentemente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Button onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
             {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar Alterações
