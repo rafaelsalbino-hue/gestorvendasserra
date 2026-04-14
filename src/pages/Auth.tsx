@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 
 const Auth = () => {
   const { toast } = useToast();
@@ -19,6 +21,7 @@ const Auth = () => {
   const [signupNome, setSignupNome] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupFuncao, setSignupFuncao] = useState<FuncaoResponsavel | "">("");
 
   const handleLogin = async () => {
     if (!loginEmail || !loginPassword) {
@@ -37,13 +40,13 @@ const Auth = () => {
   };
 
   const handleSignup = async () => {
-    if (!signupEmail || !signupPassword || !signupNome) {
+    if (!signupEmail || !signupPassword || !signupNome || !signupFuncao) {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
       return;
     }
     setLoading(true);
     try {
-      await signUp(signupEmail, signupPassword, signupNome);
+      await signUp(signupEmail, signupPassword, signupNome, signupFuncao);
       toast({ title: "Conta criada!", description: "Você já pode fazer login." });
     } catch (e: any) {
       toast({ title: "Erro ao criar conta", description: e.message, variant: "destructive" });
@@ -96,6 +99,17 @@ const Auth = () => {
               <div className="space-y-2">
                 <Label>Senha</Label>
                 <Input type="password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Função</Label>
+                <Select value={signupFuncao} onValueChange={(v) => setSignupFuncao(v as FuncaoResponsavel)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione sua função" /></SelectTrigger>
+                  <SelectContent>
+                    {FUNCOES_RESPONSAVEL.map((f) => (
+                      <SelectItem key={f} value={f}>{f}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button className="w-full" onClick={handleSignup} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
