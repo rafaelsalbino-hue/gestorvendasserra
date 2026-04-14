@@ -209,7 +209,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      entidade_type: "SESI" | "SENAI"
+      entidade_type: "SESI" | "SENAI" | "SESI Saúde"
       etapa_contrato:
         | "proposta"
         | "rpc"
@@ -225,6 +225,8 @@ export type Database = {
         | "Secretaria"
         | "PCP"
         | "Analista Financeiro"
+        | "Coordenador de Mercado"
+        | "Analista Comercial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -352,7 +354,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      entidade_type: ["SESI", "SENAI"],
+      entidade_type: ["SESI", "SENAI", "SESI Saúde"],
       etapa_contrato: [
         "proposta",
         "rpc",
@@ -369,6 +371,8 @@ export const Constants = {
         "Secretaria",
         "PCP",
         "Analista Financeiro",
+        "Coordenador de Mercado",
+        "Analista Comercial",
       ],
     },
   },
