@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato } from "@/hooks/useContratos";
+import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
