@@ -1,4 +1,4 @@
-export type Entidade = "SESI" | "SENAI";
+export type Entidade = "SESI" | "SENAI" | "SESI Saúde";
 
 export type FuncaoResponsavel =
   | "Agente de Mercado PJ"
@@ -7,7 +7,9 @@ export type FuncaoResponsavel =
   | "Backoffice Comercial"
   | "Secretaria"
   | "PCP"
-  | "Analista Financeiro";
+  | "Analista Financeiro"
+  | "Coordenador de Mercado"
+  | "Analista Comercial";
 
 export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Agente de Mercado PJ",
@@ -17,6 +19,14 @@ export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Secretaria",
   "PCP",
   "Analista Financeiro",
+  "Coordenador de Mercado",
+  "Analista Comercial",
+];
+
+// Funções com papel de Gestor (acesso total)
+export const FUNCOES_GESTOR: FuncaoResponsavel[] = [
+  "Coordenador de Mercado",
+  "Analista Comercial",
 ];
 
 export type EtapaContrato =

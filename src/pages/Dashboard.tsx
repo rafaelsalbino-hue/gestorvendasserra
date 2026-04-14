@@ -15,6 +15,7 @@ const Dashboard = () => {
 
   const sesiCount = contratos.filter((c) => c.entidade === "SESI").length;
   const senaiCount = contratos.filter((c) => c.entidade === "SENAI").length;
+  const sesiSaudeCount = contratos.filter((c) => c.entidade === "SESI Saúde").length;
   const emAndamento = contratos.filter((c) => c.etapa_atual !== "faturamento").length;
 
   const isLoading = loadC || loadR;
@@ -25,8 +26,9 @@ const Dashboard = () => {
   }));
 
   const entidadeChartData = [
-    { name: "SESI", value: sesiCount },
+    { name: "SESI Educação", value: sesiCount },
     { name: "SENAI", value: senaiCount },
+    { name: "SESI Saúde", value: sesiSaudeCount },
   ].filter((d) => d.value > 0);
 
   const valorPorEtapa = ETAPAS.map((e) => ({
@@ -41,7 +43,7 @@ const Dashboard = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral dos contratos firmados — Educação SESI/SENAI</p>
+          <p className="text-muted-foreground text-sm">Visão geral dos contratos — SESI/SENAI</p>
         </div>
 
         {isLoading ? (
@@ -56,7 +58,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl md:text-3xl font-bold">{contratos.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">SESI: {sesiCount} | SENAI: {senaiCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">SESI: {sesiCount} | SENAI: {senaiCount} | Saúde: {sesiSaudeCount}</p>
                 </CardContent>
               </Card>
               <Card>
