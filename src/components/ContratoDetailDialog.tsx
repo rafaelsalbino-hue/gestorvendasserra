@@ -57,12 +57,31 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const set = (field: keyof Contrato, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const etapaChanged = contrato.etapa_atual !== form.etapa_atual;
+
     updateMutation.mutate(
       { id: contrato.id, ...form },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           toast({ title: "Contrato atualizado!" });
+
+          if (etapaChanged && form.etapa_atual) {
+            try {
+              await supabase.functions.invoke("notify-stage-change", {
+                body: {
+                  cliente: form.cliente || contrato.cliente,
+                  entidade: form.entidade || contrato.entidade,
+                  nova_etapa: form.etapa_atual,
+                  etapa_anterior: contrato.etapa_atual,
+                },
+              });
+              toast({ title: "Notificação enviada", description: "Os responsáveis da nova etapa foram notificados por e-mail." });
+            } catch {
+              toast({ title: "Aviso", description: "Contrato atualizado, mas falha ao notificar responsáveis.", variant: "destructive" });
+            }
+          }
+
           onOpenChange(false);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
