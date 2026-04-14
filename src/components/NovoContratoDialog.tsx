@@ -1,5 +1,5 @@
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { type Entidade } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useAddContrato } from "@/hooks/useContratos";
+import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 
 interface NovoContratoDialogProps {
   open: boolean;
@@ -28,12 +29,27 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [valor, setValor] = useState("");
   const [crm, setCrm] = useState("");
   const [dadosProposta, setDadosProposta] = useState("");
+  const [cnpjError, setCnpjError] = useState("");
 
   useEffect(() => { setEntidade(entidadeInicial); }, [entidadeInicial]);
 
+  const handleCnpjChange = (value: string) => {
+    const formatted = formatarCNPJ(value);
+    setCnpj(formatted);
+    if (formatted.replace(/[^\d]/g, "").length === 14) {
+      setCnpjError(validarCNPJ(formatted) ? "" : "CNPJ inválido");
+    } else {
+      setCnpjError("");
+    }
+  };
+
   const handleSubmit = () => {
-    if (!cliente || !cnpj) {
-      toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
+    if (!cliente) {
+      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+      return;
+    }
+    if (cnpj && !validarCNPJ(cnpj)) {
+      toast({ title: "CNPJ inválido", description: "Verifique os dígitos do CNPJ.", variant: "destructive" });
       return;
     }
     addMutation.mutate(
@@ -59,13 +75,16 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   const resetForm = () => {
     setEntidade(entidadeInicial);
-    setCliente(""); setCnpj(""); setServico(""); setValor(""); setCrm(""); setDadosProposta("");
+    setCliente(""); setCnpj(""); setServico(""); setValor(""); setCrm(""); setDadosProposta(""); setCnpjError("");
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Novo Contrato</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Novo Contrato</DialogTitle>
+          <DialogDescription>Preencha os dados para criar um novo contrato</DialogDescription>
+        </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Entidade *</Label>
@@ -83,8 +102,9 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               <Input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nome do cliente" />
             </div>
             <div className="space-y-2">
-              <Label>CNPJ *</Label>
-              <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+              <Label>CNPJ</Label>
+              <Input value={cnpj} onChange={(e) => handleCnpjChange(e.target.value)} placeholder="00.000.000/0000-00" className={cnpjError ? "border-destructive" : ""} />
+              {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

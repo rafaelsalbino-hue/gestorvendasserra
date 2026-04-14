@@ -92,6 +92,82 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos_historico: {
+        Row: {
+          campo: string
+          contrato_id: string
+          created_at: string
+          id: string
+          usuario_funcao: string | null
+          usuario_nome: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          campo: string
+          contrato_id: string
+          created_at?: string
+          id?: string
+          usuario_funcao?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          campo?: string
+          contrato_id?: string
+          created_at?: string
+          id?: string
+          usuario_funcao?: string | null
+          usuario_nome?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_historico_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          responsavel_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome?: string
+          responsavel_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          responsavel_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       responsaveis: {
         Row: {
           ativo: boolean
@@ -101,6 +177,7 @@ export type Database = {
           id: string
           nome: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -110,6 +187,7 @@ export type Database = {
           id?: string
           nome: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -119,6 +197,7 @@ export type Database = {
           id?: string
           nome?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
