@@ -5,9 +5,8 @@ import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { Badge } from "@/components/ui/badge";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -21,11 +20,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { data: responsaveis = [] } = useResponsaveis();
-  const { currentUser, setCurrentUser } = useCurrentUser();
+  const { currentUser } = useCurrentUser();
   const { user, signOut } = useAuth();
-
-  const ativos = responsaveis.filter((r) => r.ativo);
 
   return (
     <Sidebar collapsible="icon">
@@ -66,32 +62,15 @@ export function AppSidebar() {
       <SidebarFooter className="p-3 space-y-2">
         {!collapsed && (
           <>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60">
-                <UserCircle className="h-4 w-4" />
-                <span>Acessando como:</span>
+            {currentUser && (
+              <div className="flex items-center gap-2 rounded-md border p-2">
+                <UserCircle className="h-5 w-5 shrink-0 text-sidebar-primary" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{currentUser.nome}</p>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{currentUser.funcao}</Badge>
+                </div>
               </div>
-              <Select
-                value={currentUser?.id || "__none__"}
-                onValueChange={(v) => {
-                  if (v === "__none__") setCurrentUser(null);
-                  else {
-                    const u = ativos.find((r) => r.id === v);
-                    if (u) setCurrentUser(u);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Selecione seu nome..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— Selecione —</SelectItem>
-                  {ativos.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.nome} ({r.funcao})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            )}
             {user && (
               <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground" onClick={signOut}>
                 <LogOut className="mr-2 h-3.5 w-3.5" />

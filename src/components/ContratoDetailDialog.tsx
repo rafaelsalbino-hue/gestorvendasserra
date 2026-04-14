@@ -32,6 +32,8 @@ interface ContratoDetailDialogProps {
 
 const EMPTY = "__empty__";
 
+import { FUNCOES_GESTOR } from "@/types/contracts";
+
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   "Agente de Mercado PJ": ["dados_basicos", "proposta"],
   "Supervisor SESI": ["dados_basicos", "proposta"],
@@ -44,6 +46,8 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
   if (!funcao) return false;
+  // Gestores (Coordenador de Mercado, Analista Comercial) podem editar tudo
+  if (FUNCOES_GESTOR.includes(funcao as any)) return true;
   return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
 }
 
@@ -129,7 +133,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const handleSave = async () => {
     if (!currentUser) {
-      toast({ title: "Selecione seu perfil na barra lateral antes de salvar.", variant: "destructive" });
+      toast({ title: "Seu perfil não foi encontrado. Faça login novamente.", variant: "destructive" });
       return;
     }
 
