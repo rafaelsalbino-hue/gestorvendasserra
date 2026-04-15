@@ -11,9 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Lock, Trash2, History } from "lucide-react";
+import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { STATUS_OPTIONS, ETAPAS, type EtapaContrato } from "@/types/contracts";
+import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -32,21 +32,22 @@ interface ContratoDetailDialogProps {
 
 const EMPTY = "__empty__";
 
-import { FUNCOES_GESTOR } from "@/types/contracts";
+const CRM_URL = "https://login.microsoftonline.com/2cf7d4d5-bd1b-4956-acf8-2995399b2168/oauth2/authorize?client_id=00000007-0000-0000-c000-000000000000&response_type=code%20id_token&scope=openid%20profile&state=OpenIdConnect.AuthenticationProperties%3DMAAAAIEpeTMuSxHxr8FgRb08lMT3Xi58qOpIvRZZ0vE0ka48uuHXR3QEhd9TAUTDwgvLjAEAAAABAAAACS5yZWRpcmVjdCNodHRwczovL2NybWZpZXNjLmNybTIuZHluYW1pY3MuY29tLw%26ReplyUrl%3DMAAAAIEpeTMuSxHxr8FgRb08lMRgdKbh7xVAYV6A3Vq26X7RVg8uv%252fEYG9Hhq40LK6r4EWh0dHBzOi8vY3BxLS1zYW1jcm1saXZlc2c2MDEuY3JtMi5keW5hbWljcy5jb20v%26RedirectTo%3DMAAAAIEpeTMuSxHxr8FgRb08lMRxY3CH9WBJtRsLZBpWxqcjfV906sB0lZP1JmBe%252fK9%252blWh0dHBzOi8vY3JtZmllc2MuY3JtMi5keW5hbWljcy5jb20v%26RedirectToForMcas%3Dhttps%253a%252f%252fcrmfiesc.crm2.dynamics.com%252f&response_mode=form_post&nonce=639118501407298283.OGFiNzc4MmUtOGYxNy00Zjk1LTg4ZDAtM2Y2ZjkxNGZhYjMwYjJhOTZmODctZTczNS00ZjAxLTk5YWQtOWRmMzQ5ZDBiNWEw&redirect_uri=https%3A%2F%2Fcpq--samcrmlivesg601.crm2.dynamics.com%2F&max_age=86400&claims=%7B%22id_token%22%3A%7B%22xms_cc%22%3A%7B%22values%22%3A%5B%22CP1%22%5D%7D%7D%7D&x-client-SKU=ID_NET472&x-client-ver=8.14.0.0";
+const SGN_URL = "https://sgn.sesisenai.org.br/login.html";
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  "Agente de Mercado PJ": ["dados_basicos", "proposta"],
+  "Agente de Mercado PJ": ["dados_basicos", "proposta", "rpc", "execucao"],
   "Supervisor SESI": ["dados_basicos", "proposta"],
   "Supervisor SENAI": ["dados_basicos", "proposta"],
-  "Backoffice Comercial": ["rpc", "execucao"],
+  "Backoffice Comercial": ["dados_basicos", "proposta", "rpc", "execucao", "matricula"],
   "Secretaria": ["matricula"],
   "PCP": ["ensalamento"],
   "Analista Financeiro": ["faturamento"],
+  "Interlocutora de Faturamento": ["faturamento"],
 };
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
   if (!funcao) return false;
-  // Gestores (Coordenador de Mercado, Analista Comercial) podem editar tudo
   if (FUNCOES_GESTOR.includes(funcao as any)) return true;
   return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
 }
@@ -88,6 +89,13 @@ const FIELD_LABELS: Record<string, string> = {
   execucao_faturamento: "Execução Faturamento",
 };
 
+const ETAPA_ORDER: EtapaContrato[] = ["proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"];
+
+function getNextEtapa(current: EtapaContrato): EtapaContrato | null {
+  const idx = ETAPA_ORDER.indexOf(current);
+  return idx >= 0 && idx < ETAPA_ORDER.length - 1 ? ETAPA_ORDER[idx + 1] : null;
+}
+
 export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoDetailDialogProps) {
   const { toast } = useToast();
   const updateMutation = useUpdateContrato();
@@ -105,6 +113,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const funcao = currentUser?.funcao;
   const canEdit = (section: string) => canEditSection(funcao, section);
+  const isLastEtapa = form.etapa_atual === "faturamento";
+  const nextEtapa = form.etapa_atual ? getNextEtapa(form.etapa_atual as EtapaContrato) : null;
 
   const set = (field: keyof Contrato, value: string | number) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -131,28 +141,29 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
     }
   };
 
-  const handleSave = async () => {
+  const doSave = async (extraUpdates?: Partial<Contrato>) => {
     if (!currentUser) {
       toast({ title: "Seu perfil não foi encontrado. Faça login novamente.", variant: "destructive" });
       return;
     }
 
-    const etapaChanged = contrato.etapa_atual !== form.etapa_atual;
+    const finalForm = { ...form, ...extraUpdates };
+    const etapaChanged = contrato.etapa_atual !== finalForm.etapa_atual;
 
     updateMutation.mutate(
-      { id: contrato.id, ...form },
+      { id: contrato.id, ...finalForm },
       {
         onSuccess: async () => {
-          await logChanges(contrato.id, contrato, form);
+          await logChanges(contrato.id, contrato, finalForm);
           toast({ title: "Contrato atualizado!" });
 
-          if (etapaChanged && form.etapa_atual) {
+          if (etapaChanged && finalForm.etapa_atual) {
             try {
               await supabase.functions.invoke("notify-stage-change", {
                 body: {
-                  cliente: form.cliente || contrato.cliente,
-                  entidade: form.entidade || contrato.entidade,
-                  nova_etapa: form.etapa_atual,
+                  cliente: finalForm.cliente || contrato.cliente,
+                  entidade: finalForm.entidade || contrato.entidade,
+                  nova_etapa: finalForm.etapa_atual,
                   etapa_anterior: contrato.etapa_atual,
                 },
               });
@@ -163,6 +174,18 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
     );
+  };
+
+  const handleSave = () => doSave();
+
+  const handleSaveAndNext = () => {
+    if (nextEtapa) {
+      doSave({ etapa_atual: nextEtapa });
+    }
+  };
+
+  const handleFinalize = () => {
+    doSave({ execucao_faturamento: "Faturado" });
   };
 
   const handleDelete = () => {
@@ -186,9 +209,23 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           <DialogDescription>Gerencie os detalhes e etapas deste contrato</DialogDescription>
         </DialogHeader>
 
+        {/* External links */}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={CRM_URL} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />CRM 365
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href={SGN_URL} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" />SGN
+            </a>
+          </Button>
+        </div>
+
         {!currentUser && (
           <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-            ⚠️ Selecione seu perfil na barra lateral para poder editar os campos da sua responsabilidade.
+            ⚠️ Faça login novamente para poder editar os campos da sua responsabilidade.
           </div>
         )}
 
@@ -323,11 +360,11 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           </div>
         </div>
 
-        <div className="flex justify-between pt-2">
+        <div className="flex flex-wrap justify-between gap-2 pt-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" />Excluir Contrato
+                <Trash2 className="mr-2 h-4 w-4" />Excluir
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
@@ -347,10 +384,24 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
-            {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Salvar Alterações
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
+              {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar
+            </Button>
+            {!isLastEtapa && nextEtapa && (
+              <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser}>
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Salvar e Seguir
+              </Button>
+            )}
+            {isLastEtapa && canEdit("faturamento") && (
+              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="bg-green-600 hover:bg-green-700">
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Finalizar
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

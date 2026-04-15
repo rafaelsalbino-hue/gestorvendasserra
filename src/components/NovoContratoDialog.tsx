@@ -19,6 +19,22 @@ interface NovoContratoDialogProps {
   entidadeInicial?: Entidade;
 }
 
+function formatCurrency(value: string): string {
+  // Remove tudo exceto dígitos
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  // Converte para centavos e formata
+  const cents = parseInt(digits, 10);
+  const reais = cents / 100;
+  return reais.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseCurrency(formatted: string): number {
+  // Remove pontos de milhar e converte vírgula em ponto
+  const clean = formatted.replace(/\./g, "").replace(",", ".");
+  return parseFloat(clean) || 0;
+}
+
 export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
   const addMutation = useAddContrato();
@@ -26,7 +42,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [cliente, setCliente] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [servico, setServico] = useState("");
-  const [valor, setValor] = useState("");
+  const [valorDisplay, setValorDisplay] = useState("");
   const [crm, setCrm] = useState("");
   const [dadosProposta, setDadosProposta] = useState("");
   const [cnpjError, setCnpjError] = useState("");
@@ -41,6 +57,11 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
     } else {
       setCnpjError("");
     }
+  };
+
+  const handleValorChange = (value: string) => {
+    const formatted = formatCurrency(value);
+    setValorDisplay(formatted);
   };
 
   const handleSubmit = () => {
@@ -58,7 +79,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         cliente,
         cnpj,
         servico_produto: servico,
-        valor: valor ? parseFloat(valor.replace(",", ".")) : 0,
+        valor: parseCurrency(valorDisplay),
         crm,
         dados_proposta: dadosProposta,
       },
@@ -75,7 +96,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   const resetForm = () => {
     setEntidade(entidadeInicial);
-    setCliente(""); setCnpj(""); setServico(""); setValor(""); setCrm(""); setDadosProposta(""); setCnpjError("");
+    setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError("");
   };
 
   return (
@@ -115,7 +136,15 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
             </div>
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
-              <Input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" type="text" />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                <Input
+                  value={valorDisplay}
+                  onChange={(e) => handleValorChange(e.target.value)}
+                  placeholder="0,00"
+                  className="pl-10"
+                />
+              </div>
             </div>
           </div>
           <div className="space-y-2">
