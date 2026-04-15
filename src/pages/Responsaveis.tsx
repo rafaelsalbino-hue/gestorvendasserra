@@ -11,17 +11,16 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Mail, UserCircle, Loader2, Send, Pencil } from "lucide-react";
+import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil } from "lucide-react";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
 import { useUpdateResponsavel } from "@/hooks/useUpdateResponsavel";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Responsavel = Tables<"responsaveis">;
 
-const funcaoColors: Record<FuncaoResponsavel, string> = {
+const funcaoColors: Record<string, string> = {
   "Agente de Mercado PJ": "step-pj",
   "Supervisor SESI": "step-supervisor",
   "Supervisor SENAI": "step-supervisor",
@@ -31,6 +30,8 @@ const funcaoColors: Record<FuncaoResponsavel, string> = {
   "Analista Financeiro": "step-financeiro",
   "Coordenador de Mercado": "step-pj",
   "Analista Comercial": "step-pj",
+  "Gerente Regional": "step-pj",
+  "Interlocutora de Faturamento": "step-financeiro",
 };
 
 const Responsaveis = () => {
@@ -51,27 +52,6 @@ const Responsaveis = () => {
   const addMutation = useAddResponsavel();
   const deleteMutation = useDeleteResponsavel();
   const updateMutation = useUpdateResponsavel();
-  const [sending, setSending] = useState(false);
-
-  const handleSendTestEmails = async () => {
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-test-email");
-      if (error) throw error;
-      const results = data?.results || [];
-      const ok = results.filter((r: any) => r.success).length;
-      const fail = results.filter((r: any) => !r.success).length;
-      toast({
-        title: `E-mails enviados: ${ok} sucesso, ${fail} falha(s)`,
-        description: results.map((r: any) => `${r.nome}: ${r.success ? "✅" : "❌"}`).join(" | "),
-        variant: fail > 0 ? "destructive" : "default",
-      });
-    } catch (e: any) {
-      toast({ title: "Erro ao enviar e-mails", description: e.message, variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
-  };
 
   const handleAdd = () => {
     if (!nome || !email || !funcao) {
@@ -95,7 +75,7 @@ const Responsaveis = () => {
     setEditingResp(resp);
     setEditNome(resp.nome);
     setEditEmail(resp.email);
-    setEditFuncao(resp.funcao);
+    setEditFuncao(resp.funcao as FuncaoResponsavel);
     setEditDialogOpen(true);
   };
 
@@ -140,49 +120,43 @@ const Responsaveis = () => {
             <h1 className="text-xl md:text-2xl font-bold tracking-tight">Responsáveis</h1>
             <p className="text-muted-foreground text-sm">Cadastre as pessoas responsáveis por cada etapa do fluxo</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Cadastrar Responsável</DialogTitle>
-                  <DialogDescription>Preencha os dados do novo responsável</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Nome</Label>
-                    <Input placeholder="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>E-mail</Label>
-                    <Input type="email" placeholder="email@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Função</Label>
-                    <Select value={funcao} onValueChange={(v) => setFuncao(v as FuncaoResponsavel)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
-                      <SelectContent>
-                        {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cadastrar Responsável</DialogTitle>
+                <DialogDescription>Preencha os dados do novo responsável</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input placeholder="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} />
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleAdd} disabled={addMutation.isPending}>
-                    {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Cadastrar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button variant="outline" size="sm" onClick={handleSendTestEmails} disabled={sending}>
-              {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Enviar E-mail Teste
-            </Button>
-          </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input type="email" placeholder="email@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Função</Label>
+                  <Select value={funcao} onValueChange={(v) => setFuncao(v as FuncaoResponsavel)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
+                    <SelectContent>
+                      {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleAdd} disabled={addMutation.isPending}>
+                  {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Cadastrar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="flex items-center gap-3">
@@ -205,7 +179,7 @@ const Responsaveis = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{funcaoKey}</CardTitle>
-                    <Badge className={funcaoColors[funcaoKey] + " text-xs"}>{grouped[funcaoKey]?.length || 0}</Badge>
+                    <Badge className={(funcaoColors[funcaoKey] || "") + " text-xs"}>{grouped[funcaoKey]?.length || 0}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>

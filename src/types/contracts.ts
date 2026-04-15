@@ -9,7 +9,9 @@ export type FuncaoResponsavel =
   | "PCP"
   | "Analista Financeiro"
   | "Coordenador de Mercado"
-  | "Analista Comercial";
+  | "Analista Comercial"
+  | "Gerente Regional"
+  | "Interlocutora de Faturamento";
 
 export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Agente de Mercado PJ",
@@ -21,6 +23,8 @@ export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Analista Financeiro",
   "Coordenador de Mercado",
   "Analista Comercial",
+  "Gerente Regional",
+  "Interlocutora de Faturamento",
 ];
 
 // Funções com papel de Gestor (acesso total)
@@ -53,7 +57,7 @@ export const ETAPAS: EtapaInfo[] = [
   { id: "faturamento", label: "Faturamento", responsavel: "Analista Financeiro", colorClass: "step-financeiro" },
 ];
 
-// Status options per field, extracted from the spreadsheet validations
+// Status options per field
 export const STATUS_OPTIONS = {
   dados_proposta: ["Aguardando", "Dados entregues"],
   status_proposta_crm: [
@@ -83,6 +87,8 @@ export const STATUS_OPTIONS = {
     "Faturado",
   ],
 } as const;
+
+export const ALLOWED_DOMAINS = ["sc.senai.br", "fiesc.com.br", "sesisc.org.br"];
 
 export interface Contrato {
   id: string;

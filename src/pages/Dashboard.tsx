@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, TrendingUp, Clock, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { FileText, Users, TrendingUp, Loader2 } from "lucide-react";
 import { ETAPAS } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
@@ -12,17 +15,31 @@ const COLORS = ["#2563eb", "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316"
 const Dashboard = () => {
   const { data: contratos = [], isLoading: loadC } = useContratos();
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
-
-  const sesiCount = contratos.filter((c) => c.entidade === "SESI").length;
-  const senaiCount = contratos.filter((c) => c.entidade === "SENAI").length;
-  const sesiSaudeCount = contratos.filter((c) => c.entidade === "SESI Saúde").length;
-  const emAndamento = contratos.filter((c) => c.etapa_atual !== "faturamento").length;
+  const [filterEntidade, setFilterEntidade] = useState<string>("todas");
+  const [filterPJ, setFilterPJ] = useState<string>("todos");
 
   const isLoading = loadC || loadR;
 
+  // Filter by entity
+  const filteredByEntidade = filterEntidade === "todas"
+    ? contratos
+    : contratos.filter((c) => c.entidade === filterEntidade);
+
+  // Get PJ agents for filter dropdown
+  const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
+
+  // For PJ filter we'd need a relationship between contratos and responsaveis
+  // For now we filter by matching the agent name in related fields or show all
+  const filtered = filteredByEntidade;
+
+  const sesiCount = filtered.filter((c) => c.entidade === "SESI").length;
+  const senaiCount = filtered.filter((c) => c.entidade === "SENAI").length;
+  const sesiSaudeCount = filtered.filter((c) => c.entidade === "SESI Saúde").length;
+  const emAndamento = filtered.filter((c) => c.etapa_atual !== "faturamento").length;
+
   const etapaChartData = ETAPAS.map((e) => ({
     name: e.label,
-    quantidade: contratos.filter((c) => c.etapa_atual === e.id).length,
+    quantidade: filtered.filter((c) => c.etapa_atual === e.id).length,
   }));
 
   const entidadeChartData = [
@@ -33,10 +50,10 @@ const Dashboard = () => {
 
   const valorPorEtapa = ETAPAS.map((e) => ({
     name: e.label,
-    valor: contratos.filter((c) => c.etapa_atual === e.id).reduce((sum, c) => sum + c.valor, 0),
+    valor: filtered.filter((c) => c.etapa_atual === e.id).reduce((sum, c) => sum + c.valor, 0),
   }));
 
-  const valorTotal = contratos.reduce((sum, c) => sum + c.valor, 0);
+  const valorTotal = filtered.reduce((sum, c) => sum + c.valor, 0);
 
   return (
     <AppLayout>
@@ -44,6 +61,34 @@ const Dashboard = () => {
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground text-sm">Visão geral dos contratos — SESI/SENAI</p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 items-end p-3 bg-muted/50 rounded-lg">
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-muted-foreground">Entidade</Label>
+            <Select value={filterEntidade} onValueChange={setFilterEntidade}>
+              <SelectTrigger className="w-52 h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as Entidades</SelectItem>
+                <SelectItem value="SESI">SESI Educação</SelectItem>
+                <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-muted-foreground">Agente PJ</Label>
+            <Select value={filterPJ} onValueChange={setFilterPJ}>
+              <SelectTrigger className="w-52 h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Agentes</SelectItem>
+                {agentesPJ.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {isLoading ? (
@@ -57,7 +102,7 @@ const Dashboard = () => {
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{contratos.length}</div>
+                  <div className="text-2xl md:text-3xl font-bold">{filtered.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">SESI: {sesiCount} | SENAI: {senaiCount} | Saúde: {sesiSaudeCount}</p>
                 </CardContent>
               </Card>
@@ -148,7 +193,7 @@ const Dashboard = () => {
                     <div key={etapa.id} className="flex items-center gap-2">
                       <Badge className={etapa.colorClass + " text-xs"}>{etapa.label}</Badge>
                       <span className="text-sm text-muted-foreground">{etapa.responsavel}</span>
-                      <span className="text-lg font-semibold">{contratos.filter((c) => c.etapa_atual === etapa.id).length}</span>
+                      <span className="text-lg font-semibold">{filtered.filter((c) => c.etapa_atual === etapa.id).length}</span>
                     </div>
                   ))}
                 </div>

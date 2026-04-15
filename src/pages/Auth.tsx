@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
+import { FUNCOES_RESPONSAVEL, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
 
 const Auth = () => {
   const { toast } = useToast();
@@ -22,6 +22,11 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFuncao, setSignupFuncao] = useState<FuncaoResponsavel | "">("");
+
+  const validateDomain = (email: string) => {
+    const domain = email.split("@")[1]?.toLowerCase();
+    return ALLOWED_DOMAINS.includes(domain);
+  };
 
   const handleLogin = async () => {
     if (!loginEmail || !loginPassword) {
@@ -44,10 +49,18 @@ const Auth = () => {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
       return;
     }
+    if (!validateDomain(signupEmail)) {
+      toast({
+        title: "Domínio não permitido",
+        description: `Apenas e-mails dos domínios ${ALLOWED_DOMAINS.join(", ")} são aceitos.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       await signUp(signupEmail, signupPassword, signupNome, signupFuncao);
-      toast({ title: "Conta criada!", description: "Você já pode fazer login." });
+      toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar o cadastro." });
     } catch (e: any) {
       toast({ title: "Erro ao criar conta", description: e.message, variant: "destructive" });
     } finally {
@@ -94,7 +107,8 @@ const Auth = () => {
               </div>
               <div className="space-y-2">
                 <Label>E-mail</Label>
-                <Input type="email" placeholder="seu@email.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                <Input type="email" placeholder="seu@empresa.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Domínios aceitos: {ALLOWED_DOMAINS.join(", ")}</p>
               </div>
               <div className="space-y-2">
                 <Label>Senha</Label>
