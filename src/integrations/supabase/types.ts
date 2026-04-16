@@ -14,9 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      contrato_comentarios: {
+        Row: {
+          autor_funcao: string
+          autor_nome: string
+          contrato_id: string
+          created_at: string
+          id: string
+          texto: string
+        }
+        Insert: {
+          autor_funcao?: string
+          autor_nome?: string
+          contrato_id: string
+          created_at?: string
+          id?: string
+          texto: string
+        }
+        Update: {
+          autor_funcao?: string
+          autor_nome?: string
+          contrato_id?: string
+          created_at?: string
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_comentarios_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contratos: {
         Row: {
           abertura_chamado: string
+          agente_pj_id: string | null
           cadastro_estudantes: string
           cliente: string
           cnpj: string
@@ -27,6 +63,7 @@ export type Database = {
           ensalamento_pcp: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual: Database["public"]["Enums"]["etapa_contrato"]
+          etapa_updated_at: string
           execucao_faturamento: string
           id: string
           info_execucao: string
@@ -42,6 +79,7 @@ export type Database = {
         }
         Insert: {
           abertura_chamado?: string
+          agente_pj_id?: string | null
           cadastro_estudantes?: string
           cliente: string
           cnpj?: string
@@ -52,6 +90,7 @@ export type Database = {
           ensalamento_pcp?: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
+          etapa_updated_at?: string
           execucao_faturamento?: string
           id?: string
           info_execucao?: string
@@ -67,6 +106,7 @@ export type Database = {
         }
         Update: {
           abertura_chamado?: string
+          agente_pj_id?: string | null
           cadastro_estudantes?: string
           cliente?: string
           cnpj?: string
@@ -77,6 +117,7 @@ export type Database = {
           ensalamento_pcp?: string
           entidade?: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
+          etapa_updated_at?: string
           execucao_faturamento?: string
           id?: string
           info_execucao?: string
@@ -90,7 +131,15 @@ export type Database = {
           updated_at?: string
           valor?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contratos_agente_pj_id_fkey"
+            columns: ["agente_pj_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contratos_historico: {
         Row: {
