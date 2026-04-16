@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { type Entidade } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useAddContrato } from "@/hooks/useContratos";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 
 interface NovoContratoDialogProps {
@@ -38,6 +39,7 @@ function parseCurrency(formatted: string): number {
 export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
   const addMutation = useAddContrato();
+  const { data: responsaveis = [] } = useResponsaveis();
   const [entidade, setEntidade] = useState<Entidade>(entidadeInicial);
   const [cliente, setCliente] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -46,6 +48,9 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [crm, setCrm] = useState("");
   const [dadosProposta, setDadosProposta] = useState("");
   const [cnpjError, setCnpjError] = useState("");
+  const [agentePjId, setAgentePjId] = useState<string>("");
+
+  const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
   useEffect(() => { setEntidade(entidadeInicial); }, [entidadeInicial]);
 
