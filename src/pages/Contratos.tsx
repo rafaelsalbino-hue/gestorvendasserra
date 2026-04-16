@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Loader2, Download, Filter, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ETAPAS, type Entidade, STATUS_OPTIONS } from "@/types/contracts";
+import { SlaIndicator } from "@/components/SlaIndicator";
 import { NovoContratoDialog } from "@/components/NovoContratoDialog";
 import { ContratoDetailDialog } from "@/components/ContratoDetailDialog";
 import { useContratos, useUpdateContrato } from "@/hooks/useContratos";
@@ -59,6 +60,9 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
           <p className="text-xs font-semibold text-primary">
             R$ {contrato.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
+        )}
+        {(contrato as any).etapa_updated_at && (
+          <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} compact />
         )}
       </div>
     </div>
