@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Contratos from "./pages/Contratos";
 import Responsaveis from "./pages/Responsaveis";
 import EditarConta from "./pages/EditarConta";
+import ResetPassword from "./pages/ResetPassword";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
             <Route path="/responsaveis" element={<ProtectedRoute><Responsaveis /></ProtectedRoute>} />

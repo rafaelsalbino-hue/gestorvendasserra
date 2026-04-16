@@ -11,13 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
+import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -101,9 +104,15 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const updateMutation = useUpdateContrato();
   const deleteMutation = useDeleteContrato();
   const { currentUser } = useCurrentUser();
+  const { data: responsaveis = [] } = useResponsaveis();
   const [form, setForm] = useState<Partial<Contrato>>({});
   const [showHistory, setShowHistory] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
+  const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
+  const addComentario = useAddComentario();
+  const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
   useEffect(() => {
     if (contrato) setForm({ ...contrato });
@@ -205,6 +214,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           <DialogTitle className="flex items-center gap-2">
             {form.cliente}
             <span className="text-xs font-normal text-muted-foreground">({form.entidade})</span>
+            {(contrato as any).etapa_updated_at && (
+              <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} />
+            )}
           </DialogTitle>
           <DialogDescription>Gerencie os detalhes e etapas deste contrato</DialogDescription>
         </DialogHeader>
@@ -247,6 +259,16 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Agente PJ Responsável</Label>
+                <Select value={(form as any).agente_pj_id || "__none__"} onValueChange={(v) => setForm(prev => ({ ...prev, agente_pj_id: v === "__none__" ? null : v }))} disabled={!canEdit("dados_basicos")}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Não definido —</SelectItem>
+                    {agentesPJ.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -327,6 +349,73 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
             <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
+          </div>
+
+          {/* Comentários */}
+          <div className="space-y-3">
+            <Button variant="outline" size="sm" onClick={() => setShowComments(!showComments)}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {showComments ? "Ocultar Comentários" : "Comentários"}
+              {comentarios.length > 0 && <Badge variant="secondary" className="ml-2 text-[10px]">{comentarios.length}</Badge>}
+            </Button>
+            {showComments && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Escreva um comentário..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && commentText.trim()) {
+                        addComentario.mutate({
+                          contrato_id: contrato.id,
+                          texto: commentText.trim(),
+                          autor_nome: currentUser?.nome || "Desconhecido",
+                          autor_funcao: currentUser?.funcao || "",
+                        });
+                        setCommentText("");
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!commentText.trim() || addComentario.isPending}
+                    onClick={() => {
+                      if (commentText.trim()) {
+                        addComentario.mutate({
+                          contrato_id: contrato.id,
+                          texto: commentText.trim(),
+                          autor_nome: currentUser?.nome || "Desconhecido",
+                          autor_funcao: currentUser?.funcao || "",
+                        });
+                        setCommentText("");
+                      }
+                    }}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {comentarios.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum comentário ainda</p>
+                  ) : (
+                    <div className="divide-y">
+                      {comentarios.map((c) => (
+                        <div key={c.id} className="p-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{c.autor_nome} <span className="text-muted-foreground font-normal">({c.autor_funcao})</span></span>
+                            <span className="text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                          </div>
+                          <p className="mt-0.5">{c.texto}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Histórico */}

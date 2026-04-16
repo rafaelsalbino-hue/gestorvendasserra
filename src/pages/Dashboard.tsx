@@ -4,13 +4,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Users, TrendingUp, Loader2 } from "lucide-react";
+import { FileText, Users, TrendingUp, Loader2, Clock, AlertTriangle } from "lucide-react";
 import { ETAPAS } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useContratosHistorico } from "@/hooks/useContratosHistorico";
+import { SlaIndicator } from "@/components/SlaIndicator";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const COLORS = ["#2563eb", "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316"];
+
+// Helpers
+function getDaysInStage(etapaUpdatedAt: string): number {
+  const updated = new Date(etapaUpdatedAt);
+  const now = new Date();
+  return Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return "Agora há pouco";
+  if (hours < 24) return `${hours}h atrás`;
+  const days = Math.floor(hours / 24);
+  return `${days}d atrás`;
+}
 
 const Dashboard = () => {
   const { data: contratos = [], isLoading: loadC } = useContratos();
@@ -28,9 +46,10 @@ const Dashboard = () => {
   // Get PJ agents for filter dropdown
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
-  // For PJ filter we'd need a relationship between contratos and responsaveis
-  // For now we filter by matching the agent name in related fields or show all
-  const filtered = filteredByEntidade;
+  // Filter by PJ agent (uses agente_pj_id field)
+  const filtered = filterPJ === "todos"
+    ? filteredByEntidade
+    : filteredByEntidade.filter((c) => (c as any).agente_pj_id === filterPJ);
 
   const sesiCount = filtered.filter((c) => c.entidade === "SESI").length;
   const senaiCount = filtered.filter((c) => c.entidade === "SENAI").length;
@@ -54,6 +73,18 @@ const Dashboard = () => {
   }));
 
   const valorTotal = filtered.reduce((sum, c) => sum + c.valor, 0);
+
+  // SLA - contratos parados há mais de 5 dias
+  const contratosAtrasados = filtered
+    .filter((c) => c.etapa_atual !== "faturamento" && (c as any).etapa_updated_at)
+    .filter((c) => getDaysInStage((c as any).etapa_updated_at) > 5)
+    .sort((a, b) => getDaysInStage((b as any).etapa_updated_at) - getDaysInStage((a as any).etapa_updated_at))
+    .slice(0, 8);
+
+  // Activity feed - recent changes (last updated contracts)
+  const recentActivity = [...filtered]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 6);
 
   return (
     <AppLayout>
@@ -138,6 +169,35 @@ const Dashboard = () => {
               </Card>
             </div>
 
+            {/* SLA Alert */}
+            {contratosAtrasados.length > 0 && (
+              <Card className="border-destructive/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    Contratos com Atenção ({contratosAtrasados.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {contratosAtrasados.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{c.cliente}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ETAPAS.find((e) => e.id === c.etapa_atual)?.label} · {c.entidade}
+                          </p>
+                        </div>
+                        {(c as any).etapa_updated_at && (
+                          <SlaIndicator etapaUpdatedAt={(c as any).etapa_updated_at} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader><CardTitle className="text-base">Contratos por Etapa</CardTitle></CardHeader>
@@ -171,19 +231,46 @@ const Dashboard = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">Valor (R$) por Etapa</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={valorPorEtapa}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-                    <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Valor (R$) por Etapa</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={valorPorEtapa}>
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
+                      <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+                      <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Activity Feed */}
+              <Card>
+                <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />Atividade Recente</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {recentActivity.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade recente</p>
+                    ) : (
+                      recentActivity.map((c) => (
+                        <div key={c.id} className="flex items-start gap-3 text-sm">
+                          <div className="h-2 w-2 mt-1.5 rounded-full bg-primary shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{c.cliente}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {ETAPAS.find((e) => e.id === c.etapa_atual)?.label} · {c.entidade}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(c.updated_at)}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             <Card>
               <CardHeader><CardTitle className="text-base">Pipeline de Etapas</CardTitle></CardHeader>

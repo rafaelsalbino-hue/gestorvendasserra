@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +100,32 @@ const Auth = () => {
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Entrar
               </Button>
+              <div className="text-center">
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={async () => {
+                    if (!loginEmail) {
+                      toast({ title: "Digite seu e-mail para recuperar a senha", variant: "destructive" });
+                      return;
+                    }
+                    setLoading(true);
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      if (error) throw error;
+                      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+                    } catch (e: any) {
+                      toast({ title: "Erro", description: e.message, variant: "destructive" });
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </TabsContent>
             <TabsContent value="signup" className="space-y-4 pt-4">
               <div className="space-y-2">

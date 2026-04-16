@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { type Entidade } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useAddContrato } from "@/hooks/useContratos";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 
 interface NovoContratoDialogProps {
@@ -38,6 +39,7 @@ function parseCurrency(formatted: string): number {
 export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
   const addMutation = useAddContrato();
+  const { data: responsaveis = [] } = useResponsaveis();
   const [entidade, setEntidade] = useState<Entidade>(entidadeInicial);
   const [cliente, setCliente] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -46,6 +48,9 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [crm, setCrm] = useState("");
   const [dadosProposta, setDadosProposta] = useState("");
   const [cnpjError, setCnpjError] = useState("");
+  const [agentePjId, setAgentePjId] = useState<string>("");
+
+  const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
   useEffect(() => { setEntidade(entidadeInicial); }, [entidadeInicial]);
 
@@ -82,7 +87,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         valor: parseCurrency(valorDisplay),
         crm,
         dados_proposta: dadosProposta,
-      },
+        agente_pj_id: agentePjId || null,
+      } as any,
       {
         onSuccess: () => {
           toast({ title: `Contrato ${entidade} criado com sucesso!` });
@@ -96,7 +102,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   const resetForm = () => {
     setEntidade(entidadeInicial);
-    setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError("");
+    setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError(""); setAgentePjId("");
   };
 
   return (
@@ -150,6 +156,16 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           <div className="space-y-2">
             <Label>CRM</Label>
             <Input value={crm} onChange={(e) => setCrm(e.target.value)} placeholder="Número do CRM" />
+          </div>
+          <div className="space-y-2">
+            <Label>Agente PJ Responsável</Label>
+            <Select value={agentePjId || "__none__"} onValueChange={(v) => setAgentePjId(v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o agente..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Não definido —</SelectItem>
+                {agentesPJ.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Dados para a Proposta</Label>
