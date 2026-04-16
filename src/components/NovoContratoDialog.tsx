@@ -87,7 +87,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         valor: parseCurrency(valorDisplay),
         crm,
         dados_proposta: dadosProposta,
-      },
+        agente_pj_id: agentePjId || null,
+      } as any,
       {
         onSuccess: () => {
           toast({ title: `Contrato ${entidade} criado com sucesso!` });
@@ -101,7 +102,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   const resetForm = () => {
     setEntidade(entidadeInicial);
-    setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError("");
+    setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError(""); setAgentePjId("");
   };
 
   return (
