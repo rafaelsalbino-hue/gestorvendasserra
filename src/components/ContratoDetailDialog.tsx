@@ -351,6 +351,73 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
           </div>
 
+          {/* Comentários */}
+          <div className="space-y-3">
+            <Button variant="outline" size="sm" onClick={() => setShowComments(!showComments)}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {showComments ? "Ocultar Comentários" : "Comentários"}
+              {comentarios.length > 0 && <Badge variant="secondary" className="ml-2 text-[10px]">{comentarios.length}</Badge>}
+            </Button>
+            {showComments && (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Escreva um comentário..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && commentText.trim()) {
+                        addComentario.mutate({
+                          contrato_id: contrato.id,
+                          texto: commentText.trim(),
+                          autor_nome: currentUser?.nome || "Desconhecido",
+                          autor_funcao: currentUser?.funcao || "",
+                        });
+                        setCommentText("");
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!commentText.trim() || addComentario.isPending}
+                    onClick={() => {
+                      if (commentText.trim()) {
+                        addComentario.mutate({
+                          contrato_id: contrato.id,
+                          texto: commentText.trim(),
+                          autor_nome: currentUser?.nome || "Desconhecido",
+                          autor_funcao: currentUser?.funcao || "",
+                        });
+                        setCommentText("");
+                      }
+                    }}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {comentarios.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum comentário ainda</p>
+                  ) : (
+                    <div className="divide-y">
+                      {comentarios.map((c) => (
+                        <div key={c.id} className="p-2 text-xs">
+                          <div className="flex justify-between">
+                            <span className="font-medium">{c.autor_nome} <span className="text-muted-foreground font-normal">({c.autor_funcao})</span></span>
+                            <span className="text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                          </div>
+                          <p className="mt-0.5">{c.texto}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Histórico */}
           <div className="space-y-3">
             <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
