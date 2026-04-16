@@ -13,7 +13,15 @@ import EditarConta from "./pages/EditarConta";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 min cache
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
