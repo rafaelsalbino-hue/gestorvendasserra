@@ -158,6 +158,16 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
             <Input value={crm} onChange={(e) => setCrm(e.target.value)} placeholder="Número do CRM" />
           </div>
           <div className="space-y-2">
+            <Label>Agente PJ Responsável</Label>
+            <Select value={agentePjId || "__none__"} onValueChange={(v) => setAgentePjId(v === "__none__" ? "" : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione o agente..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Não definido —</SelectItem>
+                {agentesPJ.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Dados para a Proposta</Label>
             <Textarea value={dadosProposta} onChange={(e) => setDadosProposta(e.target.value)} placeholder="Informações adicionais..." rows={3} />
           </div>
