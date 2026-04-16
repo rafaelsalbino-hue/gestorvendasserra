@@ -16,6 +16,7 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
       if (error) throw error;
       return data as Contrato[];
     },
+    staleTime: 1000 * 60 * 2,
   });
 }
 

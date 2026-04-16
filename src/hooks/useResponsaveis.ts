@@ -16,6 +16,7 @@ export function useResponsaveis() {
       if (error) throw error;
       return data as Responsavel[];
     },
+    staleTime: 1000 * 60 * 5,
   });
 }
 
