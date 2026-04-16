@@ -104,9 +104,15 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const updateMutation = useUpdateContrato();
   const deleteMutation = useDeleteContrato();
   const { currentUser } = useCurrentUser();
+  const { data: responsaveis = [] } = useResponsaveis();
   const [form, setForm] = useState<Partial<Contrato>>({});
   const [showHistory, setShowHistory] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
+  const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
+  const addComentario = useAddComentario();
+  const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
   useEffect(() => {
     if (contrato) setForm({ ...contrato });
