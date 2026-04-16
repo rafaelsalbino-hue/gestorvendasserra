@@ -214,6 +214,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           <DialogTitle className="flex items-center gap-2">
             {form.cliente}
             <span className="text-xs font-normal text-muted-foreground">({form.entidade})</span>
+            {(contrato as any).etapa_updated_at && (
+              <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} />
+            )}
           </DialogTitle>
           <DialogDescription>Gerencie os detalhes e etapas deste contrato</DialogDescription>
         </DialogHeader>
@@ -256,6 +259,16 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Agente PJ Responsável</Label>
+                <Select value={(form as any).agente_pj_id || "__none__"} onValueChange={(v) => setForm(prev => ({ ...prev, agente_pj_id: v === "__none__" ? null : v }))} disabled={!canEdit("dados_basicos")}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Não definido —</SelectItem>
+                    {agentesPJ.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
