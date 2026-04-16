@@ -11,13 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
+import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
