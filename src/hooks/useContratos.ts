@@ -28,7 +28,15 @@ export function useAddContrato() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contratos"] }),
+    onSuccess: (novo) => {
+      // Atualização otimista: insere o novo contrato no cache sem refetch
+      qc.setQueriesData<Contrato[]>({ queryKey: ["contratos"] }, (old) => {
+        if (!old) return [novo as Contrato];
+        return [novo as Contrato, ...old];
+      });
+      // Invalida em background (não bloqueia o isPending do botão)
+      qc.invalidateQueries({ queryKey: ["contratos"], refetchType: "none" });
+    },
   });
 }
 
@@ -40,7 +48,13 @@ export function useUpdateContrato() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contratos"] }),
+    onSuccess: (atualizado) => {
+      qc.setQueriesData<Contrato[]>({ queryKey: ["contratos"] }, (old) => {
+        if (!old) return old;
+        return old.map((c) => (c.id === (atualizado as Contrato).id ? (atualizado as Contrato) : c));
+      });
+      qc.invalidateQueries({ queryKey: ["contratos"], refetchType: "none" });
+    },
   });
 }
 
@@ -50,7 +64,14 @@ export function useDeleteContrato() {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("contratos").delete().eq("id", id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["contratos"] }),
+    onSuccess: (id) => {
+      qc.setQueriesData<Contrato[]>({ queryKey: ["contratos"] }, (old) => {
+        if (!old) return old;
+        return old.filter((c) => c.id !== id);
+      });
+      qc.invalidateQueries({ queryKey: ["contratos"], refetchType: "none" });
+    },
   });
 }
