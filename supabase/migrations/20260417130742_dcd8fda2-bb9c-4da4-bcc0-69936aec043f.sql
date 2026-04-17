@@ -1,0 +1,1 @@
+DELETE FROM public.contratos WHERE cliente = '__perf_test__';
