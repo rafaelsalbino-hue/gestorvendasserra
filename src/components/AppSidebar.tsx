@@ -61,7 +61,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2">
-        {!collapsed && (
+        {!collapsed ? (
           <>
             {currentUser && (
               <div className="flex items-center gap-2 rounded-md border p-2">
@@ -73,16 +73,39 @@ export function AppSidebar() {
               </div>
             )}
             {user && (
-              <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground" onClick={signOut}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                onClick={signOut}
+              >
                 <LogOut className="mr-2 h-3.5 w-3.5" />
                 Sair ({user.email?.split("@")[0]})
               </Button>
             )}
           </>
-        )}
-        {collapsed && currentUser && (
-          <div className="flex justify-center" title={`${currentUser.nome} (${currentUser.funcao})`}>
-            <UserCircle className="h-5 w-5 text-sidebar-primary" />
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            {currentUser && (
+              <div
+                className="flex h-8 w-8 items-center justify-center"
+                title={`${currentUser.nome} (${currentUser.funcao})`}
+              >
+                <UserCircle className="h-5 w-5 text-sidebar-primary" />
+              </div>
+            )}
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                onClick={signOut}
+                title={`Sair (${user.email})`}
+                aria-label="Sair"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </SidebarFooter>
