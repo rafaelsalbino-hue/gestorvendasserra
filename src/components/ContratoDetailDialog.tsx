@@ -163,22 +163,25 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
       { id: contrato.id, ...finalForm },
       {
         onSuccess: async () => {
-          await logChanges(contrato.id, contrato, finalForm);
+          // Fecha imediatamente — não bloqueia a UI
           toast({ title: "Contrato atualizado!" });
+          onOpenChange(false);
+
+          // Histórico e e-mail rodam em background (fire-and-forget)
+          logChanges(contrato.id, contrato, finalForm).catch(() => {});
 
           if (etapaChanged && finalForm.etapa_atual) {
-            try {
-              await supabase.functions.invoke("notify-stage-change", {
+            supabase.functions
+              .invoke("notify-stage-change", {
                 body: {
                   cliente: finalForm.cliente || contrato.cliente,
                   entidade: finalForm.entidade || contrato.entidade,
                   nova_etapa: finalForm.etapa_atual,
                   etapa_anterior: contrato.etapa_atual,
                 },
-              });
-            } catch { /* silent */ }
+              })
+              .catch(() => {});
           }
-          onOpenChange(false);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
