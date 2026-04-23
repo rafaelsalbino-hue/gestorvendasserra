@@ -456,10 +456,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-between gap-2 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-between gap-2 pt-2 sticky bottom-0 bg-background pb-1 -mx-1 px-1">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
+              <Button variant="destructive" size="sm" className="w-full sm:w-auto">
                 <Trash2 className="mr-2 h-4 w-4" />Excluir
               </Button>
             </AlertDialogTrigger>
@@ -480,19 +480,19 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </AlertDialogContent>
           </AlertDialog>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:flex-1 sm:justify-end">
+            <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
               {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar
             </Button>
             {!isLastEtapa && nextEtapa && (
-              <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser}>
+              <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
                 <ArrowRight className="mr-2 h-4 w-4" />
                 Salvar e Seguir
               </Button>
             )}
             {isLastEtapa && canEdit("faturamento") && (
-              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Finalizar
               </Button>
