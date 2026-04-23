@@ -22,7 +22,7 @@ export function GlobalSearch() {
     : [];
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -30,7 +30,7 @@ export function GlobalSearch() {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
-          className="pl-8 pr-8 h-9 w-64 text-sm"
+          className="pl-8 pr-8 h-9 w-full sm:w-64 text-sm"
         />
         {query && (
           <button onClick={() => { setQuery(""); setOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
