@@ -124,7 +124,7 @@ const Responsaveis = () => {
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Responsável</DialogTitle>
                 <DialogDescription>Preencha os dados do novo responsável</DialogDescription>
@@ -148,9 +148,9 @@ const Responsaveis = () => {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleAdd} disabled={addMutation.isPending}>
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
+                <Button onClick={handleAdd} disabled={addMutation.isPending} className="w-full sm:w-auto">
                   {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Cadastrar
                 </Button>
@@ -159,10 +159,10 @@ const Responsaveis = () => {
           </Dialog>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <Label className="text-sm">Filtrar por função:</Label>
           <Select value={filterFuncao} onValueChange={setFilterFuncao}>
-            <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-64"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as funções</SelectItem>
               {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
@@ -218,7 +218,7 @@ const Responsaveis = () => {
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Responsável</DialogTitle>
               <DialogDescription>Altere os dados do responsável</DialogDescription>
@@ -242,9 +242,9 @@ const Responsaveis = () => {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSaveEdit} disabled={updateMutation.isPending}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
+              <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} className="w-full sm:w-auto">
                 {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar
               </Button>

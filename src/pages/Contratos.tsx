@@ -144,42 +144,44 @@ const Contratos = () => {
         </div>
 
         <Tabs value={entidade} onValueChange={(v) => setEntidade(v as Entidade)}>
-          <TabsList>
-            <TabsTrigger value="SESI">SESI Educação</TabsTrigger>
-            <TabsTrigger value="SENAI">SENAI Ed. Profissional</TabsTrigger>
-            <TabsTrigger value="SESI Saúde">SESI Saúde</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="w-max">
+              <TabsTrigger value="SESI" className="text-xs sm:text-sm">SESI Educação</TabsTrigger>
+              <TabsTrigger value="SENAI" className="text-xs sm:text-sm">SENAI Ed. Profissional</TabsTrigger>
+              <TabsTrigger value="SESI Saúde" className="text-xs sm:text-sm">SESI Saúde</TabsTrigger>
+            </TabsList>
+          </div>
 
           <div className="mt-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative w-full sm:flex-1 sm:max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por cliente, CNPJ..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="w-full sm:w-auto">
                 <Filter className="mr-2 h-4 w-4" />{showFilters ? "Ocultar Filtros" : "Filtros"}
               </Button>
             </div>
 
             {showFilters && (
               <div className="flex flex-wrap gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-[140px]">
                   <label className="text-xs font-medium text-muted-foreground">Status</label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
                       {uniqueStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-[100px]">
                   <label className="text-xs font-medium text-muted-foreground">Valor mín.</label>
-                  <Input className="w-28 h-8 text-xs" type="number" placeholder="0" value={filterValorMin} onChange={(e) => setFilterValorMin(e.target.value)} />
+                  <Input className="w-full sm:w-28 h-8 text-xs" type="number" placeholder="0" value={filterValorMin} onChange={(e) => setFilterValorMin(e.target.value)} />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 flex-1 min-w-[100px]">
                   <label className="text-xs font-medium text-muted-foreground">Valor máx.</label>
-                  <Input className="w-28 h-8 text-xs" type="number" placeholder="999999" value={filterValorMax} onChange={(e) => setFilterValorMax(e.target.value)} />
+                  <Input className="w-full sm:w-28 h-8 text-xs" type="number" placeholder="999999" value={filterValorMax} onChange={(e) => setFilterValorMax(e.target.value)} />
                 </div>
                 <div className="flex items-end">
                   <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); }}>

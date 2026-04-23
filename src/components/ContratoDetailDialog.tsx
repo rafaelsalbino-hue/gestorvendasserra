@@ -213,10 +213,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {form.cliente}
+          <DialogTitle className="flex items-center gap-2 flex-wrap text-base sm:text-lg">
+            <span className="break-words">{form.cliente}</span>
             <span className="text-xs font-normal text-muted-foreground">({form.entidade})</span>
             {(contrato as any).etapa_updated_at && (
               <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} />
@@ -252,7 +252,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Dados Básicos</h3>
               <SectionLock locked={!canEdit("dados_basicos")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Cliente</Label><Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Serviço / Produto</Label><Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
@@ -284,7 +284,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">1. Proposta / CRM</h3>
               <SectionLock locked={!canEdit("proposta")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canEdit("proposta")} />
               <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canEdit("proposta")} />
             </div>
@@ -303,7 +303,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. RPC / Execução</h3>
               <SectionLock locked={!canEdit("rpc")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Nº RPC</Label><Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} /></div>
               <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canEdit("rpc")} />
             </div>
@@ -315,7 +315,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. Status RPC</h3>
               <SectionLock locked={!canEdit("execucao")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <StatusSelect label="Status RPC" value={form.status_rpc || ""} options={STATUS_OPTIONS.status_rpc} onChange={(v) => set("status_rpc", v)} disabled={!canEdit("execucao")} />
               <div className="space-y-1.5">
                 <Label className="text-xs">Aguardando terceiro: Observação</Label>
@@ -330,7 +330,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">4. Matrícula / Dados</h3>
               <SectionLock locked={!canEdit("matricula")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canEdit("matricula")} />
               <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canEdit("matricula")} />
             </div>
@@ -351,7 +351,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">6. Faturamento</h3>
               <SectionLock locked={!canEdit("faturamento")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} disabled={!canEdit("faturamento")} />
               <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
@@ -456,10 +456,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-between gap-2 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-between gap-2 pt-2 sticky bottom-0 bg-background pb-1 -mx-1 px-1">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
+              <Button variant="destructive" size="sm" className="w-full sm:w-auto">
                 <Trash2 className="mr-2 h-4 w-4" />Excluir
               </Button>
             </AlertDialogTrigger>
@@ -480,19 +480,19 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </AlertDialogContent>
           </AlertDialog>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:flex-1 sm:justify-end">
+            <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
               {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar
             </Button>
             {!isLastEtapa && nextEtapa && (
-              <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser}>
+              <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
                 <ArrowRight className="mr-2 h-4 w-4" />
                 Salvar e Seguir
               </Button>
             )}
             {isLastEtapa && canEdit("faturamento") && (
-              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 Finalizar
               </Button>
