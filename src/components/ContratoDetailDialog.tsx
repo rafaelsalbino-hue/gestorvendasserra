@@ -22,6 +22,7 @@ import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoCom
 import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
+import { ContratoAnexos } from "@/components/ContratoAnexos";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
@@ -292,6 +293,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
             </div>
           </div>
+
+          {/* Anexos da Proposta */}
+          <ContratoAnexos contratoId={contrato.id} />
 
           {/* Etapa 2 - RPC */}
           <div className="space-y-3">
