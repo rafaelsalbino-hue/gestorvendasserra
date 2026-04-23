@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      contrato_anexos: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          file_name: string
+          file_size: number
+          id: string
+          mime_type: string
+          storage_path: string
+          uploaded_by: string | null
+          uploader_nome: string
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          storage_path: string
+          uploaded_by?: string | null
+          uploader_nome?: string
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          uploaded_by?: string | null
+          uploader_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contrato_anexos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contrato_comentarios: {
         Row: {
           autor_funcao: string

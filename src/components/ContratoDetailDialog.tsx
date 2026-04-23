@@ -22,6 +22,7 @@ import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoCom
 import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
+import { ContratoAnexos } from "@/components/ContratoAnexos";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
@@ -163,22 +164,25 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
       { id: contrato.id, ...finalForm },
       {
         onSuccess: async () => {
-          await logChanges(contrato.id, contrato, finalForm);
+          // Fecha imediatamente — não bloqueia a UI
           toast({ title: "Contrato atualizado!" });
+          onOpenChange(false);
+
+          // Histórico e e-mail rodam em background (fire-and-forget)
+          logChanges(contrato.id, contrato, finalForm).catch(() => {});
 
           if (etapaChanged && finalForm.etapa_atual) {
-            try {
-              await supabase.functions.invoke("notify-stage-change", {
+            supabase.functions
+              .invoke("notify-stage-change", {
                 body: {
                   cliente: finalForm.cliente || contrato.cliente,
                   entidade: finalForm.entidade || contrato.entidade,
                   nova_etapa: finalForm.etapa_atual,
                   etapa_anterior: contrato.etapa_atual,
                 },
-              });
-            } catch { /* silent */ }
+              })
+              .catch(() => {});
           }
-          onOpenChange(false);
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
       }
@@ -289,6 +293,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
             </div>
           </div>
+
+          {/* Anexos da Proposta */}
+          <ContratoAnexos contratoId={contrato.id} />
 
           {/* Etapa 2 - RPC */}
           <div className="space-y-3">
