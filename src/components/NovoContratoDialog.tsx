@@ -107,7 +107,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Contrato</DialogTitle>
           <DialogDescription>Preencha os dados para criar um novo contrato</DialogDescription>
@@ -124,7 +124,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
               <Input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nome do cliente" />
@@ -135,7 +135,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Serviço / Produto</Label>
               <Input value={servico} onChange={(e) => setServico(e.target.value)} placeholder="Descrição do serviço" />
@@ -172,9 +172,9 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
             <Textarea value={dadosProposta} onChange={(e) => setDadosProposta(e.target.value)} placeholder="Informações adicionais..." rows={3} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={addMutation.isPending}>
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={addMutation.isPending} className="w-full sm:w-auto">
             {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Criar Contrato
           </Button>

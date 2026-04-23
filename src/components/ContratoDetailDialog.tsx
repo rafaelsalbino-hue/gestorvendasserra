@@ -213,10 +213,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {form.cliente}
+          <DialogTitle className="flex items-center gap-2 flex-wrap text-base sm:text-lg">
+            <span className="break-words">{form.cliente}</span>
             <span className="text-xs font-normal text-muted-foreground">({form.entidade})</span>
             {(contrato as any).etapa_updated_at && (
               <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} />
