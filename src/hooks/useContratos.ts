@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
@@ -7,7 +8,8 @@ type ContratoInsert = TablesInsert<"contratos">;
 type ContratoUpdate = TablesUpdate<"contratos">;
 
 export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
-  return useQuery({
+  const qc = useQueryClient();
+  const query = useQuery({
     queryKey: ["contratos", entidade],
     queryFn: async () => {
       let q = supabase.from("contratos").select("*").order("created_at", { ascending: false });
@@ -18,6 +20,25 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
     },
     staleTime: 1000 * 60 * 2,
   });
+
+  // REALTIME: invalida o cache quando outro usuário cria/edita/exclui contratos
+  useEffect(() => {
+    const channel = supabase
+      .channel("contratos-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "contratos" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["contratos"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
+  return query;
 }
 
 export function useAddContrato() {

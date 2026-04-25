@@ -33,9 +33,13 @@ export function useUploadAnexo() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Sanitiza nome do arquivo
+      // Sanitiza nome e usa UUID para evitar colisões em uploads simultâneos
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-      const path = `${contratoId}/${Date.now()}_${safeName}`;
+      const uniqueId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const path = `${contratoId}/${uniqueId}_${safeName}`;
 
       const { error: upErr } = await supabase.storage
         .from("contratos-anexos")
