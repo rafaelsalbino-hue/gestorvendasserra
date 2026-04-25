@@ -160,8 +160,35 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
     const finalForm = { ...form, ...extraUpdates };
     const etapaChanged = contrato.etapa_atual !== finalForm.etapa_atual;
 
+    // CONCURRENT SAFETY: enviar apenas os campos que realmente mudaram
+    // (evita sobrescrever alterações simultâneas de outros usuários)
+    const SKIP_FIELDS = new Set(["id", "created_at", "updated_at", "etapa_updated_at"]);
+    const diff: Partial<Contrato> = {};
+    for (const key of Object.keys(finalForm) as (keyof Contrato)[]) {
+      if (SKIP_FIELDS.has(key as string)) continue;
+      const oldVal = (contrato as any)[key];
+      const newVal = (finalForm as any)[key];
+      // Comparação simples (valores são primitivos: string/number/null)
+      if (oldVal !== newVal) {
+        (diff as any)[key] = newVal;
+      }
+    }
+
+    // Garante que mudanças explícitas (extraUpdates como etapa_atual) entrem mesmo se iguais
+    if (extraUpdates) {
+      for (const k of Object.keys(extraUpdates) as (keyof Contrato)[]) {
+        (diff as any)[k] = (extraUpdates as any)[k];
+      }
+    }
+
+    if (Object.keys(diff).length === 0) {
+      toast({ title: "Nenhuma alteração para salvar" });
+      onOpenChange(false);
+      return;
+    }
+
     updateMutation.mutate(
-      { id: contrato.id, ...finalForm },
+      { id: contrato.id, ...diff },
       {
         onSuccess: async () => {
           // Fecha imediatamente — não bloqueia a UI
