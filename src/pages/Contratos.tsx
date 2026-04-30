@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
 
 const Contratos = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [entidade, setEntidade] = useState<Entidade>("SESI");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,6 +84,22 @@ const Contratos = () => {
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
+
+  // Abre automaticamente o contrato quando vier ?highlight=ID da busca global
+  useEffect(() => {
+    const id = searchParams.get("highlight");
+    if (id && contratos.length > 0) {
+      const found = contratos.find((c) => c.id === id);
+      if (found) {
+        setSelected(found);
+        // Garante que a entidade correta seja selecionada
+        if (found.entidade !== entidade) setEntidade(found.entidade as Entidade);
+        // Limpa o param para não reabrir ao trocar de aba
+        searchParams.delete("highlight");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, contratos, entidade, setSearchParams]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
