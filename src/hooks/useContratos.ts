@@ -22,9 +22,11 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   });
 
   // REALTIME: invalida o cache quando outro usuário cria/edita/exclui contratos
+  // Usa um nome de canal único para evitar conflitos quando o hook é montado em múltiplas páginas
   useEffect(() => {
+    const channelName = `contratos-realtime-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel("contratos-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "contratos" },

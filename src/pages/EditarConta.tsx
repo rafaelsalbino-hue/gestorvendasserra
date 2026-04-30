@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,22 @@ import { supabase } from "@/integrations/supabase/client";
 const EditarConta = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currentUser } = useCurrentUser();
+  const { currentUser, loading: loadingUser } = useCurrentUser();
   const [loading, setLoading] = useState(false);
 
-  const [nome, setNome] = useState(currentUser?.nome || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
+
+  // Sincroniza quando currentUser/user carregam
+  useEffect(() => {
+    if (currentUser?.nome) setNome(currentUser.nome);
+  }, [currentUser?.nome]);
+
+  useEffect(() => {
+    if (user?.email) setEmail(user.email);
+  }, [user?.email]);
 
   const handleSaveProfile = async () => {
     setLoading(true);
@@ -78,6 +87,12 @@ const EditarConta = () => {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Editar Conta</h1>
           <p className="text-muted-foreground text-sm">Atualize seus dados pessoais e senha</p>
         </div>
+
+        {loadingUser && !currentUser && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando dados...
+          </div>
+        )}
 
         <Card>
           <CardHeader>

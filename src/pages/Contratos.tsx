@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
 
 const Contratos = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [entidade, setEntidade] = useState<Entidade>("SESI");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,6 +84,29 @@ const Contratos = () => {
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
+
+  // Troca a aba para a entidade do contrato vindo da busca global (antes do fetch)
+  useEffect(() => {
+    const ent = searchParams.get("entidade") as Entidade | null;
+    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde"].includes(ent)) {
+      setEntidade(ent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Abre o contrato quando vier ?highlight=ID
+  useEffect(() => {
+    const id = searchParams.get("highlight");
+    if (id && contratos.length > 0) {
+      const found = contratos.find((c) => c.id === id);
+      if (found) {
+        setSelected(found);
+        searchParams.delete("highlight");
+        searchParams.delete("entidade");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, contratos, setSearchParams]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
