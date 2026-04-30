@@ -54,6 +54,15 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
 
   useEffect(() => { setEntidade(entidadeInicial); }, [entidadeInicial]);
 
+  // Reseta o formulário sempre que o diálogo é fechado (evita estado preso)
+  useEffect(() => {
+    if (!open) {
+      setCliente(""); setCnpj(""); setServico("");
+      setValorDisplay(""); setCrm(""); setDadosProposta("");
+      setCnpjError(""); setAgentePjId("");
+    }
+  }, [open]);
+
   const handleCnpjChange = (value: string) => {
     const formatted = formatarCNPJ(value);
     setCnpj(formatted);
