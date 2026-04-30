@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, FileText, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   useContratoAnexos,
   useUploadAnexo,
   useDeleteAnexo,
@@ -26,6 +30,7 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
   const del = useDeleteAnexo();
   const inputRef = useRef<HTMLInputElement>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; storage_path: string; file_name: string } | null>(null);
 
   const handleFile = (file: File) => {
     if (file.size > MAX_BYTES) {
@@ -58,12 +63,15 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
     }
   };
 
-  const handleDelete = (anexo: { id: string; storage_path: string }) => {
-    if (!confirm("Excluir este arquivo?")) return;
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
     del.mutate(
-      { ...anexo, contrato_id: contratoId },
+      { id: pendingDelete.id, storage_path: pendingDelete.storage_path, contrato_id: contratoId },
       {
-        onSuccess: () => toast({ title: "Arquivo excluído." }),
+        onSuccess: () => {
+          toast({ title: "Arquivo excluído." });
+          setPendingDelete(null);
+        },
         onError: (e) =>
           toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
       }
@@ -138,7 +146,7 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => handleDelete(a)}
+                onClick={() => setPendingDelete({ id: a.id, storage_path: a.storage_path, file_name: a.file_name })}
                 title="Excluir"
               >
                 <Trash2 className="h-4 w-4" />
@@ -147,6 +155,27 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
           ))}
         </ul>
       )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(o) => !o && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir arquivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. O arquivo "{pendingDelete?.file_name}" será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {del.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
