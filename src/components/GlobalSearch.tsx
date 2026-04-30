@@ -45,7 +45,7 @@ export function GlobalSearch() {
               key={c.id}
               className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex flex-col border-b last:border-0"
               onClick={() => {
-                navigate(`/contratos?highlight=${c.id}`);
+                navigate(`/contratos?highlight=${c.id}&entidade=${encodeURIComponent(c.entidade)}`);
                 setOpen(false);
                 setQuery("");
               }}

@@ -85,21 +85,28 @@ const Contratos = () => {
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
 
-  // Abre automaticamente o contrato quando vier ?highlight=ID da busca global
+  // Troca a aba para a entidade do contrato vindo da busca global (antes do fetch)
+  useEffect(() => {
+    const ent = searchParams.get("entidade") as Entidade | null;
+    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde"].includes(ent)) {
+      setEntidade(ent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Abre o contrato quando vier ?highlight=ID
   useEffect(() => {
     const id = searchParams.get("highlight");
     if (id && contratos.length > 0) {
       const found = contratos.find((c) => c.id === id);
       if (found) {
         setSelected(found);
-        // Garante que a entidade correta seja selecionada
-        if (found.entidade !== entidade) setEntidade(found.entidade as Entidade);
-        // Limpa o param para não reabrir ao trocar de aba
         searchParams.delete("highlight");
+        searchParams.delete("entidade");
         setSearchParams(searchParams, { replace: true });
       }
     }
-  }, [searchParams, contratos, entidade, setSearchParams]);
+  }, [searchParams, contratos, setSearchParams]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
