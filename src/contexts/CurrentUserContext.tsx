@@ -19,36 +19,45 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadCurrentUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data } = await supabase
-          .from("responsaveis")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
+    let mounted = true;
+
+    const loadCurrentUser = async (userId?: string | null) => {
+      if (!userId) {
+        if (!mounted) return;
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("responsaveis")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!mounted) return;
+      if (error) {
+        console.warn("Erro ao carregar responsável atual:", error.message);
+        setCurrentUser(null);
+      } else {
         setCurrentUser(data);
       }
       setLoading(false);
     };
 
-    loadCurrentUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("responsaveis")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setCurrentUser(data);
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      loadCurrentUser(session?.user?.id ?? null);
     });
 
-    return () => subscription.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setLoading(true);
+      await loadCurrentUser(session?.user?.id ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
