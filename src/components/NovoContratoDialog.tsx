@@ -104,7 +104,12 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           resetForm();
           onOpenChange(false);
         },
-        onError: (e) => toast({ title: "Erro ao criar contrato", description: e.message, variant: "destructive" }),
+        onError: (e: any) =>
+          toast({
+            title: "Erro ao criar contrato",
+            description: e?.message || "Tente novamente em instantes.",
+            variant: "destructive",
+          }),
       }
     );
   };
