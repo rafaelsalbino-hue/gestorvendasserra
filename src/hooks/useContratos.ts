@@ -47,7 +47,12 @@ export function useAddContrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: ContratoInsert) => {
-      const { data, error } = await supabase.from("contratos").insert(c).select().single();
+      // Timeout de segurança para evitar UI presa em "Carregando" caso a rede trave
+      const insertPromise = supabase.from("contratos").insert(c).select("*").single();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 15000)
+      );
+      const { data, error } = (await Promise.race([insertPromise, timeoutPromise])) as Awaited<typeof insertPromise>;
       if (error) throw error;
       return data;
     },
