@@ -31,7 +31,8 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
         "postgres_changes",
         { event: "*", schema: "public", table: "contratos" },
         () => {
-          qc.invalidateQueries({ queryKey: ["contratos"] });
+          // Marca como stale, mas só refetcha quando a query for usada novamente
+          qc.invalidateQueries({ queryKey: ["contratos"], refetchType: "none" });
         }
       )
       .subscribe();
