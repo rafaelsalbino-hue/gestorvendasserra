@@ -173,7 +173,7 @@ export function useAddContrato() {
             ? err
             : new Error(typeof err === "string" ? err : "Erro desconhecido ao salvar contrato");
 
-          lastError = err;
+          lastError = normalizedError;
           console.warn(`[${trace}] attempt ${attempt} threw`, err);
 
           const errorCode = (err as ContractMutationError | null)?.code;
