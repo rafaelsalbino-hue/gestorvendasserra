@@ -6,6 +6,7 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase
 type Contrato = Tables<"contratos">;
 type ContratoInsert = TablesInsert<"contratos">;
 type ContratoUpdate = TablesUpdate<"contratos">;
+type ContractMutationError = { code?: string; message?: string };
 
 export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   const qc = useQueryClient();
@@ -84,7 +85,7 @@ export function useAddContrato() {
       // 3) Verificação final por SELECT para confirmar persistência real
       //    antes de qualquer atualização de UI.
       const id =
-        (c as any).id ??
+        c.id ??
         (typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -93,7 +94,7 @@ export function useAddContrato() {
       const trace = `contrato:${id.slice(0, 8)}`;
       console.info(`[${trace}] submit started`, { entidade: payload.entidade, cliente: payload.cliente });
 
-      const isTransient = (err: any) => {
+      const isTransient = (err: ContractMutationError | null | undefined) => {
         const code = err?.code || "";
         const msg = (err?.message || "").toLowerCase();
         return (
@@ -123,7 +124,7 @@ export function useAddContrato() {
         return (data as Contrato) ?? null;
       };
 
-      let lastError: any = null;
+      let lastError: ContractMutationError | Error | null = null;
       const MAX_ATTEMPTS = 3;
       await ensureActiveSession();
 
@@ -167,11 +168,18 @@ export function useAddContrato() {
           }
 
           if (!isTransient(lastError) || attempt === MAX_ATTEMPTS) break;
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const normalizedError = err instanceof Error
+            ? err
+            : new Error(typeof err === "string" ? err : "Erro desconhecido ao salvar contrato");
+
           lastError = err;
           console.warn(`[${trace}] attempt ${attempt} threw`, err);
 
-          if (err?.code === "PGRST301" || err?.code === "401" || `${err?.message || ""}`.toLowerCase().includes("session")) {
+          const errorCode = (err as ContractMutationError | null)?.code;
+          const errorMessage = `${(err as ContractMutationError | null)?.message || normalizedError.message}`.toLowerCase();
+
+          if (errorCode === "PGRST301" || errorCode === "401" || errorMessage.includes("session")) {
             console.warn(`[${trace}] refreshing expired session after thrown error`);
             try {
               await ensureActiveSession(true);
@@ -186,7 +194,7 @@ export function useAddContrato() {
             console.info(`[${trace}] persisted despite throw`);
             return existing;
           }
-          if (!isTransient(err) || attempt === MAX_ATTEMPTS) break;
+          if (!isTransient({ code: errorCode, message: errorMessage }) || attempt === MAX_ATTEMPTS) break;
         }
         // Backoff exponencial: 400ms, 1200ms
         await new Promise((r) => setTimeout(r, 400 * Math.pow(3, attempt - 1)));
