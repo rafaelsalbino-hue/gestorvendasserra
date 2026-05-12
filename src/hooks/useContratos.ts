@@ -6,6 +6,7 @@ import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase
 type Contrato = Tables<"contratos">;
 type ContratoInsert = TablesInsert<"contratos">;
 type ContratoUpdate = TablesUpdate<"contratos">;
+type ContractMutationError = { code?: string; message?: string };
 
 export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   const qc = useQueryClient();
@@ -48,6 +49,33 @@ export function useAddContrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: ContratoInsert) => {
+      const ensureActiveSession = async (forceRefresh = false) => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const currentSession = sessionData.session;
+        if (!currentSession) {
+          throw new Error("Sua sessão expirou. Entre novamente para salvar o contrato.");
+        }
+
+        const expiresAtMs = (currentSession.expires_at ?? 0) * 1000;
+        const shouldRefresh =
+          forceRefresh ||
+          !expiresAtMs ||
+          expiresAtMs - Date.now() < 60_000;
+
+        if (!shouldRefresh) {
+          return currentSession;
+        }
+
+        const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshedData.session) {
+          throw new Error("Sua sessão expirou. Entre novamente para salvar o contrato.");
+        }
+
+        return refreshedData.session;
+      };
+
       // FLUXO RESILIENTE DE PERSISTÊNCIA
       // 1) Gera o id do contrato no cliente -> garante IDEMPOTÊNCIA em retries.
       //    Se a primeira chamada chegar ao servidor mas a resposta se perder
@@ -57,7 +85,7 @@ export function useAddContrato() {
       // 3) Verificação final por SELECT para confirmar persistência real
       //    antes de qualquer atualização de UI.
       const id =
-        (c as any).id ??
+        c.id ??
         (typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -66,11 +94,15 @@ export function useAddContrato() {
       const trace = `contrato:${id.slice(0, 8)}`;
       console.info(`[${trace}] submit started`, { entidade: payload.entidade, cliente: payload.cliente });
 
-      const isTransient = (err: any) => {
+      const isTransient = (err: ContractMutationError | null | undefined) => {
         const code = err?.code || "";
         const msg = (err?.message || "").toLowerCase();
         return (
           code === "PGRST301" || // JWT expired (será resolvido com refresh)
+          code === "401" ||
+          msg.includes("jwt") ||
+          msg.includes("session") ||
+          msg.includes("auth") ||
           msg.includes("network") ||
           msg.includes("fetch") ||
           msg.includes("timeout") ||
@@ -79,6 +111,7 @@ export function useAddContrato() {
       };
 
       const verifyPersisted = async (): Promise<Contrato | null> => {
+        await ensureActiveSession();
         const { data, error } = await supabase
           .from("contratos")
           .select("*")
@@ -91,8 +124,10 @@ export function useAddContrato() {
         return (data as Contrato) ?? null;
       };
 
-      let lastError: any = null;
+      let lastError: ContractMutationError | Error | null = null;
       const MAX_ATTEMPTS = 3;
+      await ensureActiveSession();
+
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         const ta = performance.now();
         try {
@@ -127,17 +162,39 @@ export function useAddContrato() {
           lastError = error ?? new Error("Resposta vazia do servidor");
           console.warn(`[${trace}] attempt ${attempt} failed (${dt}ms)`, lastError);
 
+          if (error?.code === "PGRST301" || error?.code === "401") {
+            console.warn(`[${trace}] refreshing expired session before retry`);
+            await ensureActiveSession(true);
+          }
+
           if (!isTransient(lastError) || attempt === MAX_ATTEMPTS) break;
-        } catch (err: any) {
-          lastError = err;
+        } catch (err: unknown) {
+          const normalizedError = err instanceof Error
+            ? err
+            : new Error(typeof err === "string" ? err : "Erro desconhecido ao salvar contrato");
+
+          lastError = normalizedError;
           console.warn(`[${trace}] attempt ${attempt} threw`, err);
+
+          const errorCode = (err as ContractMutationError | null)?.code;
+          const errorMessage = `${(err as ContractMutationError | null)?.message || normalizedError.message}`.toLowerCase();
+
+          if (errorCode === "PGRST301" || errorCode === "401" || errorMessage.includes("session")) {
+            console.warn(`[${trace}] refreshing expired session after thrown error`);
+            try {
+              await ensureActiveSession(true);
+            } catch (refreshError) {
+              lastError = refreshError;
+            }
+          }
+
           // Antes de desistir, verifica se já foi persistido
           const existing = await verifyPersisted();
           if (existing) {
             console.info(`[${trace}] persisted despite throw`);
             return existing;
           }
-          if (!isTransient(err) || attempt === MAX_ATTEMPTS) break;
+          if (!isTransient({ code: errorCode, message: errorMessage }) || attempt === MAX_ATTEMPTS) break;
         }
         // Backoff exponencial: 400ms, 1200ms
         await new Promise((r) => setTimeout(r, 400 * Math.pow(3, attempt - 1)));
