@@ -48,13 +48,16 @@ export function useAddContrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: ContratoInsert) => {
-      // Timeout de segurança para evitar UI presa em "Carregando" caso a rede trave
-      const insertPromise = supabase.from("contratos").insert(c).select("*").single();
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 15000)
-      );
-      const { data, error } = (await Promise.race([insertPromise, timeoutPromise])) as Awaited<typeof insertPromise>;
+      // Insere e retorna a linha criada. Sem timeout artificial — o Supabase já
+      // possui seu próprio timeout e a RLS desta tabela é simples (não há triggers
+      // pesados), então a operação deve resolver rapidamente.
+      const { data, error } = await supabase
+        .from("contratos")
+        .insert(c)
+        .select("*")
+        .maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Não foi possível confirmar a criação do contrato. Atualize a página para verificar.");
       return data;
     },
     onSuccess: (novo) => {
