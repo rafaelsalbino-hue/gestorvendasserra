@@ -120,7 +120,15 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        // Não permite fechar enquanto a criação está em andamento
+        // (evita unmount cancelando a promise e estados inconsistentes)
+        if (!o && addMutation.isPending) return;
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Contrato</DialogTitle>
