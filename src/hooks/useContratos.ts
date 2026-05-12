@@ -48,6 +48,33 @@ export function useAddContrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: ContratoInsert) => {
+      const ensureActiveSession = async (forceRefresh = false) => {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        const currentSession = sessionData.session;
+        if (!currentSession) {
+          throw new Error("Sua sessão expirou. Entre novamente para salvar o contrato.");
+        }
+
+        const expiresAtMs = (currentSession.expires_at ?? 0) * 1000;
+        const shouldRefresh =
+          forceRefresh ||
+          !expiresAtMs ||
+          expiresAtMs - Date.now() < 60_000;
+
+        if (!shouldRefresh) {
+          return currentSession;
+        }
+
+        const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshedData.session) {
+          throw new Error("Sua sessão expirou. Entre novamente para salvar o contrato.");
+        }
+
+        return refreshedData.session;
+      };
+
       // FLUXO RESILIENTE DE PERSISTÊNCIA
       // 1) Gera o id do contrato no cliente -> garante IDEMPOTÊNCIA em retries.
       //    Se a primeira chamada chegar ao servidor mas a resposta se perder
@@ -71,6 +98,10 @@ export function useAddContrato() {
         const msg = (err?.message || "").toLowerCase();
         return (
           code === "PGRST301" || // JWT expired (será resolvido com refresh)
+          code === "401" ||
+          msg.includes("jwt") ||
+          msg.includes("session") ||
+          msg.includes("auth") ||
           msg.includes("network") ||
           msg.includes("fetch") ||
           msg.includes("timeout") ||
@@ -79,6 +110,7 @@ export function useAddContrato() {
       };
 
       const verifyPersisted = async (): Promise<Contrato | null> => {
+        await ensureActiveSession();
         const { data, error } = await supabase
           .from("contratos")
           .select("*")
@@ -93,6 +125,8 @@ export function useAddContrato() {
 
       let lastError: any = null;
       const MAX_ATTEMPTS = 3;
+      await ensureActiveSession();
+
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         const ta = performance.now();
         try {
@@ -127,10 +161,25 @@ export function useAddContrato() {
           lastError = error ?? new Error("Resposta vazia do servidor");
           console.warn(`[${trace}] attempt ${attempt} failed (${dt}ms)`, lastError);
 
+          if (error?.code === "PGRST301" || error?.code === "401") {
+            console.warn(`[${trace}] refreshing expired session before retry`);
+            await ensureActiveSession(true);
+          }
+
           if (!isTransient(lastError) || attempt === MAX_ATTEMPTS) break;
         } catch (err: any) {
           lastError = err;
           console.warn(`[${trace}] attempt ${attempt} threw`, err);
+
+          if (err?.code === "PGRST301" || err?.code === "401" || `${err?.message || ""}`.toLowerCase().includes("session")) {
+            console.warn(`[${trace}] refreshing expired session after thrown error`);
+            try {
+              await ensureActiveSession(true);
+            } catch (refreshError) {
+              lastError = refreshError;
+            }
+          }
+
           // Antes de desistir, verifica se já foi persistido
           const existing = await verifyPersisted();
           if (existing) {
