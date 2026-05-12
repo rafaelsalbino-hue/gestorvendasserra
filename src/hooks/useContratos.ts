@@ -48,22 +48,122 @@ export function useAddContrato() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: ContratoInsert) => {
-      // Insere e retorna a linha criada. Sem timeout artificial — o Supabase já
-      // possui seu próprio timeout e a RLS desta tabela é simples (não há triggers
-      // pesados), então a operação deve resolver rapidamente.
-      const { data, error } = await supabase
-        .from("contratos")
-        .insert(c)
-        .select("*")
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) throw new Error("Não foi possível confirmar a criação do contrato. Atualize a página para verificar.");
-      return data;
+      // FLUXO RESILIENTE DE PERSISTÊNCIA
+      // 1) Gera o id do contrato no cliente -> garante IDEMPOTÊNCIA em retries.
+      //    Se a primeira chamada chegar ao servidor mas a resposta se perder
+      //    (rede instável), o retry com o mesmo id resulta em conflito de PK,
+      //    que tratamos como "já persistido" e buscamos a linha existente.
+      // 2) Retry com backoff exponencial apenas para erros transitórios.
+      // 3) Verificação final por SELECT para confirmar persistência real
+      //    antes de qualquer atualização de UI.
+      const id =
+        (c as any).id ??
+        (typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      const payload: ContratoInsert = { ...c, id } as ContratoInsert;
+      const t0 = performance.now();
+      const trace = `contrato:${id.slice(0, 8)}`;
+      console.info(`[${trace}] submit started`, { entidade: payload.entidade, cliente: payload.cliente });
+
+      const isTransient = (err: any) => {
+        const code = err?.code || "";
+        const msg = (err?.message || "").toLowerCase();
+        return (
+          code === "PGRST301" || // JWT expired (será resolvido com refresh)
+          msg.includes("network") ||
+          msg.includes("fetch") ||
+          msg.includes("timeout") ||
+          msg.includes("temporarily")
+        );
+      };
+
+      const verifyPersisted = async (): Promise<Contrato | null> => {
+        const { data, error } = await supabase
+          .from("contratos")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (error) {
+          console.warn(`[${trace}] verify error`, error);
+          return null;
+        }
+        return (data as Contrato) ?? null;
+      };
+
+      let lastError: any = null;
+      const MAX_ATTEMPTS = 3;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        const ta = performance.now();
+        try {
+          const { data, error } = await supabase
+            .from("contratos")
+            .insert(payload)
+            .select("*")
+            .maybeSingle();
+          const dt = Math.round(performance.now() - ta);
+
+          if (!error && data) {
+            console.info(`[${trace}] persisted (attempt ${attempt}, ${dt}ms)`);
+            return data as Contrato;
+          }
+
+          // Conflito de chave primária = registro já existe (retry duplicado)
+          if (error?.code === "23505") {
+            console.info(`[${trace}] duplicate id, fetching existing row`);
+            const existing = await verifyPersisted();
+            if (existing) return existing;
+          }
+
+          // Resposta vazia sem erro: pode ter persistido — confirma via SELECT
+          if (!error && !data) {
+            const existing = await verifyPersisted();
+            if (existing) {
+              console.info(`[${trace}] confirmed via select`);
+              return existing;
+            }
+          }
+
+          lastError = error ?? new Error("Resposta vazia do servidor");
+          console.warn(`[${trace}] attempt ${attempt} failed (${dt}ms)`, lastError);
+
+          if (!isTransient(lastError) || attempt === MAX_ATTEMPTS) break;
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[${trace}] attempt ${attempt} threw`, err);
+          // Antes de desistir, verifica se já foi persistido
+          const existing = await verifyPersisted();
+          if (existing) {
+            console.info(`[${trace}] persisted despite throw`);
+            return existing;
+          }
+          if (!isTransient(err) || attempt === MAX_ATTEMPTS) break;
+        }
+        // Backoff exponencial: 400ms, 1200ms
+        await new Promise((r) => setTimeout(r, 400 * Math.pow(3, attempt - 1)));
+      }
+
+      // Última verificação antes de reportar falha — evita falso negativo
+      const finalCheck = await verifyPersisted();
+      if (finalCheck) {
+        console.info(`[${trace}] recovered via final check`);
+        return finalCheck;
+      }
+
+      const totalMs = Math.round(performance.now() - t0);
+      console.error(`[${trace}] FAILED after ${MAX_ATTEMPTS} attempts (${totalMs}ms)`, lastError);
+      throw new Error(
+        lastError?.message
+          ? `Falha ao salvar contrato: ${lastError.message}`
+          : "Não foi possível salvar o contrato. Verifique sua conexão e tente novamente."
+      );
     },
     onSuccess: (novo) => {
       // Atualização otimista: insere o novo contrato no cache sem refetch
       qc.setQueriesData<Contrato[]>({ queryKey: ["contratos"] }, (old) => {
         if (!old) return [novo as Contrato];
+        // Evita duplicar se realtime já inseriu
+        if (old.some((c) => c.id === (novo as Contrato).id)) return old;
         return [novo as Contrato, ...old];
       });
       // Invalida em background (não bloqueia o isPending do botão)
