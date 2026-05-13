@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { useAppSession } from "@/contexts/AppSessionContext";
 
 type Responsavel = Tables<"responsaveis">;
 
@@ -15,6 +16,7 @@ const CurrentUserContext = createContext<CurrentUserContextType>({
 });
 
 export function CurrentUserProvider({ children }: { children: ReactNode }) {
+  const { user } = useAppSession();
   const [currentUser, setCurrentUser] = useState<Responsavel | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,20 +47,13 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      loadCurrentUser(session?.user?.id ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setLoading(true);
-      await loadCurrentUser(session?.user?.id ?? null);
-    });
+    setLoading(true);
+    loadCurrentUser(user?.id ?? null);
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <CurrentUserContext.Provider value={{ currentUser, loading }}>
