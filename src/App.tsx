@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppSessionProvider } from "@/contexts/AppSessionContext";
 import { CurrentUserProvider } from "@/contexts/CurrentUserContext";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
@@ -50,11 +51,12 @@ function AuthRoute() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <CurrentUserProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <BrowserRouter>
+      <AppSessionProvider>
+        <CurrentUserProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
           <Suspense fallback={<AppSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute />} />
@@ -66,9 +68,10 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </CurrentUserProvider>
+          </TooltipProvider>
+        </CurrentUserProvider>
+      </AppSessionProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
