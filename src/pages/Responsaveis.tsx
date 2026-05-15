@@ -11,6 +11,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil } from "lucide-react";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +23,19 @@ import { useUpdateResponsavel } from "@/hooks/useUpdateResponsavel";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Responsavel = Tables<"responsaveis">;
+
+type FormErrors = { nome?: string; email?: string; funcao?: string };
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateResponsavel(nome: string, email: string, funcao: string): FormErrors {
+  const errors: FormErrors = {};
+  if (!nome.trim()) errors.nome = "Informe o nome.";
+  else if (nome.trim().length < 2) errors.nome = "Nome muito curto.";
+  if (!email.trim()) errors.email = "Informe o e-mail.";
+  else if (!emailRegex.test(email.trim())) errors.email = "E-mail inválido.";
+  if (!funcao) errors.funcao = "Selecione uma função.";
+  return errors;
+}
 
 const funcaoColors: Record<string, string> = {
   "Agente de Mercado PJ": "step-pj",
@@ -47,6 +64,9 @@ const Responsaveis = () => {
   const [editNome, setEditNome] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editFuncao, setEditFuncao] = useState<FuncaoResponsavel | "">("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [editErrors, setEditErrors] = useState<FormErrors>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data: responsaveis = [], isLoading } = useResponsaveis();
   const addMutation = useAddResponsavel();
@@ -54,15 +74,14 @@ const Responsaveis = () => {
   const updateMutation = useUpdateResponsavel();
 
   const handleAdd = () => {
-    if (!nome || !email || !funcao) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
-    }
+    const v = validateResponsavel(nome, email, funcao);
+    setErrors(v);
+    if (Object.keys(v).length > 0) return;
     addMutation.mutate(
-      { nome, email, funcao: funcao as FuncaoResponsavel },
+      { nome: nome.trim(), email: email.trim(), funcao: funcao as FuncaoResponsavel },
       {
         onSuccess: () => {
-          setNome(""); setEmail(""); setFuncao("");
+          setNome(""); setEmail(""); setFuncao(""); setErrors({});
           setDialogOpen(false);
           toast({ title: "Responsável cadastrado com sucesso!" });
         },
@@ -76,16 +95,17 @@ const Responsaveis = () => {
     setEditNome(resp.nome);
     setEditEmail(resp.email);
     setEditFuncao(resp.funcao as FuncaoResponsavel);
+    setEditErrors({});
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
-    if (!editingResp || !editNome || !editEmail || !editFuncao) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
-    }
+    if (!editingResp) return;
+    const v = validateResponsavel(editNome, editEmail, editFuncao);
+    setEditErrors(v);
+    if (Object.keys(v).length > 0) return;
     updateMutation.mutate(
-      { id: editingResp.id, nome: editNome, email: editEmail, funcao: editFuncao as FuncaoResponsavel },
+      { id: editingResp.id, nome: editNome.trim(), email: editEmail.trim(), funcao: editFuncao as FuncaoResponsavel },
       {
         onSuccess: () => {
           setEditDialogOpen(false);
@@ -97,9 +117,13 @@ const Responsaveis = () => {
     );
   };
 
-  const handleRemove = (id: string) => {
+  const handleConfirmRemove = () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     deleteMutation.mutate(id, {
       onSuccess: () => toast({ title: "Responsável removido" }),
+      onError: (e) => toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
     });
   };
 
@@ -132,20 +156,38 @@ const Responsaveis = () => {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
-                  <Input placeholder="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} />
+                  <Input
+                    placeholder="Nome completo"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao) }))}
+                    aria-invalid={!!errors.nome}
+                    className={errors.nome ? "border-destructive" : ""}
+                  />
+                  {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input type="email" placeholder="email@empresa.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    type="email"
+                    placeholder="email@empresa.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao) }))}
+                    aria-invalid={!!errors.email}
+                    className={errors.email ? "border-destructive" : ""}
+                  />
+                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label>Função</Label>
                   <Select value={funcao} onValueChange={(v) => setFuncao(v as FuncaoResponsavel)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a função" /></SelectTrigger>
+                    <SelectTrigger className={errors.funcao ? "border-destructive" : ""}><SelectValue placeholder="Selecione a função" /></SelectTrigger>
                     <SelectContent>
                       {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
                     </SelectContent>
                   </Select>
+                  {errors.funcao && <p className="text-xs text-destructive">{errors.funcao}</p>}
                 </div>
               </div>
               <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
@@ -202,7 +244,13 @@ const Responsaveis = () => {
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="h-8 w-8">
                               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleRemove(r.id)} className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setConfirmDeleteId(r.id)}
+                              className="h-8 w-8"
+                              aria-label={`Remover ${r.nome}`}
+                            >
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </div>
@@ -226,20 +274,36 @@ const Responsaveis = () => {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Nome</Label>
-                <Input value={editNome} onChange={(e) => setEditNome(e.target.value)} />
+                <Input
+                  value={editNome}
+                  onChange={(e) => setEditNome(e.target.value)}
+                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao) }))}
+                  aria-invalid={!!editErrors.nome}
+                  className={editErrors.nome ? "border-destructive" : ""}
+                />
+                {editErrors.nome && <p className="text-xs text-destructive">{editErrors.nome}</p>}
               </div>
               <div className="space-y-2">
                 <Label>E-mail</Label>
-                <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                <Input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao) }))}
+                  aria-invalid={!!editErrors.email}
+                  className={editErrors.email ? "border-destructive" : ""}
+                />
+                {editErrors.email && <p className="text-xs text-destructive">{editErrors.email}</p>}
               </div>
               <div className="space-y-2">
                 <Label>Função</Label>
                 <Select value={editFuncao} onValueChange={(v) => setEditFuncao(v as FuncaoResponsavel)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={editErrors.funcao ? "border-destructive" : ""}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
                   </SelectContent>
                 </Select>
+                {editErrors.funcao && <p className="text-xs text-destructive">{editErrors.funcao}</p>}
               </div>
             </div>
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
@@ -251,6 +315,26 @@ const Responsaveis = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover responsável?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. O responsável será removido permanentemente do cadastro.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmRemove}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remover
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
