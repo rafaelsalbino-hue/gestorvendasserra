@@ -49,6 +49,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [dadosProposta, setDadosProposta] = useState("");
   const [cnpjError, setCnpjError] = useState("");
   const [agentePjId, setAgentePjId] = useState<string>("");
+  const [clienteError, setClienteError] = useState("");
 
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
@@ -59,7 +60,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
     if (!open) {
       setCliente(""); setCnpj(""); setServico("");
       setValorDisplay(""); setCrm(""); setDadosProposta("");
-      setCnpjError(""); setAgentePjId("");
+      setCnpjError(""); setAgentePjId(""); setClienteError("");
     }
   }, [open]);
 
@@ -79,18 +80,23 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   };
 
   const handleSubmit = () => {
-    if (!cliente) {
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
-      return;
+    let hasError = false;
+    if (!cliente.trim()) {
+      setClienteError("Informe o nome do cliente.");
+      hasError = true;
     }
     if (cnpj && !validarCNPJ(cnpj)) {
-      toast({ title: "CNPJ inválido", description: "Verifique os dígitos do CNPJ.", variant: "destructive" });
+      setCnpjError("CNPJ inválido");
+      hasError = true;
+    }
+    if (hasError) {
+      toast({ title: "Verifique os campos destacados", variant: "destructive" });
       return;
     }
     addMutation.mutate(
       {
         entidade,
-        cliente,
+        cliente: cliente.trim(),
         cnpj,
         servico_produto: servico,
         valor: parseCurrency(valorDisplay),
@@ -149,7 +155,15 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
-              <Input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nome do cliente" />
+              <Input
+                value={cliente}
+                onChange={(e) => { setCliente(e.target.value); if (clienteError) setClienteError(""); }}
+                onBlur={() => { if (!cliente.trim()) setClienteError("Informe o nome do cliente."); }}
+                placeholder="Nome do cliente"
+                aria-invalid={!!clienteError}
+                className={clienteError ? "border-destructive" : ""}
+              />
+              {clienteError && <p className="text-xs text-destructive">{clienteError}</p>}
             </div>
             <div className="space-y-2">
               <Label>CNPJ</Label>
