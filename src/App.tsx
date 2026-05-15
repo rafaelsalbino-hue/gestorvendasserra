@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppSessionProvider } from "@/contexts/AppSessionContext";
 import { CurrentUserProvider } from "@/contexts/CurrentUserContext";
 import { useAuth } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -51,27 +52,29 @@ function AuthRoute() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AppSessionProvider>
-        <CurrentUserProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-          <Suspense fallback={<AppSpinner />}>
-            <Routes>
-              <Route path="/auth" element={<AuthRoute />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
-              <Route path="/responsaveis" element={<ProtectedRoute><Responsaveis /></ProtectedRoute>} />
-              <Route path="/conta" element={<ProtectedRoute><EditarConta /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          </TooltipProvider>
-        </CurrentUserProvider>
-      </AppSessionProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppSessionProvider>
+          <CurrentUserProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={<AppSpinner />}>
+                <Routes>
+                  <Route path="/auth" element={<AuthRoute />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
+                  <Route path="/responsaveis" element={<ProtectedRoute><Responsaveis /></ProtectedRoute>} />
+                  <Route path="/conta" element={<ProtectedRoute><EditarConta /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </TooltipProvider>
+          </CurrentUserProvider>
+        </AppSessionProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 
