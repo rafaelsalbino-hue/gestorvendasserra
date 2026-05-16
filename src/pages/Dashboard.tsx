@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Users, TrendingUp, Loader2, Clock, AlertTriangle } from "lucide-react";
+import { FileText, Users, TrendingUp, Loader2, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { ETAPAS } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
@@ -57,6 +57,8 @@ const Dashboard = () => {
   const senaiCount = filtered.filter((c) => c.entidade === "SENAI").length;
   const sesiSaudeCount = filtered.filter((c) => c.entidade === "SESI Saúde").length;
   const emAndamento = filtered.filter((c) => c.etapa_atual !== "faturamento").length;
+  const concluidos = filtered.filter((c) => c.etapa_atual === "faturamento").length;
+  const taxaConclusao = filtered.length > 0 ? Math.round((concluidos / filtered.length) * 100) : 0;
 
   const etapaChartData = ETAPAS.map((e) => ({
     name: e.label,
@@ -161,12 +163,12 @@ const Dashboard = () => {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Responsáveis</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Conclusão</CardTitle>
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{responsaveis.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Cadastrados no sistema</p>
+                  <div className="text-2xl md:text-3xl font-bold">{taxaConclusao}%</div>
+                  <p className="text-xs text-muted-foreground mt-1">{concluidos} concluído(s) · {responsaveis.length} resp.</p>
                 </CardContent>
               </Card>
             </div>
