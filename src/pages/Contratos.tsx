@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Loader2, Download, Filter, GripVertical } from "lucide-react";
+import { Plus, Search, Download, Filter, GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, type Entidade, STATUS_OPTIONS } from "@/types/contracts";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { NovoContratoDialog } from "@/components/NovoContratoDialog";
@@ -152,6 +153,15 @@ const Contratos = () => {
   ];
   const uniqueStatuses = [...new Set(allStatuses)];
 
+  const activeFilters: { key: string; label: string; clear: () => void }[] = [];
+  if (search) activeFilters.push({ key: "search", label: `Busca: "${search}"`, clear: () => setSearch("") });
+  if (filterStatus !== "todos") activeFilters.push({ key: "status", label: `Status: ${filterStatus}`, clear: () => setFilterStatus("todos") });
+  if (filterValorMin) activeFilters.push({ key: "min", label: `≥ R$ ${filterValorMin}`, clear: () => setFilterValorMin("") });
+  if (filterValorMax) activeFilters.push({ key: "max", label: `≤ R$ ${filterValorMax}`, clear: () => setFilterValorMax("") });
+  const clearAllFilters = () => {
+    setSearch(""); setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax("");
+  };
+
   return (
     <AppLayout>
       <div className="space-y-4 md:space-y-6">
@@ -218,8 +228,38 @@ const Contratos = () => {
               </div>
             )}
 
+            {activeFilters.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {activeFilters.map((f) => (
+                  <Badge key={f.key} variant="secondary" className="gap-1 pr-1">
+                    {f.label}
+                    <button
+                      onClick={f.clear}
+                      aria-label={`Remover filtro ${f.label}`}
+                      className="rounded hover:bg-background/60 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={clearAllFilters}>
+                  Limpar tudo
+                </Button>
+              </div>
+            )}
+
             {isLoading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {ETAPAS.map((e) => (
+                  <div key={e.id} className="space-y-3">
+                    <Skeleton className="h-5 w-24" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-20 w-full" />
+                      <Skeleton className="h-20 w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
