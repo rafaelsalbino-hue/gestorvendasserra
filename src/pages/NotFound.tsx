@@ -26,10 +26,8 @@ const NotFound = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
-          <Button asChild variant="outline" className="min-h-11">
-            <button type="button" onClick={() => window.history.back()}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-            </button>
+          <Button variant="outline" className="min-h-11" onClick={() => window.history.back()}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Button>
           <Button asChild className="min-h-11">
             <Link to="/"><Home className="mr-2 h-4 w-4" /> Ir para o Dashboard</Link>

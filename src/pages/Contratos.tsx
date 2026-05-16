@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,6 +72,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
 }
 
 const Contratos = () => {
+  useDocumentTitle("Contratos");
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [entidade, setEntidade] = useState<Entidade>("SESI");

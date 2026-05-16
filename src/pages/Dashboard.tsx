@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +32,7 @@ function timeAgo(dateStr: string): string {
 }
 
 const Dashboard = () => {
+  useDocumentTitle("Dashboard");
   const { data: contratos = [], isLoading: loadC } = useContratos();
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
