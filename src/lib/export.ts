@@ -3,6 +3,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { ETAPAS } from "@/types/contracts";
 
 type Contrato = Tables<"contratos">;
+type Responsavel = Tables<"responsaveis">;
 
 export function exportContratosToXlsx(contratos: Contrato[], filename = "contratos.xlsx") {
   const etapaLabel = (id: string) => ETAPAS.find((e) => e.id === id)?.label || id;
@@ -32,5 +33,19 @@ export function exportContratosToXlsx(contratos: Contrato[], filename = "contrat
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Contratos");
+  XLSX.writeFile(wb, filename);
+}
+
+export function exportResponsaveisToXlsx(responsaveis: Responsavel[], filename = "responsaveis.xlsx") {
+  const data = responsaveis.map((r) => ({
+    Nome: r.nome,
+    "E-mail": r.email,
+    Função: r.funcao,
+    Ativo: r.ativo ? "Sim" : "Não",
+    "Criado em": new Date(r.created_at).toLocaleDateString("pt-BR"),
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Responsáveis");
   XLSX.writeFile(wb, filename);
 }
