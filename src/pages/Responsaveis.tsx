@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ const funcaoColors: Record<string, string> = {
 };
 
 const Responsaveis = () => {
+  useDocumentTitle("Responsáveis");
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -241,14 +243,20 @@ const Responsaveis = () => {
                             </div>
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(r)}
+                              className="h-9 w-9"
+                              aria-label={`Editar ${r.nome}`}
+                            >
                               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => setConfirmDeleteId(r.id)}
-                              className="h-8 w-8"
+                              className="h-9 w-9"
                               aria-label={`Remover ${r.nome}`}
                             >
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
