@@ -241,14 +241,20 @@ const Responsaveis = () => {
                             </div>
                           </div>
                           <div className="flex gap-1 shrink-0">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(r)}
+                              className="h-9 w-9"
+                              aria-label={`Editar ${r.nome}`}
+                            >
                               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => setConfirmDeleteId(r.id)}
-                              className="h-8 w-8"
+                              className="h-9 w-9"
                               aria-label={`Remover ${r.nome}`}
                             >
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
