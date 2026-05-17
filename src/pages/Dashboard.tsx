@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Users, TrendingUp, Loader2, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
@@ -127,7 +128,23 @@ const Dashboard = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+          <div className="space-y-6">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2"><Skeleton className="h-4 w-24" /></CardHeader>
+                  <CardContent className="space-y-2">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-3 w-32" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Skeleton className="h-[290px] w-full rounded-lg" />
+              <Skeleton className="h-[290px] w-full rounded-lg" />
+            </div>
+          </div>
         ) : (
           <>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

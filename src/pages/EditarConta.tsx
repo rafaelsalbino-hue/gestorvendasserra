@@ -9,8 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const EditarConta = () => {
+  useDocumentTitle("Editar Conta");
   const { toast } = useToast();
   const { user } = useAuth();
   const { currentUser, loading: loadingUser } = useCurrentUser();
