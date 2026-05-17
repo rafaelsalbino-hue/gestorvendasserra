@@ -105,12 +105,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
   const healthCheckTimerRef = useRef<number | null>(null);
 
   const applySession = useCallback((nextSession: Session | null, event: AuthChangeEvent | "MANUAL") => {
-    console.info("[session] state", {
-      event,
-      hasSession: Boolean(nextSession),
-      expiresAt: nextSession?.expires_at ?? null,
-      userId: nextSession?.user?.id ?? null,
-    });
 
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
@@ -174,7 +168,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
 
       setSessionStatus("recovering");
       setSessionMessage("Reconectando sua sessão...");
-      console.info("[session] refreshing token", { forceRefresh, expiresAtMs });
 
       const { data: refreshedData, error: refreshError } = await withTimeout(
         supabase.auth.refreshSession(),
@@ -210,7 +203,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
     const startedAt = performance.now();
     let timeoutHandle: number | null = null;
 
-    console.info("[guarded] start", { operation, timeoutMs, requiresAuth, isOnline: navigator.onLine });
 
     try {
       if (requiresAuth) {
@@ -225,7 +217,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
 
       const result = await task();
       const durationMs = Math.round(performance.now() - startedAt);
-      console.info("[guarded] success", { operation, durationMs });
       setStalledOperation((current) => (current === operation ? null : current));
       return result;
     } catch (error) {
@@ -236,7 +227,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
         try {
           await ensureActiveSession(true);
           const retried = await task();
-          console.info("[guarded] recovered after auth refresh", { operation });
           setStalledOperation((current) => (current === operation ? null : current));
           return retried;
         } catch (retryError) {
@@ -284,7 +274,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.info("[session] app visible, validating session");
         ensureActiveSession().catch((error) => {
           console.warn("[session] visible revalidation failed", error);
         });
@@ -292,7 +281,6 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
     };
 
     const handleOnline = () => {
-      console.info("[session] network online");
       setIsOnline(true);
       setSessionMessage(null);
       ensureActiveSession().catch((error) => {

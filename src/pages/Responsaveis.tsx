@@ -17,6 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
@@ -226,7 +227,22 @@ const Responsaveis = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-5 w-8 rounded-full" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-14 w-full rounded-md" />
+                  <Skeleton className="h-14 w-full rounded-md" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {FUNCOES_RESPONSAVEL.filter((f) => filterFuncao === "todas" || f === filterFuncao).map((funcaoKey) => (

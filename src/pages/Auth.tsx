@@ -10,8 +10,10 @@ import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { FUNCOES_RESPONSAVEL, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const Auth = () => {
+  useDocumentTitle("Entrar");
   const { toast } = useToast();
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);

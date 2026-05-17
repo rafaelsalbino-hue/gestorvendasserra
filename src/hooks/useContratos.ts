@@ -110,7 +110,6 @@ export function useAddContrato() {
             throw error ?? new Error("Resposta vazia do servidor");
           }, { operation: `contratos.create.${id}.attempt${attempt}`, timeoutMs: 20000 });
 
-          console.info(`[${trace}] persisted`, { attempt, durationMs: Math.round(performance.now() - ta) });
           return data;
         } catch (err: unknown) {
           const normalizedError = err instanceof Error
@@ -122,7 +121,6 @@ export function useAddContrato() {
 
           const existing = await verifyPersisted();
           if (existing) {
-            console.info(`[${trace}] persisted despite error`);
             return existing;
           }
 
@@ -138,7 +136,6 @@ export function useAddContrato() {
 
       const finalCheck = await verifyPersisted();
       if (finalCheck) {
-        console.info(`[${trace}] recovered via final check`);
         return finalCheck;
       }
 
