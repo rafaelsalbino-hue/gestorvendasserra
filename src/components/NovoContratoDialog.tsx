@@ -12,6 +12,8 @@ import { type Entidade } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useAddContrato } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useAddComentario } from "@/hooks/useContratoComentarios";
+import { supabase } from "@/integrations/supabase/client";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 
 interface NovoContratoDialogProps {
@@ -39,6 +41,7 @@ function parseCurrency(formatted: string): number {
 export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
   const addMutation = useAddContrato();
+  const addComentario = useAddComentario();
   const { data: responsaveis = [] } = useResponsaveis();
   const [entidade, setEntidade] = useState<Entidade>(entidadeInicial);
   const [cliente, setCliente] = useState("");
@@ -50,6 +53,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [cnpjError, setCnpjError] = useState("");
   const [agentePjId, setAgentePjId] = useState<string>("");
   const [clienteError, setClienteError] = useState("");
+  const [dataVisita, setDataVisita] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [observacoesVisita, setObservacoesVisita] = useState("");
 
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
@@ -61,6 +66,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setCliente(""); setCnpj(""); setServico("");
       setValorDisplay(""); setCrm(""); setDadosProposta("");
       setCnpjError(""); setAgentePjId(""); setClienteError("");
+      setDataVisita(new Date().toISOString().slice(0, 10));
+      setObservacoesVisita("");
     }
   }, [open]);
 
@@ -103,16 +110,54 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         crm,
         dados_proposta: dadosProposta,
         agente_pj_id: agentePjId || null,
+        etapa_atual: "visita",
+        data_visita: dataVisita || null,
+        observacoes_visita: observacoesVisita,
       } as any,
       {
-        onSuccess: () => {
-          toast({ title: `Contrato ${entidade} criado com sucesso!` });
+        onSuccess: async (novo: any) => {
+          toast({ title: `Visita ${entidade} criada com sucesso!` });
+
+          // Comentário automático imutável (Sistema)
+          const agente = agentesPJ.find((a) => a.id === agentePjId);
+          const valorFmt = parseCurrency(valorDisplay).toLocaleString("pt-BR", {
+            style: "currency", currency: "BRL",
+          });
+          const dataFmt = dataVisita
+            ? new Date(dataVisita + "T00:00:00").toLocaleDateString("pt-BR")
+            : "—";
+          const resumo = [
+            "📋 Visita registrada (dados iniciais)",
+            `• Entidade: ${entidade}`,
+            `• Cliente: ${cliente.trim()}`,
+            `• CNPJ: ${cnpj || "—"}`,
+            `• Consultor PJ: ${agente?.nome || "—"}`,
+            `• Data da visita: ${dataFmt}`,
+            `• Serviço/Produto: ${servico || "—"}`,
+            `• Valor: ${valorFmt}`,
+            `• CRM: ${crm || "—"}`,
+            `• Dados da proposta: ${dadosProposta || "—"}`,
+            `• Observações da visita: ${observacoesVisita || "—"}`,
+          ].join("\n");
+
+          try {
+            await supabase.from("contrato_comentarios").insert({
+              contrato_id: novo.id,
+              texto: resumo,
+              autor_nome: "Sistema",
+              autor_funcao: "Backoffice Auto",
+              is_system: true,
+            } as any);
+          } catch (err) {
+            console.warn("Falha ao registrar comentário automático:", err);
+          }
+
           resetForm();
           onOpenChange(false);
         },
         onError: (e: any) =>
           toast({
-            title: "Erro ao criar contrato",
+            title: "Erro ao criar visita",
             description: e?.message || "Tente novamente em instantes.",
             variant: "destructive",
           }),
@@ -123,6 +168,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const resetForm = () => {
     setEntidade(entidadeInicial);
     setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError(""); setAgentePjId("");
+    setDataVisita(new Date().toISOString().slice(0, 10));
+    setObservacoesVisita("");
   };
 
   return (
@@ -137,8 +184,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
     >
       <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Contrato</DialogTitle>
-          <DialogDescription>Preencha os dados para criar um novo contrato</DialogDescription>
+          <DialogTitle>Nova Visita</DialogTitle>
+          <DialogDescription>Registre uma nova visita comercial. Ela entrará na coluna "Visitas" do pipeline.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -203,6 +250,16 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data da Visita</Label>
+              <Input type="date" value={dataVisita} onChange={(e) => setDataVisita(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Observações da Visita</Label>
+            <Textarea value={observacoesVisita} onChange={(e) => setObservacoesVisita(e.target.value)} placeholder="Pontos discutidos, próximos passos..." rows={3} />
+          </div>
           <div className="space-y-2">
             <Label>Dados para a Proposta</Label>
             <Textarea value={dadosProposta} onChange={(e) => setDadosProposta(e.target.value)} placeholder="Informações adicionais..." rows={3} />
@@ -212,7 +269,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
           <Button onClick={handleSubmit} disabled={addMutation.isPending} className="w-full sm:w-auto">
             {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Criar Contrato
+            Criar Visita
           </Button>
         </DialogFooter>
       </DialogContent>
