@@ -65,6 +65,7 @@ export type Database = {
           contrato_id: string
           created_at: string
           id: string
+          is_system: boolean
           texto: string
         }
         Insert: {
@@ -73,6 +74,7 @@ export type Database = {
           contrato_id: string
           created_at?: string
           id?: string
+          is_system?: boolean
           texto: string
         }
         Update: {
@@ -81,6 +83,7 @@ export type Database = {
           contrato_id?: string
           created_at?: string
           id?: string
+          is_system?: boolean
           texto?: string
         }
         Relationships: [
@@ -104,6 +107,9 @@ export type Database = {
           crm: string
           dados_estudantes: string
           dados_proposta: string
+          data_visita: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           ensalamento_pcp: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual: Database["public"]["Enums"]["etapa_contrato"]
@@ -114,6 +120,7 @@ export type Database = {
           numero_chamado: string
           numero_rpc: string
           observacao_terceiro: string
+          observacoes_visita: string
           planilha_info_gerais: string
           servico_produto: string
           status_proposta_crm: string
@@ -131,6 +138,9 @@ export type Database = {
           crm?: string
           dados_estudantes?: string
           dados_proposta?: string
+          data_visita?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           ensalamento_pcp?: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
@@ -141,6 +151,7 @@ export type Database = {
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
+          observacoes_visita?: string
           planilha_info_gerais?: string
           servico_produto?: string
           status_proposta_crm?: string
@@ -158,6 +169,9 @@ export type Database = {
           crm?: string
           dados_estudantes?: string
           dados_proposta?: string
+          data_visita?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           ensalamento_pcp?: string
           entidade?: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
@@ -168,6 +182,7 @@ export type Database = {
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
+          observacoes_visita?: string
           planilha_info_gerais?: string
           servico_produto?: string
           status_proposta_crm?: string
@@ -333,6 +348,7 @@ export type Database = {
       app_role: "gestor" | "operador"
       entidade_type: "SESI" | "SENAI" | "SESI Saúde"
       etapa_contrato:
+        | "visita"
         | "proposta"
         | "rpc"
         | "execucao"
@@ -481,6 +497,7 @@ export const Constants = {
       app_role: ["gestor", "operador"],
       entidade_type: ["SESI", "SENAI", "SESI Saúde"],
       etapa_contrato: [
+        "visita",
         "proposta",
         "rpc",
         "execucao",
