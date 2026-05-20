@@ -15,7 +15,7 @@ import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCi
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
-import { useUpdateContrato, useDeleteContrato } from "@/hooks/useContratos";
+import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
@@ -93,7 +93,7 @@ const FIELD_LABELS: Record<string, string> = {
   execucao_faturamento: "Execução Faturamento",
 };
 
-const ETAPA_ORDER: EtapaContrato[] = ["proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"];
+const ETAPA_ORDER: EtapaContrato[] = ["visita", "proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"];
 
 function getNextEtapa(current: EtapaContrato): EtapaContrato | null {
   const idx = ETAPA_ORDER.indexOf(current);
@@ -103,7 +103,7 @@ function getNextEtapa(current: EtapaContrato): EtapaContrato | null {
 export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoDetailDialogProps) {
   const { toast } = useToast();
   const updateMutation = useUpdateContrato();
-  const deleteMutation = useDeleteContrato();
+  const deleteMutation = useSoftDeleteContrato();
   const { currentUser } = useCurrentUser();
   const { data: responsaveis = [] } = useResponsaveis();
   const [form, setForm] = useState<Partial<Contrato>>({});
@@ -492,9 +492,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Excluir contrato?</AlertDialogTitle>
+                <AlertDialogTitle>Arquivar contrato?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação é irreversível. O contrato "{contrato.cliente}" será excluído permanentemente.
+                  O contrato "{contrato.cliente}" será movido para o Arquivo. Você poderá restaurá-lo a qualquer momento.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

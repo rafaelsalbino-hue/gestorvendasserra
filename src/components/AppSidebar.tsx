@@ -1,4 +1,4 @@
-import { FileText, Users, LayoutDashboard, Building2, UserCircle, LogOut, Settings } from "lucide-react";
+import { FileText, Users, LayoutDashboard, Building2, UserCircle, LogOut, Settings, Archive } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -14,6 +14,7 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Contratos", url: "/contratos", icon: FileText },
   { title: "Responsáveis", url: "/responsaveis", icon: Users },
+  { title: "Arquivo", url: "/arquivo", icon: Archive },
   { title: "Editar Conta", url: "/conta", icon: Settings },
 ];
 

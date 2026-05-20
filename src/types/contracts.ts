@@ -34,6 +34,7 @@ export const FUNCOES_GESTOR: FuncaoResponsavel[] = [
 ];
 
 export type EtapaContrato =
+  | "visita"
   | "proposta"
   | "rpc"
   | "execucao"
@@ -49,6 +50,7 @@ export interface EtapaInfo {
 }
 
 export const ETAPAS: EtapaInfo[] = [
+  { id: "visita", label: "Visitas", responsavel: "Agente PJ", colorClass: "step-pj" },
   { id: "proposta", label: "Proposta / CRM", responsavel: "PJ / Supervisor", colorClass: "step-pj" },
   { id: "rpc", label: "RPC / Execução", responsavel: "Backoffice Comercial", colorClass: "step-backoffice" },
   { id: "execucao", label: "Status RPC", responsavel: "Backoffice Comercial", colorClass: "step-backoffice" },
@@ -65,6 +67,7 @@ export const STATUS_OPTIONS = {
     "Aguardando Assinatura Gerex",
     "Aguardando Assinatura Cliente",
     "Ganha",
+    "Cancelada",
   ],
   info_execucao: ["Aguardando", "Dados entregues"],
   status_rpc: [

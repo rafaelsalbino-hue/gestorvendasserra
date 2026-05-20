@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Contratos = lazy(() => import("./pages/Contratos"));
 const Responsaveis = lazy(() => import("./pages/Responsaveis"));
+const Arquivo = lazy(() => import("./pages/Arquivo"));
 const EditarConta = lazy(() => import("./pages/EditarConta"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -66,6 +67,7 @@ const App = () => (
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
                   <Route path="/responsaveis" element={<ProtectedRoute><Responsaveis /></ProtectedRoute>} />
+                  <Route path="/arquivo" element={<ProtectedRoute><Arquivo /></ProtectedRoute>} />
                   <Route path="/conta" element={<ProtectedRoute><EditarConta /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

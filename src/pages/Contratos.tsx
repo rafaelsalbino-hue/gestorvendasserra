@@ -175,7 +175,7 @@ const Contratos = () => {
               <Download className="mr-2 h-4 w-4" />Exportar
             </Button>
             <Button size="sm" onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />Novo Contrato
+              <Plus className="mr-2 h-4 w-4" />Nova Visita
             </Button>
           </div>
         </div>
