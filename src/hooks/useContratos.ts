@@ -16,11 +16,11 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   const query = useQuery({
     queryKey: ["contratos", entidade],
     queryFn: async () => runGuarded(async () => {
-      let q = supabase.from("contratos").select("*").order("created_at", { ascending: false });
+      let q = supabase.from("contratos").select("*").is("deleted_at", null).order("created_at", { ascending: false });
       if (entidade) q = q.eq("entidade", entidade);
       const { data, error } = await q;
       if (error) throw error;
-      return data as Contrato[];
+      return (data as Contrato[]).filter((c: any) => c.status_proposta_crm !== "Cancelada");
     }, { operation: `contratos.list.${entidade ?? "all"}`, timeoutMs: 15000 }),
     staleTime: 1000 * 60 * 2,
   });
@@ -40,6 +40,64 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
   }, [qc]);
 
   return query;
+}
+
+export function useContratosArquivados() {
+  const { runGuarded } = useAppSession();
+  return useQuery({
+    queryKey: ["contratos", "arquivados"],
+    queryFn: async () => runGuarded(async () => {
+      const { data, error } = await supabase
+        .from("contratos")
+        .select("*")
+        .or("deleted_at.not.is.null,status_proposta_crm.eq.Cancelada")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return data as Contrato[];
+    }, { operation: "contratos.arquivados", timeoutMs: 15000 }),
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useSoftDeleteContrato() {
+  const qc = useQueryClient();
+  const { runGuarded } = useAppSession();
+  return useMutation({
+    mutationFn: async (id: string) => runGuarded(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("contratos")
+        .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id ?? null } as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Contrato;
+    }, { operation: `contratos.softDelete.${id}`, timeoutMs: 15000 }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contratos"] });
+    },
+  });
+}
+
+export function useRestaurarContrato() {
+  const qc = useQueryClient();
+  const { runGuarded } = useAppSession();
+  return useMutation({
+    mutationFn: async (id: string) => runGuarded(async () => {
+      const { data, error } = await supabase
+        .from("contratos")
+        .update({ deleted_at: null, deleted_by: null, status_proposta_crm: "" } as any)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Contrato;
+    }, { operation: `contratos.restore.${id}`, timeoutMs: 15000 }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contratos"] });
+    },
+  });
 }
 
 export function useAddContrato() {
