@@ -125,6 +125,7 @@ export type Database = {
           servico_produto: string
           status_proposta_crm: string
           status_rpc: string
+          subdivisao: string | null
           updated_at: string
           valor: number
         }
@@ -156,6 +157,7 @@ export type Database = {
           servico_produto?: string
           status_proposta_crm?: string
           status_rpc?: string
+          subdivisao?: string | null
           updated_at?: string
           valor?: number
         }
@@ -187,6 +189,7 @@ export type Database = {
           servico_produto?: string
           status_proposta_crm?: string
           status_rpc?: string
+          subdivisao?: string | null
           updated_at?: string
           valor?: number
         }
@@ -309,6 +312,30 @@ export type Database = {
         }
         Relationships: []
       }
+      unit_subdivisions: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          unit_name: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          unit_name: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          unit_name?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -345,7 +372,7 @@ export type Database = {
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "gestor" | "operador"
+      app_role: "gestor" | "operador" | "backoffice"
       entidade_type: "SESI" | "SENAI" | "SESI Saúde"
       etapa_contrato:
         | "visita"
@@ -494,7 +521,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["gestor", "operador"],
+      app_role: ["gestor", "operador", "backoffice"],
       entidade_type: ["SESI", "SENAI", "SESI Saúde"],
       etapa_contrato: [
         "visita",
