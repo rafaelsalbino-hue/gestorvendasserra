@@ -20,7 +20,9 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
       if (entidade) q = q.eq("entidade", entidade);
       const { data, error } = await q;
       if (error) throw error;
-      return (data as Contrato[]).filter((c: any) => c.status_proposta_crm !== "Cancelada");
+      return (data as Contrato[]).filter(
+        (c: any) => c.status_proposta_crm !== "Cancelada" && c.status_proposta_crm !== "Perdido"
+      );
     }, { operation: `contratos.list.${entidade ?? "all"}`, timeoutMs: 15000 }),
     staleTime: 1000 * 60 * 2,
   });
@@ -50,7 +52,7 @@ export function useContratosArquivados() {
       const { data, error } = await supabase
         .from("contratos")
         .select("*")
-        .or("deleted_at.not.is.null,status_proposta_crm.eq.Cancelada")
+        .or("deleted_at.not.is.null,status_proposta_crm.eq.Cancelada,status_proposta_crm.eq.Perdido")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as Contrato[];
