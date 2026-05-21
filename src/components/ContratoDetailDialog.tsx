@@ -110,8 +110,34 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const [showHistory, setShowHistory] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
   const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
+
+  // Sort: system comment(s) on top (chronological), then user comments chronological ascending
+  const sortedComentarios = (() => {
+    const list = [...comentarios];
+    const sys = list
+      .filter((c: any) => c.is_system)
+      .sort((a: any, b: any) => +new Date(a.created_at) - +new Date(b.created_at));
+    const manual = list
+      .filter((c: any) => !c.is_system)
+      .sort((a: any, b: any) => +new Date(a.created_at) - +new Date(b.created_at));
+    return { sys, manual };
+  })();
+
+  const visibleManual =
+    showAllComments || sortedComentarios.manual.length <= 5
+      ? sortedComentarios.manual
+      : sortedComentarios.manual.slice(-3);
+
+  const getInitials = (name: string) =>
+    (name || "?")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?";
   const addComentario = useAddComentario();
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
