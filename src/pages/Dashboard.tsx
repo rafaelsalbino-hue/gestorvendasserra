@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ETAPAS } from "@/types/contracts";
+import { ETAPAS, SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
@@ -38,6 +38,7 @@ const Dashboard = () => {
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
   const [filterPJ, setFilterPJ] = useState<string>("todos");
+  const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
 
   const isLoading = loadC || loadR;
 
@@ -50,9 +51,14 @@ const Dashboard = () => {
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
   // Filter by PJ agent (uses agente_pj_id field)
-  const filtered = filterPJ === "todos"
+  const filteredByPJ = filterPJ === "todos"
     ? filteredByEntidade
     : filteredByEntidade.filter((c) => (c as any).agente_pj_id === filterPJ);
+
+  const subdivisaoEnabled = filterEntidade === "SESI Saúde";
+  const filtered = subdivisaoEnabled && filterSubdivisao !== "todas"
+    ? filteredByPJ.filter((c) => (c as any).subdivisao === filterSubdivisao)
+    : filteredByPJ;
 
   const sesiCount = filtered.filter((c) => c.entidade === "SESI").length;
   const senaiCount = filtered.filter((c) => c.entidade === "SENAI").length;
@@ -125,6 +131,20 @@ const Dashboard = () => {
               </SelectContent>
             </Select>
           </div>
+          {subdivisaoEnabled && (
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">Área</Label>
+              <Select value={filterSubdivisao} onValueChange={setFilterSubdivisao}>
+                <SelectTrigger className="w-52 h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as áreas</SelectItem>
+                  {(SUBDIVISIONS_BY_UNIT["SESI Saúde"] || []).map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
