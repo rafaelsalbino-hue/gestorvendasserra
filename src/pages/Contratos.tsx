@@ -30,7 +30,11 @@ type Contrato = Tables<"contratos">;
 function DroppableColumn({ etapaId, children }: { etapaId: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: etapaId });
   return (
-    <div ref={setNodeRef} className={`min-h-[200px] rounded-lg border border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-muted/30"}`}>
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg border border-dashed space-y-2 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-muted/30"}`}
+      style={{ padding: 10, minWidth: 160 }}
+    >
       {children}
     </div>
   );
@@ -49,18 +53,22 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-md border bg-card p-3 space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all">
+    <div
+      ref={setNodeRef}
+      style={{ ...style, padding: "8px 10px" }}
+      className="rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+    >
       <div className="flex items-center gap-1">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
           <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
-        <p className="text-sm font-medium truncate flex-1" onClick={onClick}>{contrato.cliente}</p>
+        <p className="truncate flex-1 font-medium" style={{ fontSize: 12 }} onClick={onClick}>{contrato.cliente}</p>
       </div>
-      <div onClick={onClick}>
-        <p className="text-xs text-muted-foreground">{contrato.cnpj}</p>
-        {contrato.servico_produto && <p className="text-xs text-muted-foreground truncate">{contrato.servico_produto}</p>}
+      <div onClick={onClick} style={{ fontSize: 11 }}>
+        <p className="text-muted-foreground">{contrato.cnpj}</p>
+        {contrato.servico_produto && <p className="text-muted-foreground truncate">{contrato.servico_produto}</p>}
         {contrato.valor > 0 && (
-          <p className="text-xs font-semibold text-primary">
+          <p className="font-semibold text-primary">
             R$ {contrato.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
         )}
@@ -249,7 +257,13 @@ const Contratos = () => {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div
+                className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0"
+              >
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(160px, 1fr))` }}
+              >
                 {ETAPAS.map((e) => (
                   <div key={e.id} className="space-y-3">
                     <Skeleton className="h-5 w-24" />
@@ -260,20 +274,35 @@ const Contratos = () => {
                   </div>
                 ))}
               </div>
+              </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0">
+                <div
+                  className="grid gap-3"
+                  style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(160px, 1fr))` }}
+                >
                   {ETAPAS.map((etapa) => {
                     const items = byEtapa(etapa.id);
                     return (
-                      <div key={etapa.id} className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge className={etapa.colorClass + " text-xs"}>{etapa.label}</Badge>
-                          <span className="text-xs text-muted-foreground font-medium">{items.length}</span>
+                      <div key={etapa.id} className="space-y-2 min-w-[160px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={etapa.colorClass + " rounded px-1.5 py-0.5 font-semibold uppercase truncate"}
+                            style={{ fontSize: 11, letterSpacing: "0.04em" }}
+                          >
+                            {etapa.label}
+                          </span>
+                          <span
+                            className="rounded-full bg-muted text-muted-foreground font-medium px-2 py-0.5"
+                            style={{ fontSize: 10 }}
+                          >
+                            {items.length}
+                          </span>
                         </div>
                         <DroppableColumn etapaId={etapa.id}>
                           {items.length === 0 ? (
-                            <p className="text-xs text-muted-foreground text-center py-8">Nenhum contrato nesta etapa</p>
+                            <p className="text-muted-foreground text-center py-6" style={{ fontSize: 11 }}>Sem itens</p>
                           ) : (
                             items.map((c) => (
                               <DraggableCard key={c.id} contrato={c} onClick={() => setSelected(c)} />
@@ -283,6 +312,7 @@ const Contratos = () => {
                       </div>
                     );
                   })}
+                </div>
                 </div>
               </DndContext>
             )}

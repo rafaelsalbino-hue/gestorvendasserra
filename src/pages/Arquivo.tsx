@@ -72,6 +72,7 @@ export default function ArquivoPage() {
             {filtrados.map((c: any) => {
               const isDeleted = !!c.deleted_at;
               const isCancelled = c.status_proposta_crm === "Cancelada";
+              const isLost = c.status_proposta_crm === "Perdido";
               return (
                 <Card key={c.id} className="flex flex-col">
                   <CardContent className="p-4 flex-1 space-y-2">
@@ -89,6 +90,11 @@ export default function ArquivoPage() {
                         {isCancelled && (
                           <Badge variant="outline" className="gap-1 text-[10px]">
                             <XCircle className="h-3 w-3" /> Cancelada
+                          </Badge>
+                        )}
+                        {isLost && (
+                          <Badge className="gap-1 text-[10px] bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            <XCircle className="h-3 w-3" /> Perdido
                           </Badge>
                         )}
                       </div>
