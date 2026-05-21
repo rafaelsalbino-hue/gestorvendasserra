@@ -64,9 +64,9 @@ export const STATUS_OPTIONS = {
   dados_proposta: ["Aguardando", "Dados entregues"],
   status_proposta_crm: [
     "Em elaboração",
-    "Aguardando Assinatura Gerex",
-    "Aguardando Assinatura Cliente",
+    "Em Negociação",
     "Ganha",
+    "Perdido",
     "Cancelada",
   ],
   info_execucao: ["Aguardando", "Dados entregues"],
