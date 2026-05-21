@@ -15,6 +15,7 @@ import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { useAddComentario } from "@/hooks/useContratoComentarios";
 import { supabase } from "@/integrations/supabase/client";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
+import { SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 
 interface NovoContratoDialogProps {
   open: boolean;
@@ -55,6 +56,11 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [clienteError, setClienteError] = useState("");
   const [dataVisita, setDataVisita] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [observacoesVisita, setObservacoesVisita] = useState("");
+  const [subdivisao, setSubdivisao] = useState<string>("");
+  const [subdivisaoError, setSubdivisaoError] = useState("");
+
+  const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
+  const exigeSubdivisao = subdivisoesDisponiveis.length > 0;
 
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
@@ -68,8 +74,18 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setCnpjError(""); setAgentePjId(""); setClienteError("");
       setDataVisita(new Date().toISOString().slice(0, 10));
       setObservacoesVisita("");
+      setSubdivisao("");
+      setSubdivisaoError("");
     }
   }, [open]);
+
+  // Limpa subdivisão se mudar para unidade sem subdivisões
+  useEffect(() => {
+    if (!exigeSubdivisao && subdivisao) {
+      setSubdivisao("");
+      setSubdivisaoError("");
+    }
+  }, [entidade, exigeSubdivisao]);
 
   const handleCnpjChange = (value: string) => {
     const formatted = formatarCNPJ(value);
@@ -96,6 +112,10 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setCnpjError("CNPJ inválido");
       hasError = true;
     }
+    if (exigeSubdivisao && !subdivisao) {
+      setSubdivisaoError("Selecione a área / subdivisão.");
+      hasError = true;
+    }
     if (hasError) {
       toast({ title: "Verifique os campos destacados", variant: "destructive" });
       return;
@@ -113,6 +133,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         etapa_atual: "visita",
         data_visita: dataVisita || null,
         observacoes_visita: observacoesVisita,
+        subdivisao: subdivisao || null,
       } as any,
       {
         onSuccess: async (novo: any) => {
@@ -129,6 +150,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           const resumo = [
             "📋 Visita registrada (dados iniciais)",
             `• Entidade: ${entidade}`,
+            ...(exigeSubdivisao ? [`• Área: ${subdivisao}`] : []),
             `• Cliente: ${cliente.trim()}`,
             `• CNPJ: ${cnpj || "—"}`,
             `• Consultor PJ: ${agente?.nome || "—"}`,
@@ -170,6 +192,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
     setCliente(""); setCnpj(""); setServico(""); setValorDisplay(""); setCrm(""); setDadosProposta(""); setCnpjError(""); setAgentePjId("");
     setDataVisita(new Date().toISOString().slice(0, 10));
     setObservacoesVisita("");
+    setSubdivisao("");
+    setSubdivisaoError("");
   };
 
   return (
@@ -199,6 +223,25 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               </SelectContent>
             </Select>
           </div>
+          {exigeSubdivisao && (
+            <div className="space-y-2">
+              <Label>Área / Subdivisão *</Label>
+              <Select
+                value={subdivisao || undefined}
+                onValueChange={(v) => { setSubdivisao(v); if (subdivisaoError) setSubdivisaoError(""); }}
+              >
+                <SelectTrigger className={subdivisaoError ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Selecione a área" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subdivisoesDisponiveis.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {subdivisaoError && <p className="text-xs text-destructive">{subdivisaoError}</p>}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
