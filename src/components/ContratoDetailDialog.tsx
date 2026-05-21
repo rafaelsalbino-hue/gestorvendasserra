@@ -186,6 +186,17 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
     const finalForm = { ...form, ...extraUpdates };
     const etapaChanged = contrato.etapa_atual !== finalForm.etapa_atual;
 
+    // Auto-arquivar quando status_proposta_crm = "Perdido" ou "Cancelada"
+    const statusAtual = (finalForm as any).status_proposta_crm;
+    if (
+      (statusAtual === "Perdido" || statusAtual === "Cancelada") &&
+      !(contrato as any).deleted_at
+    ) {
+      const { data: { user } } = await supabase.auth.getUser();
+      (finalForm as any).deleted_at = new Date().toISOString();
+      (finalForm as any).deleted_by = user?.id ?? null;
+    }
+
     // CONCURRENT SAFETY: enviar apenas os campos que realmente mudaram
     // (evita sobrescrever alterações simultâneas de outros usuários)
     const SKIP_FIELDS = new Set(["id", "created_at", "updated_at", "etapa_updated_at"]);
