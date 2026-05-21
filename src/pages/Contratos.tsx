@@ -257,7 +257,13 @@ const Contratos = () => {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div
+                className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0"
+              >
+              <div
+                className="grid gap-3"
+                style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(160px, 1fr))` }}
+              >
                 {ETAPAS.map((e) => (
                   <div key={e.id} className="space-y-3">
                     <Skeleton className="h-5 w-24" />
@@ -268,20 +274,35 @@ const Contratos = () => {
                   </div>
                 ))}
               </div>
+              </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0">
+                <div
+                  className="grid gap-3"
+                  style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(160px, 1fr))` }}
+                >
                   {ETAPAS.map((etapa) => {
                     const items = byEtapa(etapa.id);
                     return (
-                      <div key={etapa.id} className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Badge className={etapa.colorClass + " text-xs"}>{etapa.label}</Badge>
-                          <span className="text-xs text-muted-foreground font-medium">{items.length}</span>
+                      <div key={etapa.id} className="space-y-2 min-w-[160px]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={etapa.colorClass + " rounded px-1.5 py-0.5 font-semibold uppercase truncate"}
+                            style={{ fontSize: 11, letterSpacing: "0.04em" }}
+                          >
+                            {etapa.label}
+                          </span>
+                          <span
+                            className="rounded-full bg-muted text-muted-foreground font-medium px-2 py-0.5"
+                            style={{ fontSize: 10 }}
+                          >
+                            {items.length}
+                          </span>
                         </div>
                         <DroppableColumn etapaId={etapa.id}>
                           {items.length === 0 ? (
-                            <p className="text-xs text-muted-foreground text-center py-8">Nenhum contrato nesta etapa</p>
+                            <p className="text-muted-foreground text-center py-6" style={{ fontSize: 11 }}>Sem itens</p>
                           ) : (
                             items.map((c) => (
                               <DraggableCard key={c.id} contrato={c} onClick={() => setSelected(c)} />
@@ -291,6 +312,7 @@ const Contratos = () => {
                       </div>
                     );
                   })}
+                </div>
                 </div>
               </DndContext>
             )}
