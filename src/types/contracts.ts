@@ -93,6 +93,22 @@ export const STATUS_OPTIONS = {
 
 export const ALLOWED_DOMAINS = ["sc.senai.br", "fiesc.com.br", "sesisc.org.br"];
 
+// Subdivisões disponíveis apenas para SESI Saúde
+export type SubdivisaoSaude = "Promoção de Saúde" | "Saúde Assistencial" | "SST" | "NRs";
+
+export const SUBDIVISIONS_BY_UNIT: Record<Entidade, string[]> = {
+  "SESI": [],
+  "SENAI": [],
+  "SESI Saúde": ["Promoção de Saúde", "Saúde Assistencial", "SST", "NRs"],
+};
+
+export const SUBDIVISAO_COLORS: Record<string, string> = {
+  "Promoção de Saúde": "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200",
+  "Saúde Assistencial": "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-200",
+  "SST": "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200",
+  "NRs": "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/40 dark:text-purple-200",
+};
+
 export interface Contrato {
   id: string;
   entidade: Entidade;

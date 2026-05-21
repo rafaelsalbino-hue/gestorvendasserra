@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Download, Filter, GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ETAPAS, type Entidade, STATUS_OPTIONS } from "@/types/contracts";
+import { ETAPAS, type Entidade, STATUS_OPTIONS, SUBDIVISIONS_BY_UNIT, SUBDIVISAO_COLORS } from "@/types/contracts";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { NovoContratoDialog } from "@/components/NovoContratoDialog";
 import { ContratoDetailDialog } from "@/components/ContratoDetailDialog";
@@ -66,6 +66,14 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
       </div>
       <div onClick={onClick} style={{ fontSize: 11 }}>
         <p className="text-muted-foreground">{contrato.cnpj}</p>
+        {(contrato as any).subdivisao && (
+          <span
+            className={`inline-block mt-1 rounded border px-1.5 py-0.5 font-medium ${SUBDIVISAO_COLORS[(contrato as any).subdivisao] || "bg-muted text-muted-foreground border-border"}`}
+            style={{ fontSize: 10 }}
+          >
+            {(contrato as any).subdivisao}
+          </span>
+        )}
         {contrato.servico_produto && <p className="text-muted-foreground truncate">{contrato.servico_produto}</p>}
         {contrato.valor > 0 && (
           <p className="font-semibold text-primary">
@@ -92,6 +100,7 @@ const Contratos = () => {
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterValorMin, setFilterValorMin] = useState("");
   const [filterValorMax, setFilterValorMax] = useState("");
+  const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
@@ -128,6 +137,7 @@ const Contratos = () => {
     if (filterStatus !== "todos" && c.status_rpc !== filterStatus && c.status_proposta_crm !== filterStatus) return false;
     if (filterValorMin && c.valor < parseFloat(filterValorMin)) return false;
     if (filterValorMax && c.valor > parseFloat(filterValorMax)) return false;
+    if (filterSubdivisao !== "todas" && (c as any).subdivisao !== filterSubdivisao) return false;
     return true;
   });
 
@@ -166,9 +176,17 @@ const Contratos = () => {
   if (filterStatus !== "todos") activeFilters.push({ key: "status", label: `Status: ${filterStatus}`, clear: () => setFilterStatus("todos") });
   if (filterValorMin) activeFilters.push({ key: "min", label: `≥ R$ ${filterValorMin}`, clear: () => setFilterValorMin("") });
   if (filterValorMax) activeFilters.push({ key: "max", label: `≤ R$ ${filterValorMax}`, clear: () => setFilterValorMax("") });
+  if (filterSubdivisao !== "todas") activeFilters.push({ key: "sub", label: `Área: ${filterSubdivisao}`, clear: () => setFilterSubdivisao("todas") });
   const clearAllFilters = () => {
-    setSearch(""); setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax("");
+    setSearch(""); setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas");
   };
+
+  const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
+
+  // Reseta filtro de subdivisão ao trocar de entidade
+  useEffect(() => {
+    setFilterSubdivisao("todas");
+  }, [entidade]);
 
   return (
     <AppLayout>
@@ -228,8 +246,20 @@ const Contratos = () => {
                   <label className="text-xs font-medium text-muted-foreground">Valor máx.</label>
                   <Input className="w-full sm:w-28 h-8 text-xs" type="number" placeholder="999999" value={filterValorMax} onChange={(e) => setFilterValorMax(e.target.value)} />
                 </div>
+                {subdivisoesDisponiveis.length > 0 && (
+                  <div className="space-y-1 flex-1 min-w-[140px]">
+                    <label className="text-xs font-medium text-muted-foreground">Área</label>
+                    <Select value={filterSubdivisao} onValueChange={setFilterSubdivisao}>
+                      <SelectTrigger className="w-full sm:w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todas">Todas as áreas</SelectItem>
+                        {subdivisoesDisponiveis.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="flex items-end">
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); }}>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); }}>
                     Limpar
                   </Button>
                 </div>
