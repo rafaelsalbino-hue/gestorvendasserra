@@ -30,7 +30,11 @@ type Contrato = Tables<"contratos">;
 function DroppableColumn({ etapaId, children }: { etapaId: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: etapaId });
   return (
-    <div ref={setNodeRef} className={`min-h-[200px] rounded-lg border border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-muted/30"}`}>
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg border border-dashed space-y-2 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-muted/30"}`}
+      style={{ padding: 10, minWidth: 160 }}
+    >
       {children}
     </div>
   );
@@ -49,18 +53,22 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="rounded-md border bg-card p-3 space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all">
+    <div
+      ref={setNodeRef}
+      style={{ ...style, padding: "8px 10px" }}
+      className="rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+    >
       <div className="flex items-center gap-1">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
           <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
-        <p className="text-sm font-medium truncate flex-1" onClick={onClick}>{contrato.cliente}</p>
+        <p className="truncate flex-1 font-medium" style={{ fontSize: 12 }} onClick={onClick}>{contrato.cliente}</p>
       </div>
-      <div onClick={onClick}>
-        <p className="text-xs text-muted-foreground">{contrato.cnpj}</p>
-        {contrato.servico_produto && <p className="text-xs text-muted-foreground truncate">{contrato.servico_produto}</p>}
+      <div onClick={onClick} style={{ fontSize: 11 }}>
+        <p className="text-muted-foreground">{contrato.cnpj}</p>
+        {contrato.servico_produto && <p className="text-muted-foreground truncate">{contrato.servico_produto}</p>}
         {contrato.valor > 0 && (
-          <p className="text-xs font-semibold text-primary">
+          <p className="font-semibold text-primary">
             R$ {contrato.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
         )}
