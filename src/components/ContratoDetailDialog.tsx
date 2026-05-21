@@ -431,7 +431,63 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </Button>
             {showComments && (
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="rounded-md border bg-background max-h-[420px] overflow-y-auto p-3 flex flex-col" style={{ gap: 10 }}>
+                  {comentarios.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum comentário ainda</p>
+                  ) : (
+                    <>
+                      {/* Sistema fixo no topo */}
+                      {sortedComentarios.sys.map((c: any) => (
+                        <div key={c.id} className="flex gap-2 items-start">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary font-semibold" style={{ fontSize: 10 }}>
+                            SY
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium" style={{ fontSize: 12 }}>Sistema</span>
+                              <span className="rounded bg-primary/15 text-primary px-1.5 py-0.5 font-medium uppercase" style={{ fontSize: 9, letterSpacing: "0.05em" }}>auto</span>
+                              <span className="text-muted-foreground" style={{ fontSize: 11 }}>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                            </div>
+                            <pre className="mt-1 whitespace-pre-wrap break-words rounded-md bg-muted/60 border-l-2 border-primary p-2 font-mono" style={{ fontSize: 11 }}>{c.texto}</pre>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Toggle "ver histórico completo" */}
+                      {sortedComentarios.manual.length > 5 && !showAllComments && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllComments(true)}
+                          className="self-center text-primary hover:underline"
+                          style={{ fontSize: 11 }}
+                        >
+                          Ver histórico completo ({sortedComentarios.manual.length - 3} anteriores)
+                        </button>
+                      )}
+
+                      {/* Comentários manuais */}
+                      {visibleManual.map((c: any) => (
+                        <div key={c.id} className="flex gap-2 items-start">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground font-semibold" style={{ fontSize: 10 }}>
+                            {getInitials(c.autor_nome)}
+                          </div>
+                          <div className="flex-1 min-w-0 rounded-md border bg-card p-2">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="font-medium" style={{ fontSize: 12 }}>
+                                {c.autor_nome}
+                                {c.autor_funcao && <span className="text-muted-foreground font-normal"> · {c.autor_funcao}</span>}
+                              </span>
+                              <span className="text-muted-foreground" style={{ fontSize: 11 }}>{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                            </div>
+                            <p className="mt-1 whitespace-pre-wrap break-words" style={{ fontSize: 12 }}>{c.texto}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+                {/* Campo de novo comentário ao final */}
+                <div className="flex gap-2 pt-1">
                   <Input
                     placeholder="Escreva um comentário..."
                     value={commentText}
@@ -467,23 +523,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   >
                     <Send className="h-3.5 w-3.5" />
                   </Button>
-                </div>
-                <div className="border rounded-md max-h-40 overflow-y-auto">
-                  {comentarios.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum comentário ainda</p>
-                  ) : (
-                    <div className="divide-y">
-                      {comentarios.map((c) => (
-                        <div key={c.id} className="p-2 text-xs">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{c.autor_nome} <span className="text-muted-foreground font-normal">({c.autor_funcao})</span></span>
-                            <span className="text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</span>
-                          </div>
-                          <p className="mt-0.5">{c.texto}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             )}
