@@ -23,6 +23,8 @@ import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { ContratoAnexos } from "@/components/ContratoAnexos";
+import { ContratoArquivos } from "@/components/ContratoArquivos";
+import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
