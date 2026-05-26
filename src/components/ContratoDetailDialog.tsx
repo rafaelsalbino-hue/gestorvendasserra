@@ -23,6 +23,8 @@ import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { ContratoAnexos } from "@/components/ContratoAnexos";
+import { ContratoArquivos } from "@/components/ContratoArquivos";
+import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
@@ -370,6 +372,44 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Nº RPC</Label><Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} /></div>
               <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canEdit("rpc")} />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Instrutor</Label>
+                <Input
+                  className="h-9 text-sm"
+                  value={(form as any).instrutor || ""}
+                  onChange={(e) => set("instrutor" as any, e.target.value)}
+                  disabled={!canEdit("rpc")}
+                  placeholder="Nome do instrutor"
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Dias de Execução</Label>
+                <DiasSemanaSelect
+                  value={((form as any).dias_execucao as string[]) || []}
+                  onChange={(v) => setForm((prev) => ({ ...prev, dias_execucao: v as any }))}
+                  disabled={!canEdit("rpc")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Horário Início</Label>
+                <Input
+                  type="time"
+                  className="h-9 text-sm"
+                  value={(form as any).horario_inicio || ""}
+                  onChange={(e) => set("horario_inicio" as any, e.target.value)}
+                  disabled={!canEdit("rpc")}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Horário Fim</Label>
+                <Input
+                  type="time"
+                  className="h-9 text-sm"
+                  value={(form as any).horario_fim || ""}
+                  onChange={(e) => set("horario_fim" as any, e.target.value)}
+                  disabled={!canEdit("rpc")}
+                />
+              </div>
             </div>
           </div>
 
@@ -398,6 +438,14 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canEdit("matricula")} />
               <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canEdit("matricula")} />
             </div>
+            <ContratoArquivos
+              contratoId={contrato.id}
+              categoria="planilha_alunos"
+              label="Planilhas de Alunos da Turma"
+              accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+              allowMultiple
+              disabled={!canEdit("matricula")}
+            />
           </div>
 
           {/* Etapa 5 - Ensalamento */}
@@ -420,6 +468,14 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
             <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
+            <ContratoArquivos
+              contratoId={contrato.id}
+              categoria="chamado_faturamento"
+              label="Chamado de Faturamento"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              singleFile
+              disabled={!canEdit("faturamento")}
+            />
           </div>
 
           {/* Comentários */}

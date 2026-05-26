@@ -58,6 +58,45 @@ export type Database = {
           },
         ]
       }
+      contrato_arquivos: {
+        Row: {
+          categoria: string
+          contrato_id: string
+          created_at: string
+          file_name: string
+          file_size: number
+          id: string
+          mime_type: string
+          storage_path: string
+          uploaded_by: string | null
+          uploader_nome: string
+        }
+        Insert: {
+          categoria: string
+          contrato_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          storage_path: string
+          uploaded_by?: string | null
+          uploader_nome?: string
+        }
+        Update: {
+          categoria?: string
+          contrato_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          storage_path?: string
+          uploaded_by?: string | null
+          uploader_nome?: string
+        }
+        Relationships: []
+      }
       contrato_comentarios: {
         Row: {
           autor_funcao: string
@@ -110,13 +149,17 @@ export type Database = {
           data_visita: string | null
           deleted_at: string | null
           deleted_by: string | null
+          dias_execucao: string[]
           ensalamento_pcp: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at: string
           execucao_faturamento: string
+          horario_fim: string | null
+          horario_inicio: string | null
           id: string
           info_execucao: string
+          instrutor: string
           numero_chamado: string
           numero_rpc: string
           observacao_terceiro: string
@@ -142,13 +185,17 @@ export type Database = {
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          dias_execucao?: string[]
           ensalamento_pcp?: string
           entidade: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at?: string
           execucao_faturamento?: string
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id?: string
           info_execucao?: string
+          instrutor?: string
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
@@ -174,13 +221,17 @@ export type Database = {
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          dias_execucao?: string[]
           ensalamento_pcp?: string
           entidade?: Database["public"]["Enums"]["entidade_type"]
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at?: string
           execucao_faturamento?: string
+          horario_fim?: string | null
+          horario_inicio?: string | null
           id?: string
           info_execucao?: string
+          instrutor?: string
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
