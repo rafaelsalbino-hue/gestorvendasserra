@@ -468,6 +468,14 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
             <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
+            <ContratoArquivos
+              contratoId={contrato.id}
+              categoria="chamado_faturamento"
+              label="Chamado de Faturamento"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              singleFile
+              disabled={!canEdit("faturamento")}
+            />
           </div>
 
           {/* Comentários */}
