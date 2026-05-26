@@ -438,6 +438,14 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canEdit("matricula")} />
               <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canEdit("matricula")} />
             </div>
+            <ContratoArquivos
+              contratoId={contrato.id}
+              categoria="planilha_alunos"
+              label="Planilhas de Alunos da Turma"
+              accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+              allowMultiple
+              disabled={!canEdit("matricula")}
+            />
           </div>
 
           {/* Etapa 5 - Ensalamento */}
