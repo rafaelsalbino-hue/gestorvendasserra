@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Loader2, Upload, FileText, Download, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -181,6 +182,3 @@ export function ContratoArquivos({ contratoId, categoria, label, accept, allowMu
     </div>
   );
 }
-
-// Import Label after declarations (avoid hoist issues with patch)
-import { Label } from "@/components/ui/label";
