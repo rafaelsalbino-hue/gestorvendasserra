@@ -160,6 +160,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const funcao = currentUser?.funcao;
   const canEdit = (section: string) => canEditSection(funcao, section);
+  const canStatus = (section: string) => canEditStatus(funcao, section);
   const isLastEtapa = form.etapa_atual === "faturamento";
   const nextEtapa = form.etapa_atual ? getNextEtapa(form.etapa_atual as EtapaContrato) : null;
 
@@ -331,7 +332,20 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Cliente</Label><Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Serviço / Produto</Label><Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
-              <div className="space-y-1.5"><Label className="text-xs">Valor (R$)</Label><Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor (R$)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+                  <Input
+                    className="h-9 text-sm pl-9"
+                    inputMode="numeric"
+                    value={form.valor != null ? formatBRL(Number(form.valor)) : ""}
+                    onChange={(e) => set("valor", parseBRL(formatBRLInput(e.target.value)))}
+                    disabled={!canEdit("dados_basicos")}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5"><Label className="text-xs">CRM</Label><Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Etapa Atual</Label>
