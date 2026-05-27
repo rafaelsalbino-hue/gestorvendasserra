@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { useState, useEffect } from "react";
-import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
+import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, FUNCOES_STATUS_AMPLO, type EtapaContrato } from "@/types/contracts";
+import { formatBRL, formatBRLInput, parseBRL } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -50,12 +51,20 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   "PCP": ["ensalamento"],
   "Analista Financeiro": ["faturamento"],
   "Interlocutora de Faturamento": ["faturamento"],
+  "Coordenador SESI/SENAI": ["dados_basicos", "proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
 };
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
   if (!funcao) return false;
   if (FUNCOES_GESTOR.includes(funcao as any)) return true;
   return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
+}
+
+// Permissão ampliada para alterar qualquer campo de status (status_*) em qualquer etapa.
+function canEditStatus(funcao: FuncaoResponsavel | undefined, section: string): boolean {
+  if (!funcao) return false;
+  if (FUNCOES_STATUS_AMPLO.includes(funcao as any)) return true;
+  return canEditSection(funcao, section);
 }
 
 function SectionLock({ locked }: { locked: boolean }) {
