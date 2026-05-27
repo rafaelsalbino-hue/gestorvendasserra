@@ -15,6 +15,7 @@ import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCi
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, FUNCOES_STATUS_AMPLO, type EtapaContrato } from "@/types/contracts";
 import { formatBRL, formatBRLInput, parseBRL } from "@/lib/currency";
+import { validarEtapaParaAvancar } from "@/hooks/useEtapaValidation";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -268,9 +269,18 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const handleSave = () => doSave();
 
   const handleSaveAndNext = () => {
-    if (nextEtapa) {
-      doSave({ etapa_atual: nextEtapa });
+    if (!nextEtapa) return;
+    const faltantes = validarEtapaParaAvancar(form, form.etapa_atual as EtapaContrato);
+    if (faltantes.length > 0) {
+      toast({
+        title: "Não é possível avançar de etapa",
+        description:
+          "Preencha antes: " + faltantes.map((f) => f.label).join(", "),
+        variant: "destructive",
+      });
+      return;
     }
+    doSave({ etapa_atual: nextEtapa });
   };
 
   const handleFinalize = () => {
