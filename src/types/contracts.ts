@@ -11,7 +11,8 @@ export type FuncaoResponsavel =
   | "Coordenador de Mercado"
   | "Analista Comercial"
   | "Gerente Regional"
-  | "Interlocutora de Faturamento";
+  | "Interlocutora de Faturamento"
+  | "Coordenador SESI/SENAI";
 
 export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Agente de Mercado PJ",
@@ -25,12 +26,20 @@ export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Analista Comercial",
   "Gerente Regional",
   "Interlocutora de Faturamento",
+  "Coordenador SESI/SENAI",
 ];
 
 // Funções com papel de Gestor (acesso total)
 export const FUNCOES_GESTOR: FuncaoResponsavel[] = [
   "Coordenador de Mercado",
   "Analista Comercial",
+];
+
+// Funções que podem alterar QUALQUER campo de status (status_*) em qualquer etapa.
+// Secretaria e Interlocutora de Faturamento têm permissão ampliada de status.
+export const FUNCOES_STATUS_AMPLO: FuncaoResponsavel[] = [
+  "Secretaria",
+  "Interlocutora de Faturamento",
 ];
 
 export type EtapaContrato =
