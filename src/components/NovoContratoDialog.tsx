@@ -16,6 +16,7 @@ import { useAddComentario } from "@/hooks/useContratoComentarios";
 import { supabase } from "@/integrations/supabase/client";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 import { SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
+import { formatBRLInput, parseBRL } from "@/lib/currency";
 
 interface NovoContratoDialogProps {
   open: boolean;
@@ -23,21 +24,8 @@ interface NovoContratoDialogProps {
   entidadeInicial?: Entidade;
 }
 
-function formatCurrency(value: string): string {
-  // Remove tudo exceto dígitos
-  const digits = value.replace(/\D/g, "");
-  if (!digits) return "";
-  // Converte para centavos e formata
-  const cents = parseInt(digits, 10);
-  const reais = cents / 100;
-  return reais.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function parseCurrency(formatted: string): number {
-  // Remove pontos de milhar e converte vírgula em ponto
-  const clean = formatted.replace(/\./g, "").replace(",", ".");
-  return parseFloat(clean) || 0;
-}
+const formatCurrency = formatBRLInput;
+const parseCurrency = parseBRL;
 
 export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI" }: NovoContratoDialogProps) {
   const { toast } = useToast();
