@@ -1,4 +1,6 @@
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import type { Tables } from "@/integrations/supabase/types";
 import { ETAPAS } from "@/types/contracts";
 
@@ -48,4 +50,48 @@ export function exportResponsaveisToXlsx(responsaveis: Responsavel[], filename =
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Responsáveis");
   XLSX.writeFile(wb, filename);
+}
+
+export function exportContratosToPdf(contratos: Contrato[], filename = "contratos.pdf", titulo = "Contratos") {
+  const etapaLabel = (id: string) => ETAPAS.find((e) => e.id === id)?.label || id;
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+
+  doc.setFontSize(14);
+  doc.text(titulo, 40, 32);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(
+    `Gerado em ${new Date().toLocaleString("pt-BR")} — ${contratos.length} registro(s)`,
+    40,
+    48,
+  );
+
+  const head = [[
+    "Entidade", "Cliente", "CNPJ", "Serviço",
+    "Valor (R$)", "Etapa", "Status Proposta", "Status RPC", "Faturamento", "Criado em",
+  ]];
+  const body = contratos.map((c) => [
+    c.entidade,
+    c.cliente,
+    c.cnpj || "—",
+    c.servico_produto || "—",
+    Number(c.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    etapaLabel(c.etapa_atual),
+    c.status_proposta_crm || "—",
+    c.status_rpc || "—",
+    c.execucao_faturamento || "—",
+    new Date(c.created_at).toLocaleDateString("pt-BR"),
+  ]);
+
+  autoTable(doc, {
+    head,
+    body,
+    startY: 60,
+    styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+    headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    margin: { left: 40, right: 40 },
+  });
+
+  doc.save(filename);
 }
