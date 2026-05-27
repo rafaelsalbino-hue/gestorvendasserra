@@ -1,0 +1,1 @@
+ALTER TYPE public.funcao_responsavel ADD VALUE IF NOT EXISTS 'Coordenador SESI/SENAI';

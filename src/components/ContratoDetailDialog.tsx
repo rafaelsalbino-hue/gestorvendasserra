@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { useState, useEffect } from "react";
-import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, type EtapaContrato } from "@/types/contracts";
+import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, FUNCOES_STATUS_AMPLO, type EtapaContrato } from "@/types/contracts";
+import { formatBRL, formatBRLInput, parseBRL } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -50,12 +51,20 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   "PCP": ["ensalamento"],
   "Analista Financeiro": ["faturamento"],
   "Interlocutora de Faturamento": ["faturamento"],
+  "Coordenador SESI/SENAI": ["dados_basicos", "proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
 };
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
   if (!funcao) return false;
   if (FUNCOES_GESTOR.includes(funcao as any)) return true;
   return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
+}
+
+// Permissão ampliada para alterar qualquer campo de status (status_*) em qualquer etapa.
+function canEditStatus(funcao: FuncaoResponsavel | undefined, section: string): boolean {
+  if (!funcao) return false;
+  if (FUNCOES_STATUS_AMPLO.includes(funcao as any)) return true;
+  return canEditSection(funcao, section);
 }
 
 function SectionLock({ locked }: { locked: boolean }) {
@@ -151,6 +160,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const funcao = currentUser?.funcao;
   const canEdit = (section: string) => canEditSection(funcao, section);
+  const canStatus = (section: string) => canEditStatus(funcao, section);
   const isLastEtapa = form.etapa_atual === "faturamento";
   const nextEtapa = form.etapa_atual ? getNextEtapa(form.etapa_atual as EtapaContrato) : null;
 
@@ -322,7 +332,20 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Cliente</Label><Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Serviço / Produto</Label><Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
-              <div className="space-y-1.5"><Label className="text-xs">Valor (R$)</Label><Input className="h-9 text-sm" value={form.valor || ""} onChange={(e) => set("valor", parseFloat(e.target.value.replace(",", ".")) || 0)} disabled={!canEdit("dados_basicos")} /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor (R$)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+                  <Input
+                    className="h-9 text-sm pl-9"
+                    inputMode="numeric"
+                    value={form.valor != null ? formatBRL(Number(form.valor)) : ""}
+                    onChange={(e) => set("valor", parseBRL(formatBRLInput(e.target.value)))}
+                    disabled={!canEdit("dados_basicos")}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5"><Label className="text-xs">CRM</Label><Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Etapa Atual</Label>
@@ -351,8 +374,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("proposta")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canEdit("proposta")} />
-              <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canEdit("proposta")} />
+              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canStatus("proposta")} />
+              <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canStatus("proposta")} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
@@ -371,7 +394,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-xs">Nº RPC</Label><Input className="h-9 text-sm" value={form.numero_rpc || ""} onChange={(e) => set("numero_rpc", e.target.value)} disabled={!canEdit("rpc")} /></div>
-              <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canEdit("rpc")} />
+              <StatusSelect label="Info Execução" value={form.info_execucao || ""} options={STATUS_OPTIONS.info_execucao} onChange={(v) => set("info_execucao", v)} disabled={!canStatus("rpc")} />
               <div className="space-y-1.5 sm:col-span-2">
                 <Label className="text-xs">Instrutor</Label>
                 <Input
@@ -420,7 +443,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("execucao")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <StatusSelect label="Status RPC" value={form.status_rpc || ""} options={STATUS_OPTIONS.status_rpc} onChange={(v) => set("status_rpc", v)} disabled={!canEdit("execucao")} />
+              <StatusSelect label="Status RPC" value={form.status_rpc || ""} options={STATUS_OPTIONS.status_rpc} onChange={(v) => set("status_rpc", v)} disabled={!canStatus("execucao")} />
               <div className="space-y-1.5">
                 <Label className="text-xs">Aguardando terceiro: Observação</Label>
                 <Textarea className="text-sm min-h-[60px]" value={form.observacao_terceiro || ""} onChange={(e) => set("observacao_terceiro", e.target.value)} disabled={!canEdit("execucao")} />
@@ -435,8 +458,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("matricula")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canEdit("matricula")} />
-              <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canEdit("matricula")} />
+              <StatusSelect label="Dados dos Estudantes" value={form.dados_estudantes || ""} options={STATUS_OPTIONS.dados_estudantes} onChange={(v) => set("dados_estudantes", v)} disabled={!canStatus("matricula")} />
+              <StatusSelect label="Cadastro Estudantes / Matrícula" value={form.cadastro_estudantes || ""} options={STATUS_OPTIONS.cadastro_estudantes} onChange={(v) => set("cadastro_estudantes", v)} disabled={!canStatus("matricula")} />
             </div>
             <ContratoArquivos
               contratoId={contrato.id}
@@ -454,7 +477,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">5. Ensalamento</h3>
               <SectionLock locked={!canEdit("ensalamento")} />
             </div>
-            <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canEdit("ensalamento")} />
+            <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canStatus("ensalamento")} />
           </div>
 
           {/* Etapa 6 - Faturamento */}
@@ -464,10 +487,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("faturamento")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} disabled={!canEdit("faturamento")} />
+              <StatusSelect label="Abertura de Chamado" value={form.abertura_chamado || ""} options={STATUS_OPTIONS.abertura_chamado} onChange={(v) => set("abertura_chamado", v)} disabled={!canStatus("faturamento")} />
               <div className="space-y-1.5"><Label className="text-xs">Nº Chamado</Label><Input className="h-9 text-sm" value={form.numero_chamado || ""} onChange={(e) => set("numero_chamado", e.target.value)} disabled={!canEdit("faturamento")} /></div>
             </div>
-            <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canEdit("faturamento")} />
+            <StatusSelect label="Execução do Faturamento" value={form.execucao_faturamento || ""} options={STATUS_OPTIONS.execucao_faturamento} onChange={(v) => set("execucao_faturamento", v)} disabled={!canStatus("faturamento")} />
             <ContratoArquivos
               contratoId={contrato.id}
               categoria="chamado_faturamento"
