@@ -445,6 +445,7 @@ export type Database = {
         | "Analista Comercial"
         | "Gerente Regional"
         | "Interlocutora de Faturamento"
+        | "Coordenador SESI/SENAI"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -595,6 +596,7 @@ export const Constants = {
         "Analista Comercial",
         "Gerente Regional",
         "Interlocutora de Faturamento",
+        "Coordenador SESI/SENAI",
       ],
     },
   },
