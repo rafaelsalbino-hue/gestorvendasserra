@@ -13,6 +13,7 @@ import { ETAPAS, type Entidade, STATUS_OPTIONS, SUBDIVISIONS_BY_UNIT, SUBDIVISAO
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { NovoContratoDialog } from "@/components/NovoContratoDialog";
 import { ContratoDetailDialog } from "@/components/ContratoDetailDialog";
+import { ImportarVisitasDialog } from "@/components/ImportarVisitasDialog";
 import { useContratos, useUpdateContrato } from "@/hooks/useContratos";
 import { exportContratosToXlsx } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ import {
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
+import { Upload } from "lucide-react";
 
 type Contrato = Tables<"contratos">;
 
@@ -95,6 +97,7 @@ const Contratos = () => {
   const [entidade, setEntidade] = useState<Entidade>("SESI");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [selected, setSelected] = useState<Contrato | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("todos");
@@ -199,6 +202,9 @@ const Contratos = () => {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => exportContratosToXlsx(filtered, `contratos_${entidade}.xlsx`)}>
               <Download className="mr-2 h-4 w-4" />Exportar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />Importar
             </Button>
             <Button size="sm" onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />Nova Visita
@@ -350,6 +356,7 @@ const Contratos = () => {
         </Tabs>
 
         <NovoContratoDialog open={dialogOpen} onOpenChange={setDialogOpen} entidadeInicial={entidade} />
+        <ImportarVisitasDialog open={importOpen} onOpenChange={setImportOpen} />
         <ContratoDetailDialog contrato={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
       </div>
     </AppLayout>
