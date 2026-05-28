@@ -295,6 +295,39 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          contrato_id: string | null
+          created_at: string
+          id: string
+          lida_at: string | null
+          mensagem: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          contrato_id?: string | null
+          created_at?: string
+          id?: string
+          lida_at?: string | null
+          mensagem?: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          contrato_id?: string | null
+          created_at?: string
+          id?: string
+          lida_at?: string | null
+          mensagem?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificacoesBell } from "@/components/NotificacoesBell";
 import { Badge } from "@/components/ui/badge";
 import { useAppSession } from "@/contexts/AppSessionContext";
 import { Loader2, ShieldAlert, WifiOff } from "lucide-react";
@@ -36,6 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Loader2 className="h-3 w-3 animate-spin" /> Reconectando
                 </Badge>
               )}
+              <NotificacoesBell />
               <ThemeToggle />
             </div>
           </header>
