@@ -31,7 +31,7 @@ export function useNotificacoes() {
         console.warn("Erro ao carregar notificações:", error.message);
         return [];
       }
-      return (data ?? []) as Notificacao[];
+      return (data ?? []) as unknown as Notificacao[];
     },
     staleTime: 1000 * 30,
   });
