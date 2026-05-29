@@ -39,39 +39,69 @@ interface LinhaPrevia {
 }
 
 const ENTIDADES_VALIDAS: Entidade[] = ["SESI", "SENAI", "SESI Saúde"];
+const ENTIDADE_LABEL: Record<string, Entidade> = {
+  "SESI": "SESI",
+  "SESI Educação": "SESI",
+  "SENAI": "SENAI",
+  "SENAI Ed. Profissional": "SENAI",
+  "SESI Saúde": "SESI Saúde",
+  "SESI Saude": "SESI Saúde",
+};
 
 const COLUNAS_MODELO = [
-  "entidade", "cliente", "cnpj", "data_visita",
-  "servico_produto", "valor", "subdivisao", "observacoes_visita",
-];
+  "Entidade", "Área / Subdivisão", "Cliente", "CNPJ",
+  "Serviço / Produto", "Valor (R$)", "CRM", "Agente PJ Responsável",
+  "Data da Visita", "Observações da Visita", "Dados para a Proposta",
+] as const;
 
 function baixarModelo() {
   const exemplo = [
     {
-      entidade: "SESI",
-      cliente: "Empresa Exemplo LTDA",
-      cnpj: "00.000.000/0001-00",
-      data_visita: "2026-01-15",
-      servico_produto: "Curso de NR-35",
-      valor: "1500,00",
-      subdivisao: "",
-      observacoes_visita: "Cliente interessado",
+      "Entidade": "SESI Educação",
+      "Área / Subdivisão": "Contraturno",
+      "Cliente": "Empresa Exemplo LTDA",
+      "CNPJ": "00.000.000/0001-00",
+      "Serviço / Produto": "Curso de robótica",
+      "Valor (R$)": "1500,00",
+      "CRM": "CRM-12345",
+      "Agente PJ Responsável": "Nome do Agente",
+      "Data da Visita": "15/01/2026",
+      "Observações da Visita": "Cliente interessado",
+      "Dados para a Proposta": "Pacote anual, 2 turmas",
     },
     {
-      entidade: "SESI Saúde",
-      cliente: "Outra Empresa",
-      cnpj: "11.111.111/0001-11",
-      data_visita: "2026-01-16",
-      servico_produto: "Exames ocupacionais",
-      valor: "2300,50",
-      subdivisao: "SST",
-      observacoes_visita: "",
+      "Entidade": "SESI Saúde",
+      "Área / Subdivisão": "SST",
+      "Cliente": "Outra Empresa",
+      "CNPJ": "11.111.111/0001-11",
+      "Serviço / Produto": "Exames ocupacionais",
+      "Valor (R$)": "2300,50",
+      "CRM": "",
+      "Agente PJ Responsável": "",
+      "Data da Visita": "16/01/2026",
+      "Observações da Visita": "",
+      "Dados para a Proposta": "",
     },
   ];
-  const ws = XLSX.utils.json_to_sheet(exemplo, { header: COLUNAS_MODELO });
+  const ws = XLSX.utils.json_to_sheet(exemplo, { header: COLUNAS_MODELO as any });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Visitas");
   XLSX.writeFile(wb, "modelo_importacao_visitas.xlsx");
+}
+
+function baixarRelatorioErros(linhas: { linha: number; motivo?: string; cliente?: string; cnpj?: string }[]) {
+  const cab = ["linha", "cliente", "cnpj", "motivo"].join(";");
+  const rows = linhas.map((l) =>
+    [l.linha, `"${(l.cliente || "").replace(/"/g, '""')}"`, l.cnpj || "", `"${(l.motivo || "").replace(/"/g, '""')}"`].join(";"),
+  );
+  const csv = "\uFEFF" + [cab, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `relatorio_erros_importacao_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function parseData(v: any): string {
@@ -95,7 +125,18 @@ function parseData(v: any): string {
 function parseValor(v: any): number {
   if (v === null || v === undefined || v === "") return 0;
   if (typeof v === "number") return v;
-  return parseBRL(String(v)) || 0;
+  const s = String(v).trim().replace(/^R\$\s*/i, "");
+  // suporta "12000,00", "12.000,00" e "12000.00"
+  if (/^\d+(\.\d{3})*,\d{1,2}$/.test(s) || /^\d+,\d{1,2}$/.test(s)) return parseBRL(s);
+  if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+  return parseBRL(s) || 0;
+}
+
+function val(r: any, ...keys: string[]) {
+  for (const k of keys) {
+    if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
+  }
+  return "";
 }
 
 export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
