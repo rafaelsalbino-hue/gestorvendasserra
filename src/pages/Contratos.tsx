@@ -293,7 +293,7 @@ const Contratos = () => {
                   </div>
                 )}
                 <div className="flex items-end">
-                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); }}>
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); }}>
                     Limpar
                   </Button>
                 </div>
