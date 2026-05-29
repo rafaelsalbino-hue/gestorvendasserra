@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: Json | null
+          entidade: string
+          entidade_id: string | null
+          id: string
+          ip: string | null
+          user_email: string | null
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: Json | null
+          entidade: string
+          entidade_id?: string | null
+          id?: string
+          ip?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: Json | null
+          entidade?: string
+          entidade_id?: string | null
+          id?: string
+          ip?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
       contrato_anexos: {
         Row: {
           contrato_id: string
@@ -155,6 +194,9 @@ export type Database = {
           etapa_atual: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at: string
           execucao_faturamento: string
+          finalized_at: string | null
+          finalized_by: string | null
+          finalized_by_nome: string | null
           horario_fim: string | null
           horario_inicio: string | null
           id: string
@@ -191,6 +233,9 @@ export type Database = {
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at?: string
           execucao_faturamento?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          finalized_by_nome?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -227,6 +272,9 @@ export type Database = {
           etapa_atual?: Database["public"]["Enums"]["etapa_contrato"]
           etapa_updated_at?: string
           execucao_faturamento?: string
+          finalized_at?: string | null
+          finalized_by?: string | null
+          finalized_by_nome?: string | null
           horario_fim?: string | null
           horario_inicio?: string | null
           id?: string
@@ -446,6 +494,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_edit_contrato: {
+        Args: { _contrato_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -453,7 +505,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_backoffice: { Args: { _user_id: string }; Returns: boolean }
+      is_coordenador: { Args: { _user_id: string }; Returns: boolean }
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
+      is_vendedor: { Args: { _user_id: string }; Returns: boolean }
+      responsavel_id_of: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_role:
