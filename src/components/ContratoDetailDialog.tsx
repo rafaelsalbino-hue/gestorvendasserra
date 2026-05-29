@@ -19,6 +19,8 @@ import { validarEtapaParaAvancar } from "@/hooks/useEtapaValidation";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canFinalizarContrato } from "@/lib/permissions";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
@@ -117,6 +119,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const updateMutation = useUpdateContrato();
   const deleteMutation = useSoftDeleteContrato();
   const { currentUser } = useCurrentUser();
+  const role = useUserRole();
   const { data: responsaveis = [] } = useResponsaveis();
   const [form, setForm] = useState<Partial<Contrato>>({});
   const [showHistory, setShowHistory] = useState(false);
@@ -283,8 +286,15 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
     doSave({ etapa_atual: nextEtapa });
   };
 
-  const handleFinalize = () => {
-    doSave({ execucao_faturamento: "Faturado" });
+  const handleFinalize = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    doSave({
+      execucao_faturamento: "Faturado",
+      etapa_atual: "finalizado" as any,
+      finalized_at: new Date().toISOString() as any,
+      finalized_by: (user?.id ?? null) as any,
+      finalized_by_nome: (currentUser?.nome ?? "") as any,
+    } as any);
   };
 
   const handleDelete = () => {
@@ -683,11 +693,30 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 Salvar e Seguir
               </Button>
             )}
-            {isLastEtapa && canEdit("faturamento") && (
-              <Button onClick={handleFinalize} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Finalizar
-              </Button>
+            {(isLastEtapa || canFinalizarContrato(role)) && canFinalizarContrato(role) && !(contrato as any).finalized_at && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Finalizar Processo
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Finalizar processo?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      <strong>{contrato.cliente}</strong> ({contrato.entidade}) — valor R$ {Number(contrato.valor || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.
+                      <br />Etapa atual: {contrato.etapa_atual}. Após finalizado, somente Admin ou Coordenador poderão reabrir.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleFinalize} className="bg-green-600 hover:bg-green-700">
+                      Confirmar finalização
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
