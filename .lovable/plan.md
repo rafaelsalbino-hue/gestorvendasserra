@@ -1,82 +1,97 @@
+# Rodada 5 — Segurança, Importação e Refinamentos
 
-# Plano de entrega — Gestão RPC Serra
+Plano de execução em ordem de dependência (banco → backend → frontend).
 
-Escopo grande (8 features + G1, G2, G3, G4, G5, G6). Para evitar uma única entrega frágil, vou dividir em **4 rodadas** sequenciais, cada uma fechada e testável. Você aprova esta rodada 1 e seguimos.
+## 1. Banco de dados (migração única)
 
----
+### 1.1 Enum `app_role`
+- Adicionar valores: `admin`, `vendedor`, `secretaria`, `interlocutora`, `coordenador` (manter `gestor`, `backoffice`, `operador` por compat).
+- Atualizar `handle_new_user` para mapear funções → roles:
+  - Coordenador de Mercado / Analista Comercial → `admin` + `gestor`
+  - Coordenador SESI/SENAI → `coordenador`
+  - Backoffice Comercial → `backoffice`
+  - Agente de Mercado PJ → `vendedor`
+  - Secretaria → `secretaria`
+  - Interlocutora de Faturamento → `interlocutora`
+  - Demais → `operador`
 
-## Rodada 1 — Novos campos nas etapas + uploads (itens 1, 2, 7 + G4)
+### 1.2 Funções helper
+- `is_admin(uuid)`, `is_backoffice(uuid)`, `is_vendedor(uuid)`, `is_coordenador(uuid)` (security definer, lendo `user_roles`).
+- `can_edit_contrato(uuid, uuid)` → admin/gestor/backoffice/coordenador OR (vendedor AND agente_pj_id = responsavel do user).
+- `can_finalize_contrato(uuid)` → admin/gestor/backoffice/coordenador.
 
-### Banco
-- `contratos`: adicionar colunas
-  - `instrutor` (text)
-  - `dias_execucao` (text[])  — valores: `segunda…domingo`
-  - `horario_inicio` (time), `horario_fim` (time)
-- Novo bucket `contratos-arquivos` (privado) — reutiliza padrão de `contratos-anexos`, mas com **categoria** para distinguir tipos.
-- Nova tabela `contrato_arquivos`:
-  - `contrato_id`, `categoria` (`chamado_faturamento` | `planilha_alunos`), `storage_path`, `file_name`, `file_size`, `mime_type`, `uploaded_by`, `uploader_nome`, `created_at`
-  - RLS igual a `contrato_anexos` (read autenticado; insert pelo próprio uploader; delete uploader/gestor; backoffice via role já existente).
-- Trigger de histórico: registrar inserção/remoção de arquivo em `contratos_historico` (G1 parcial).
+### 1.3 RLS endurecida
+- `contratos`:
+  - SELECT: vendedor vê só onde `agente_pj_id` corresponde ao seu `responsaveis.id`; demais autenticados veem tudo.
+  - INSERT: admin/gestor/vendedor.
+  - UPDATE: `can_edit_contrato(auth.uid(), id)`; bloquear edição se `finalized_at IS NOT NULL` e user é vendedor.
+  - DELETE: já gestor-only ✓.
+- `contrato_arquivos` / `contrato_anexos`: SELECT exige que o user enxergue o contrato (subselect em contratos com RLS).
+- `notificacoes`, `user_roles`, `responsaveis` — manter.
 
-### Frontend
-- `NovoContratoDialog` / `ContratoDetailDialog` (seção "RPC / Execução"):
-  - Input "Instrutor" (texto).
-  - Chips multi-select para dias da semana (Seg…Dom) com toggle.
-  - Dois inputs `type="time"` (início / fim) com validação fim > início.
-- Seção "Faturamento":
-  - Upload "Chamado de Faturamento" (PDF, JPG, PNG, DOC, DOCX) usando hook reutilizável `useContratoArquivos`.
-  - Mostra nome, tamanho, link assinado; botão "Substituir" e "Remover".
-- Seção "Matrícula / Dados":
-  - Upload múltiplo "Planilha de Alunos da Turma" (XLSX, XLS, CSV), lista com nome + data de envio + remover/substituir.
-- Todos os uploads: spinner durante envio + toast de sucesso/erro (G4).
+### 1.4 Auditoria
+- Nova tabela `audit_log` (id, user_id, user_email, acao, entidade, entidade_id, detalhes jsonb, ip text, created_at). RLS: SELECT admin/gestor; INSERT authenticated; sem UPDATE/DELETE.
+- Trigger em `contratos` (INSERT/UPDATE/DELETE) gravando ação resumida.
 
----
+### 1.5 Finalização
+- Adicionar `finalized_at timestamptz`, `finalized_by uuid`, `finalized_by_nome text` em `contratos`.
+- Adicionar valor `'finalizado'` ao enum `etapa_contrato`.
 
-## Rodada 2 — Cargo + Valor + Permissões (itens 4, 5, 6 + G5)
+### 1.6 SESI Educação
+- Seed via `INSERT` em `unit_subdivisions`: `Contraturno` e `ACE` para `unit_name = 'SESI Educação'`.
+- Adicionar `"SESI Educação"` ao enum `entidade` (se ainda não existir — verificar).
 
-- Enum `funcao_responsavel`: adicionar `Coordenador SESI/SENAI` (mantém os existentes).
-- `Valor`: máscara `R$ 1.234,56` no input (helper `formatBRL`/`parseBRL`); badge destacado em listagens (Kanban + Arquivo).
-- Permissões de status: **Secretaria** e **Interlocutora de Faturamento** podem alterar qualquer campo `status_*`. UI libera selects; RLS já permite UPDATE para todos autenticados, então o controle vira frontend + histórico obrigatório.
-- Revisão rápida da matriz de perfis (G5): documento curto em `mem://features/permissoes.md` + bloqueio de campos sensíveis (valor, cliente, CNPJ) para perfis sem papel gestor/backoffice.
+## 2. Frontend
 
----
+### 2.1 `src/types/contracts.ts`
+- `Entidade` inclui `"SESI Educação"`.
+- `SUBDIVISIONS_BY_UNIT["SESI Educação"] = ["Contraturno", "ACE"]`.
+- `SUBDIVISAO_COLORS` para novas opções.
+- Adicionar etapa `finalizado` em `ETAPAS`.
 
-## Rodada 3 — Arquivo: busca, ordenação, export + G1/G2 (itens 3 + G1 + G2)
+### 2.2 `useUserRole.ts`
+- Estender `AppRole` para novos valores. Expor `isAdmin`, `isBackoffice`, `isVendedor`, `isCoordenador`, `isSecretaria`, `isInterlocutora`.
 
-- Página `Arquivo.tsx`:
-  - Search bar global (cliente, CNPJ, nº RPC, serviço).
-  - Filtros: período (date range), status, responsável, serviço, entidade.
-  - Sort por coluna (data, status, responsável, valor).
-  - Botões "Exportar XLSX" e "Exportar PDF" da lista filtrada (reusa `src/lib/export.ts`).
-- G1: ampliar gravação em `contratos_historico` para uploads, deletes e mudanças de status (trigger genérica em `contratos` + chamadas explícitas nos hooks de arquivo/comentário).
-- G2: hook `useEtapaValidation` que impede avançar etapa sem campos obrigatórios da etapa atual (mensagens claras por campo).
+### 2.3 RBAC permissions (`src/lib/permissions.ts` novo)
+- `canCreate`, `canEdit(contrato, user)`, `canMoveStatus`, `canFinalize`, `canImport`, `canDelete` — fonte única de verdade.
 
----
+### 2.4 ImportarVisitasDialog
+- Modelo XLSX com cabeçalhos exatos da especificação.
+- Aceitar `.csv` adicional (parse via `XLSX.read`).
+- Validações por linha: Entidade ∈ enum; Subdivisão compatível; Cliente obrigatório; Data DD/MM/AAAA → ISO; CNPJ formato; Valor decimal BRL.
+- Tabela de prévia com linhas inválidas destacadas (border-destructive) + tooltip do erro.
+- Botão "Importar válidas" permite import parcial.
+- Toast final com contagem + botão "Baixar relatório de erros (CSV)".
+- Rejeitar mime ≠ xlsx/csv com mensagem.
+- Tratar planilha vazia.
 
-## Rodada 4 — Importação de visitas + Notificações (item 8 + G6 + G3)
+### 2.5 Kanban (`Contratos.tsx`)
+- Card mostra badge `status_proposta_crm` (cor distinta) abaixo do cliente. "Sem status CRM" cinza quando vazio.
+- Edição inline via popover `StatusSelect`.
+- Filtros: separar `filtroEtapa` e `filtroStatusCrm`.
+- Filtro Entidade × Área: ao mudar Entidade, limpar e recarregar Área.
 
-- Botão "Importar Visitas" no header de `Contratos`:
-  - Modal com 2 ações: **Baixar modelo** (gera XLSX no cliente via `xlsx` lib) e **Upload**.
-  - Parser client-side → tabela de prévia com validação linha a linha (campos obrigatórios, CNPJ válido, data válida, unidade ∈ {SESI, SENAI, SESI Saúde}).
-  - Detecção de duplicata (CNPJ + data) → marca linha como "ignorada" com aviso, **não importa** (escolha confirmada).
-  - Botão "Confirmar importação" faz insert em lote.
-- G6 — Notificações: tabela `notificacoes` (user_id, contrato_id, tipo, lida_at) + sino no header com contador. Trigger em mudança de `etapa_atual` ou `status_*` notifica responsáveis vinculados.
-- G3 — Passe de responsividade: tabelas com scroll horizontal, chips de dias em grid 2 colunas no mobile, dialogs com `max-h-[90vh] overflow-auto`.
+### 2.6 Finalização (ContratoDetailDialog)
+- Botão "Finalizar Processo" visível para `canFinalize`.
+- AlertDialog com resumo (cliente, entidade, valor, etapa).
+- Action: `update` setando `finalized_at`, `finalized_by`, `etapa_atual='finalizado'`.
+- Bloquear edição quando finalizado para vendedor.
 
----
+### 2.7 Página Arquivo
+- Filtro adicional "Finalizados".
 
-## Detalhes técnicos comuns
+### 2.8 Gaps
+- G1: `parseBRL` para "12000,00" e "12.000,00" → garantir parser cobre ambos no import.
+- G3: gerar CSV de erros via Blob.
+- G4: revisar `AppSessionContext` (já tem refresh) — sem mudança necessária além de garantir interval.
 
-- Hooks: `useContratoArquivos(contratoId, categoria)` espelha `useContratoAnexos`, isolando upload/list/delete/signedUrl.
-- Storage: bucket único `contratos-arquivos` privado; path = `{contrato_id}/{categoria}/{uuid}_{filename}`.
-- Tipos: estender `Contrato` em `src/types/contracts.ts` com novos campos opcionais para não quebrar telas existentes.
-- Histórico: novo helper `logContratoChange({contratoId, campo, valor_anterior, valor_novo})` chamado dos hooks de mutação.
-- Sem alterações em telas/fluxos não citados.
+## 3. Testes manuais
+- Import com 4 cenários (válido, parcial, vazio, .docx).
+- Login com cada perfil simulado e verificar botões + tentativa de update direto.
 
----
+## Arquivos
+- **Migração**: `supabase/migrations/<ts>_rodada5.sql`
+- **Novos**: `src/lib/permissions.ts`
+- **Editados**: `types/contracts.ts`, `useUserRole.ts`, `ImportarVisitasDialog.tsx`, `Contratos.tsx`, `ContratoDetailDialog.tsx`, `NovoContratoDialog.tsx`, `Arquivo.tsx`, `lib/currency.ts`.
 
-## O que precisamos confirmar antes de começar a Rodada 1
-
-1. **Bucket único `contratos-arquivos`** (chamado + planilha + futuros) está OK, ou prefere bucket separado por categoria?
-2. **Dias da semana** — guardar como `text[]` (`['segunda','quarta']`) ou bitmask? Recomendo `text[]` por legibilidade.
-3. Confirma seguir agora **apenas com a Rodada 1** e depois encadear Rodada 2 → 3 → 4 em mensagens separadas?
+Vou executar em duas fases: **(A)** migração (aguarda aprovação), **(B)** código frontend após aprovação dos types regenerados.

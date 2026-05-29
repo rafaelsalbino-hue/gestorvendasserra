@@ -34,44 +34,77 @@ interface LinhaPrevia {
   valor: number;
   subdivisao: string;
   observacoes_visita: string;
+  dados_proposta: string;
+  crm: string;
+  agente_pj_nome: string;
   status: Status;
   motivo?: string;
 }
 
 const ENTIDADES_VALIDAS: Entidade[] = ["SESI", "SENAI", "SESI Saúde"];
+const ENTIDADE_LABEL: Record<string, Entidade> = {
+  "SESI": "SESI",
+  "SESI Educação": "SESI",
+  "SENAI": "SENAI",
+  "SENAI Ed. Profissional": "SENAI",
+  "SESI Saúde": "SESI Saúde",
+  "SESI Saude": "SESI Saúde",
+};
 
 const COLUNAS_MODELO = [
-  "entidade", "cliente", "cnpj", "data_visita",
-  "servico_produto", "valor", "subdivisao", "observacoes_visita",
-];
+  "Entidade", "Área / Subdivisão", "Cliente", "CNPJ",
+  "Serviço / Produto", "Valor (R$)", "CRM", "Agente PJ Responsável",
+  "Data da Visita", "Observações da Visita", "Dados para a Proposta",
+] as const;
 
 function baixarModelo() {
   const exemplo = [
     {
-      entidade: "SESI",
-      cliente: "Empresa Exemplo LTDA",
-      cnpj: "00.000.000/0001-00",
-      data_visita: "2026-01-15",
-      servico_produto: "Curso de NR-35",
-      valor: "1500,00",
-      subdivisao: "",
-      observacoes_visita: "Cliente interessado",
+      "Entidade": "SESI Educação",
+      "Área / Subdivisão": "Contraturno",
+      "Cliente": "Empresa Exemplo LTDA",
+      "CNPJ": "00.000.000/0001-00",
+      "Serviço / Produto": "Curso de robótica",
+      "Valor (R$)": "1500,00",
+      "CRM": "CRM-12345",
+      "Agente PJ Responsável": "Nome do Agente",
+      "Data da Visita": "15/01/2026",
+      "Observações da Visita": "Cliente interessado",
+      "Dados para a Proposta": "Pacote anual, 2 turmas",
     },
     {
-      entidade: "SESI Saúde",
-      cliente: "Outra Empresa",
-      cnpj: "11.111.111/0001-11",
-      data_visita: "2026-01-16",
-      servico_produto: "Exames ocupacionais",
-      valor: "2300,50",
-      subdivisao: "SST",
-      observacoes_visita: "",
+      "Entidade": "SESI Saúde",
+      "Área / Subdivisão": "SST",
+      "Cliente": "Outra Empresa",
+      "CNPJ": "11.111.111/0001-11",
+      "Serviço / Produto": "Exames ocupacionais",
+      "Valor (R$)": "2300,50",
+      "CRM": "",
+      "Agente PJ Responsável": "",
+      "Data da Visita": "16/01/2026",
+      "Observações da Visita": "",
+      "Dados para a Proposta": "",
     },
   ];
-  const ws = XLSX.utils.json_to_sheet(exemplo, { header: COLUNAS_MODELO });
+  const ws = XLSX.utils.json_to_sheet(exemplo, { header: COLUNAS_MODELO as any });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Visitas");
   XLSX.writeFile(wb, "modelo_importacao_visitas.xlsx");
+}
+
+function baixarRelatorioErros(linhas: { linha: number; motivo?: string; cliente?: string; cnpj?: string }[]) {
+  const cab = ["linha", "cliente", "cnpj", "motivo"].join(";");
+  const rows = linhas.map((l) =>
+    [l.linha, `"${(l.cliente || "").replace(/"/g, '""')}"`, l.cnpj || "", `"${(l.motivo || "").replace(/"/g, '""')}"`].join(";"),
+  );
+  const csv = "\uFEFF" + [cab, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `relatorio_erros_importacao_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function parseData(v: any): string {
@@ -95,7 +128,18 @@ function parseData(v: any): string {
 function parseValor(v: any): number {
   if (v === null || v === undefined || v === "") return 0;
   if (typeof v === "number") return v;
-  return parseBRL(String(v)) || 0;
+  const s = String(v).trim().replace(/^R\$\s*/i, "");
+  // suporta "12000,00", "12.000,00" e "12000.00"
+  if (/^\d+(\.\d{3})*,\d{1,2}$/.test(s) || /^\d+,\d{1,2}$/.test(s)) return parseBRL(s);
+  if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+  return parseBRL(s) || 0;
+}
+
+function val(r: any, ...keys: string[]) {
+  for (const k of keys) {
+    if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== "") return r[k];
+  }
+  return "";
 }
 
 export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
@@ -119,10 +163,32 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
 
   const handleFile = async (file: File) => {
     setArquivo(file.name);
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    const nome = file.name.toLowerCase();
+    if (!nome.endsWith(".xlsx") && !nome.endsWith(".xls") && !nome.endsWith(".csv")) {
+      toast({
+        title: "Formato inválido",
+        description: "Envie um arquivo .xlsx, .xls ou .csv.",
+        variant: "destructive",
+      });
+      setArquivo("");
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+    let rows: any[] = [];
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws) throw new Error("Sem planilha");
+      rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+    } catch (e: any) {
+      toast({ title: "Não foi possível ler o arquivo", description: e?.message || "Verifique o formato.", variant: "destructive" });
+      return;
+    }
+    if (!rows || rows.length === 0) {
+      toast({ title: "Planilha vazia", description: "Nenhuma linha encontrada além do cabeçalho.", variant: "destructive" });
+      return;
+    }
 
     // Busca contratos existentes (CNPJ + data) para detectar duplicatas
     const { data: existentes } = await supabase
@@ -137,29 +203,38 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
 
     const chavesArquivo = new Set<string>();
     const previa: LinhaPrevia[] = rows.map((r, idx) => {
-      const entidade = String(r.entidade ?? r.Entidade ?? "").trim();
-      const cliente = String(r.cliente ?? r.Cliente ?? "").trim();
-      const cnpjRaw = String(r.cnpj ?? r.CNPJ ?? "").trim();
+      const entidadeRaw = String(val(r, "Entidade", "entidade")).trim();
+      const entidade = ENTIDADE_LABEL[entidadeRaw] ?? (entidadeRaw as any);
+      const subdivisao = String(val(r, "Área / Subdivisão", "Area / Subdivisao", "Subdivisão", "subdivisao", "Subdivisao")).trim();
+      const cliente = String(val(r, "Cliente", "cliente")).trim();
+      const cnpjRaw = String(val(r, "CNPJ", "cnpj")).trim();
       const cnpjLimpo = cnpjRaw.replace(/\D/g, "");
-      const data_visita = parseData(r.data_visita ?? r["Data Visita"] ?? r.data);
-      const servico_produto = String(r.servico_produto ?? r["Serviço/Produto"] ?? "").trim();
-      const valor = parseValor(r.valor ?? r.Valor);
-      const subdivisao = String(r.subdivisao ?? r.Subdivisao ?? r["Subdivisão"] ?? "").trim();
-      const observacoes_visita = String(r.observacoes_visita ?? r.Observações ?? r.observacoes ?? "").trim();
+      const servico_produto = String(val(r, "Serviço / Produto", "Serviço/Produto", "servico_produto")).trim();
+      const valor = parseValor(val(r, "Valor (R$)", "Valor", "valor"));
+      const crm = String(val(r, "CRM", "crm")).trim();
+      const agente_pj_nome = String(val(r, "Agente PJ Responsável", "Agente PJ", "agente_pj")).trim();
+      const data_visita = parseData(val(r, "Data da Visita", "Data Visita", "data_visita", "data"));
+      const observacoes_visita = String(val(r, "Observações da Visita", "Observações", "observacoes_visita", "observacoes")).trim();
+      const dados_proposta = String(val(r, "Dados para a Proposta", "Dados Proposta", "dados_proposta")).trim();
 
       let status: Status = "ok";
       let motivo: string | undefined;
 
-      if (!cliente) { status = "invalida"; motivo = "Cliente vazio"; }
-      else if (!ENTIDADES_VALIDAS.includes(entidade as Entidade)) {
-        status = "invalida"; motivo = `Entidade inválida (use ${ENTIDADES_VALIDAS.join(", ")})`;
-      } else if (!cnpjLimpo || !validarCNPJ(cnpjLimpo)) {
-        status = "invalida"; motivo = "CNPJ inválido";
+      if (!cliente) {
+        status = "invalida"; motivo = "Cliente vazio";
+      } else if (!entidadeRaw) {
+        status = "invalida"; motivo = "Entidade obrigatória";
+      } else if (!ENTIDADES_VALIDAS.includes(entidade as Entidade)) {
+        status = "invalida"; motivo = `Entidade inválida (use SESI Educação, SENAI ou SESI Saúde)`;
       } else if (!data_visita) {
-        status = "invalida"; motivo = "Data de visita inválida (use AAAA-MM-DD ou DD/MM/AAAA)";
+        status = "invalida"; motivo = "Data da visita obrigatória (DD/MM/AAAA)";
+      } else if (cnpjRaw && !validarCNPJ(cnpjLimpo)) {
+        status = "invalida"; motivo = "CNPJ em formato inválido";
+      } else if ((SUBDIVISIONS_BY_UNIT[entidade as Entidade] || []).length > 0 && !subdivisao) {
+        status = "invalida"; motivo = `Área / Subdivisão obrigatória para ${entidadeRaw}`;
       } else if (subdivisao && !(SUBDIVISIONS_BY_UNIT[entidade as Entidade] || []).includes(subdivisao)) {
-        status = "invalida"; motivo = `Subdivisão "${subdivisao}" inválida para ${entidade}`;
-      } else {
+        status = "invalida"; motivo = `Subdivisão "${subdivisao}" não é válida para ${entidadeRaw}`;
+      } else if (cnpjLimpo && data_visita) {
         const chave = `${cnpjLimpo}|${data_visita}`;
         if (chavesExistentes.has(chave) || chavesArquivo.has(chave)) {
           status = "ignorada"; motivo = "Duplicata (CNPJ + data já existe)";
@@ -172,6 +247,7 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
         linha: idx + 2,
         entidade, cliente, cnpj: cnpjRaw, cnpjLimpo, data_visita,
         servico_produto, valor, subdivisao, observacoes_visita,
+        dados_proposta, crm, agente_pj_nome,
         status, motivo,
       };
     });
@@ -187,6 +263,17 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
     if (importaveis.length === 0) return;
     setImportando(true);
     try {
+      // Resolve agente PJ por nome (best-effort)
+      const nomes = Array.from(new Set(importaveis.map((l) => l.agente_pj_nome).filter(Boolean)));
+      let agentesMap: Record<string, string> = {};
+      if (nomes.length > 0) {
+        const { data: ags } = await supabase
+          .from("responsaveis")
+          .select("id, nome")
+          .eq("funcao", "Agente de Mercado PJ")
+          .in("nome", nomes);
+        agentesMap = Object.fromEntries((ags ?? []).map((a: any) => [a.nome.toLowerCase(), a.id]));
+      }
       const payload = importaveis.map((l) => ({
         entidade: l.entidade as Entidade,
         cliente: l.cliente,
@@ -194,6 +281,9 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
         data_visita: l.data_visita,
         servico_produto: l.servico_produto,
         valor: l.valor,
+        crm: l.crm,
+        dados_proposta: l.dados_proposta,
+        agente_pj_id: agentesMap[l.agente_pj_nome.toLowerCase()] || null,
         subdivisao: l.subdivisao || null,
         observacoes_visita: l.observacoes_visita,
         etapa_atual: "visita" as const,
@@ -202,7 +292,7 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
       if (error) throw error;
       toast({
         title: "Importação concluída",
-        description: `${importaveis.length} visita(s) importada(s). ${duplicadas.length} ignorada(s) por duplicata. ${invalidas.length} inválida(s).`,
+        description: `${importaveis.length} visita(s) importada(s) com sucesso. ${duplicadas.length} ignorada(s) (duplicata). ${invalidas.length} com erro.`,
       });
       qc.invalidateQueries({ queryKey: ["contratos"] });
       handleClose(false);
@@ -319,6 +409,15 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => handleClose(false)} disabled={importando}>
             Cancelar
           </Button>
+          {invalidas.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => baixarRelatorioErros(invalidas)}
+              disabled={importando}
+            >
+              <Download className="mr-2 h-4 w-4" /> Baixar relatório de erros
+            </Button>
+          )}
           <Button
             onClick={handleImportar}
             disabled={importando || importaveis.length === 0}

@@ -1,7 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "gestor" | "operador";
+export type AppRole =
+  | "admin"
+  | "gestor"
+  | "coordenador"
+  | "backoffice"
+  | "vendedor"
+  | "secretaria"
+  | "interlocutora"
+  | "operador";
 
 /**
  * Lê os papéis do usuário autenticado a partir da tabela segura `user_roles`.
@@ -30,7 +38,13 @@ export function useUserRole() {
   const roles = query.data ?? [];
   return {
     roles,
-    isGestor: roles.includes("gestor"),
+    isGestor: roles.includes("gestor") || roles.includes("admin"),
+    isAdmin: roles.includes("admin") || roles.includes("gestor"),
+    isCoordenador: roles.includes("coordenador"),
+    isBackoffice: roles.includes("backoffice"),
+    isVendedor: roles.includes("vendedor"),
+    isSecretaria: roles.includes("secretaria"),
+    isInterlocutora: roles.includes("interlocutora"),
     loading: query.isLoading,
   };
 }
