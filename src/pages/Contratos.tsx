@@ -17,6 +17,8 @@ import { ImportarVisitasDialog } from "@/components/ImportarVisitasDialog";
 import { useContratos, useUpdateContrato } from "@/hooks/useContratos";
 import { exportContratosToXlsx } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canCreateVisita, canImportar } from "@/lib/permissions";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -68,6 +70,17 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
       </div>
       <div onClick={onClick} style={{ fontSize: 11 }}>
         <p className="text-muted-foreground">{contrato.cnpj}</p>
+        <span
+          className={`inline-block mt-1 rounded border px-1.5 py-0.5 font-medium ${
+            contrato.status_proposta_crm
+              ? "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200"
+              : "bg-muted text-muted-foreground border-border italic"
+          }`}
+          style={{ fontSize: 10 }}
+          title="Status Proposta CRM"
+        >
+          {contrato.status_proposta_crm || "Sem status CRM"}
+        </span>
         {(contrato as any).subdivisao && (
           <span
             className={`inline-block mt-1 rounded border px-1.5 py-0.5 font-medium ${SUBDIVISAO_COLORS[(contrato as any).subdivisao] || "bg-muted text-muted-foreground border-border"}`}
@@ -93,6 +106,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
 const Contratos = () => {
   useDocumentTitle("Contratos");
   const { toast } = useToast();
+  const role = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const [entidade, setEntidade] = useState<Entidade>("SESI");
   const [search, setSearch] = useState("");
@@ -104,6 +118,7 @@ const Contratos = () => {
   const [filterValorMin, setFilterValorMin] = useState("");
   const [filterValorMax, setFilterValorMax] = useState("");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
+  const [filterStatusCrm, setFilterStatusCrm] = useState<string>("todos");
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
@@ -137,7 +152,8 @@ const Contratos = () => {
 
   const filtered = contratos.filter((c) => {
     if (search && !c.cliente.toLowerCase().includes(search.toLowerCase()) && !c.cnpj.includes(search)) return false;
-    if (filterStatus !== "todos" && c.status_rpc !== filterStatus && c.status_proposta_crm !== filterStatus) return false;
+    if (filterStatus !== "todos" && c.status_rpc !== filterStatus) return false;
+    if (filterStatusCrm !== "todos" && c.status_proposta_crm !== filterStatusCrm) return false;
     if (filterValorMin && c.valor < parseFloat(filterValorMin)) return false;
     if (filterValorMax && c.valor > parseFloat(filterValorMax)) return false;
     if (filterSubdivisao !== "todas" && (c as any).subdivisao !== filterSubdivisao) return false;
@@ -168,20 +184,18 @@ const Contratos = () => {
     );
   };
 
-  const allStatuses = [
-    ...STATUS_OPTIONS.status_proposta_crm,
-    ...STATUS_OPTIONS.status_rpc,
-  ];
-  const uniqueStatuses = [...new Set(allStatuses)];
+  const uniqueStatusRpc = [...new Set(STATUS_OPTIONS.status_rpc)];
+  const uniqueStatusCrm = [...new Set(STATUS_OPTIONS.status_proposta_crm)];
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (search) activeFilters.push({ key: "search", label: `Busca: "${search}"`, clear: () => setSearch("") });
-  if (filterStatus !== "todos") activeFilters.push({ key: "status", label: `Status: ${filterStatus}`, clear: () => setFilterStatus("todos") });
+  if (filterStatus !== "todos") activeFilters.push({ key: "status", label: `Status RPC: ${filterStatus}`, clear: () => setFilterStatus("todos") });
+  if (filterStatusCrm !== "todos") activeFilters.push({ key: "statuscrm", label: `Status CRM: ${filterStatusCrm}`, clear: () => setFilterStatusCrm("todos") });
   if (filterValorMin) activeFilters.push({ key: "min", label: `≥ R$ ${filterValorMin}`, clear: () => setFilterValorMin("") });
   if (filterValorMax) activeFilters.push({ key: "max", label: `≤ R$ ${filterValorMax}`, clear: () => setFilterValorMax("") });
   if (filterSubdivisao !== "todas") activeFilters.push({ key: "sub", label: `Área: ${filterSubdivisao}`, clear: () => setFilterSubdivisao("todas") });
   const clearAllFilters = () => {
-    setSearch(""); setFilterStatus("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas");
+    setSearch(""); setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas");
   };
 
   const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
@@ -203,12 +217,16 @@ const Contratos = () => {
             <Button variant="outline" size="sm" onClick={() => exportContratosToXlsx(filtered, `contratos_${entidade}.xlsx`)}>
               <Download className="mr-2 h-4 w-4" />Exportar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />Importar
-            </Button>
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />Nova Visita
-            </Button>
+            {canImportar(role) && (
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />Importar
+              </Button>
+            )}
+            {canCreateVisita(role) && (
+              <Button size="sm" onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />Nova Visita
+              </Button>
+            )}
           </div>
         </div>
 
@@ -235,12 +253,22 @@ const Contratos = () => {
             {showFilters && (
               <div className="flex flex-wrap gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
                 <div className="space-y-1 flex-1 min-w-[140px]">
-                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <label className="text-xs font-medium text-muted-foreground">Status RPC</label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="w-full sm:w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
-                      {uniqueStatuses.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      {uniqueStatusRpc.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 flex-1 min-w-[140px]">
+                  <label className="text-xs font-medium text-muted-foreground">Status Proposta CRM</label>
+                  <Select value={filterStatusCrm} onValueChange={setFilterStatusCrm}>
+                    <SelectTrigger className="w-full sm:w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {uniqueStatusCrm.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
