@@ -409,6 +409,15 @@ export function ImportarVisitasDialog({ open, onOpenChange }: Props) {
           <Button variant="outline" onClick={() => handleClose(false)} disabled={importando}>
             Cancelar
           </Button>
+          {invalidas.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => baixarRelatorioErros(invalidas)}
+              disabled={importando}
+            >
+              <Download className="mr-2 h-4 w-4" /> Baixar relatório de erros
+            </Button>
+          )}
           <Button
             onClick={handleImportar}
             disabled={importando || importaveis.length === 0}
