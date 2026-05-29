@@ -456,8 +456,16 @@ export type Database = {
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "gestor" | "operador" | "backoffice"
-      entidade_type: "SESI" | "SENAI" | "SESI Saúde"
+      app_role:
+        | "gestor"
+        | "operador"
+        | "backoffice"
+        | "admin"
+        | "vendedor"
+        | "secretaria"
+        | "interlocutora"
+        | "coordenador"
+      entidade_type: "SESI" | "SENAI" | "SESI Saúde" | "SESI Educação"
       etapa_contrato:
         | "visita"
         | "proposta"
@@ -466,6 +474,7 @@ export type Database = {
         | "matricula"
         | "ensalamento"
         | "faturamento"
+        | "finalizado"
       funcao_responsavel:
         | "Agente de Mercado PJ"
         | "Supervisor SESI"
@@ -606,8 +615,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["gestor", "operador", "backoffice"],
-      entidade_type: ["SESI", "SENAI", "SESI Saúde"],
+      app_role: [
+        "gestor",
+        "operador",
+        "backoffice",
+        "admin",
+        "vendedor",
+        "secretaria",
+        "interlocutora",
+        "coordenador",
+      ],
+      entidade_type: ["SESI", "SENAI", "SESI Saúde", "SESI Educação"],
       etapa_contrato: [
         "visita",
         "proposta",
@@ -616,6 +634,7 @@ export const Constants = {
         "matricula",
         "ensalamento",
         "faturamento",
+        "finalizado",
       ],
       funcao_responsavel: [
         "Agente de Mercado PJ",
