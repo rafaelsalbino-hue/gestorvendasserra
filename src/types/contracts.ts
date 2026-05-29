@@ -106,7 +106,7 @@ export const ALLOWED_DOMAINS = ["sc.senai.br", "fiesc.com.br", "sesisc.org.br"];
 export type SubdivisaoSaude = "Promoção de Saúde" | "Saúde Assistencial" | "SST" | "NRs";
 
 export const SUBDIVISIONS_BY_UNIT: Record<Entidade, string[]> = {
-  "SESI": [],
+  "SESI": ["Contraturno", "ACE"],
   "SENAI": [],
   "SESI Saúde": ["Promoção de Saúde", "Saúde Assistencial", "SST", "NRs"],
 };
@@ -116,6 +116,8 @@ export const SUBDIVISAO_COLORS: Record<string, string> = {
   "Saúde Assistencial": "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-200",
   "SST": "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200",
   "NRs": "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/40 dark:text-purple-200",
+  "Contraturno": "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/40 dark:text-sky-200",
+  "ACE": "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900/40 dark:text-rose-200",
 };
 
 export interface Contrato {
