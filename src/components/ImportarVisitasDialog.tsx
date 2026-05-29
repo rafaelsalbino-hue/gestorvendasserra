@@ -34,6 +34,9 @@ interface LinhaPrevia {
   valor: number;
   subdivisao: string;
   observacoes_visita: string;
+  dados_proposta: string;
+  crm: string;
+  agente_pj_nome: string;
   status: Status;
   motivo?: string;
 }
