@@ -136,8 +136,8 @@ Deno.serve(async (req) => {
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Error:', message)
-    return new Response(JSON.stringify({ error: message }), {
+    console.error('[send-test-email] internal error:', message)
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
