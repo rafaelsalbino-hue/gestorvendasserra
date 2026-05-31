@@ -139,6 +139,7 @@ export type Database = {
       contrato_comentarios: {
         Row: {
           autor_funcao: string
+          autor_id: string | null
           autor_nome: string
           contrato_id: string
           created_at: string
@@ -148,6 +149,7 @@ export type Database = {
         }
         Insert: {
           autor_funcao?: string
+          autor_id?: string | null
           autor_nome?: string
           contrato_id: string
           created_at?: string
@@ -157,6 +159,7 @@ export type Database = {
         }
         Update: {
           autor_funcao?: string
+          autor_id?: string | null
           autor_nome?: string
           contrato_id?: string
           created_at?: string

@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { ALLOWED_DOMAINS } from "@/types/contracts";
 
 const EditarConta = () => {
   useDocumentTitle("Editar Conta");
@@ -46,6 +47,16 @@ const EditarConta = () => {
 
       // Update email in auth
       if (email !== user?.email) {
+        const domain = email.split("@")[1]?.toLowerCase();
+        if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
+          toast({
+            title: "Domínio não permitido",
+            description: `O e-mail precisa pertencer a um dos domínios: ${ALLOWED_DOMAINS.join(", ")}.`,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.updateUser({ email });
         if (error) throw error;
         toast({ title: "E-mail atualizado", description: "Verifique seu novo e-mail para confirmar a alteração." });
