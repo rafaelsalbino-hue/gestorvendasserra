@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { FUNCOES_RESPONSAVEL, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
+import { FUNCOES_RESPONSAVEL, FUNCOES_GESTOR, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const Auth = () => {
@@ -25,6 +25,10 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFuncao, setSignupFuncao] = useState<FuncaoResponsavel | "">("");
+
+  // Segurança: papéis privilegiados não podem ser auto-atribuídos no cadastro público.
+  // A promoção é feita manualmente por um gestor após o cadastro.
+  const SIGNUP_FUNCOES = FUNCOES_RESPONSAVEL.filter((f) => !FUNCOES_GESTOR.includes(f));
 
   const validateDomain = (email: string) => {
     const domain = email.split("@")[1]?.toLowerCase();
@@ -148,11 +152,14 @@ const Auth = () => {
                 <Select value={signupFuncao} onValueChange={(v) => setSignupFuncao(v as FuncaoResponsavel)}>
                   <SelectTrigger><SelectValue placeholder="Selecione sua função" /></SelectTrigger>
                   <SelectContent>
-                    {FUNCOES_RESPONSAVEL.map((f) => (
+                    {SIGNUP_FUNCOES.map((f) => (
                       <SelectItem key={f} value={f}>{f}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Funções de gestão (Coordenador de Mercado, Analista Comercial) são atribuídas posteriormente por um administrador.
+                </p>
               </div>
               <Button className="w-full" onClick={handleSignup} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
