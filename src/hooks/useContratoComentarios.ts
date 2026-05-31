@@ -22,8 +22,11 @@ export function useContratoComentarios(contratoId: string | undefined) {
 export function useAddComentario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (comment: { contrato_id: string; texto: string; autor_nome: string; autor_funcao: string }) => {
-      const { data, error } = await supabase.from("contrato_comentarios").insert(comment).select().single();
+    mutationFn: async (comment: { contrato_id: string; texto: string; autor_nome: string; autor_funcao: string; is_system?: boolean }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+      const payload = { ...comment, autor_id: user.id } as any;
+      const { data, error } = await supabase.from("contrato_comentarios").insert(payload).select().single();
       if (error) throw error;
       return data;
     },
