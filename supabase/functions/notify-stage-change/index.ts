@@ -7,6 +7,15 @@ const corsHeaders = {
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/resend'
 
+function escapeHtml(input: unknown): string {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // Map each etapa to the responsible function(s) that should be notified
 const ETAPA_RESPONSAVEIS: Record<string, string[]> = {
   proposta: ['Agente de Mercado PJ', 'Supervisor SESI', 'Supervisor SENAI'],
@@ -38,6 +47,30 @@ Deno.serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured')
 
+    // Authn: require a valid Supabase JWT
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    })
+    const { data: userData, error: userErr } = await authClient.auth.getUser(token)
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const { cliente, entidade, nova_etapa, etapa_anterior } = await req.json()
 
     if (!cliente || !nova_etapa) {
@@ -47,8 +80,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     // Get responsible functions for the new stage
@@ -86,9 +117,17 @@ Deno.serve(async (req) => {
     const novaEtapaLabel = ETAPA_LABELS[nova_etapa] || nova_etapa
     const etapaAnteriorLabel = etapa_anterior ? (ETAPA_LABELS[etapa_anterior] || etapa_anterior) : '—'
 
+    // Escape any user-supplied content before injecting into HTML
+    const safeCliente = escapeHtml(cliente)
+    const safeEntidade = escapeHtml(entidade)
+    const safeNovaEtapa = escapeHtml(novaEtapaLabel)
+    const safeEtapaAnterior = escapeHtml(etapaAnteriorLabel)
+
     const results = []
 
     for (const resp of responsaveis) {
+      const safeNome = escapeHtml(resp.nome)
+      const safeFuncao = escapeHtml(resp.funcao)
       const response = await fetch(`${GATEWAY_URL}/emails`, {
         method: 'POST',
         headers: {
@@ -99,28 +138,28 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: 'Sistema RPC Educação <onboarding@resend.dev>',
           to: [resp.email],
-          subject: `[RPC] Contrato "${cliente}" avançou para: ${novaEtapaLabel}`,
+          subject: `[RPC] Contrato "${cliente}" avançou para: ${novaEtapaLabel}`.slice(0, 200),
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: #1a56db; padding: 20px; border-radius: 8px 8px 0 0;">
                 <h1 style="color: white; margin: 0; font-size: 20px;">Sistema RPC - Gestão de Faturamento</h1>
-                <p style="color: #bfdbfe; margin: 4px 0 0; font-size: 14px;">Educação ${entidade}</p>
+                <p style="color: #bfdbfe; margin: 4px 0 0; font-size: 14px;">Educação ${safeEntidade}</p>
               </div>
               <div style="border: 1px solid #e5e7eb; border-top: 0; padding: 24px; border-radius: 0 0 8px 8px;">
                 <h2 style="color: #1f2937; margin: 0 0 16px;">Mudança de Etapa no Pipeline</h2>
                 <p style="color: #4b5563; line-height: 1.6;">
-                  Olá <strong>${resp.nome}</strong>,
+                  Olá <strong>${safeNome}</strong>,
                 </p>
                 <p style="color: #4b5563; line-height: 1.6;">
-                  O contrato do cliente <strong>${cliente}</strong> avançou de etapa e requer sua atenção.
+                  O contrato do cliente <strong>${safeCliente}</strong> avançou de etapa e requer sua atenção.
                 </p>
                 <div style="background: #f3f4f6; padding: 16px; border-radius: 6px; margin: 16px 0;">
                   <p style="margin: 0; color: #374151; font-size: 14px;">
-                    <strong>Cliente:</strong> ${cliente}<br/>
-                    <strong>Entidade:</strong> ${entidade}<br/>
-                    <strong>Etapa Anterior:</strong> ${etapaAnteriorLabel}<br/>
-                    <strong>Nova Etapa:</strong> <span style="color: #1a56db; font-weight: bold;">${novaEtapaLabel}</span><br/>
-                    <strong>Sua Função:</strong> ${resp.funcao}
+                    <strong>Cliente:</strong> ${safeCliente}<br/>
+                    <strong>Entidade:</strong> ${safeEntidade}<br/>
+                    <strong>Etapa Anterior:</strong> ${safeEtapaAnterior}<br/>
+                    <strong>Nova Etapa:</strong> <span style="color: #1a56db; font-weight: bold;">${safeNovaEtapa}</span><br/>
+                    <strong>Sua Função:</strong> ${safeFuncao}
                   </p>
                 </div>
                 <p style="color: #4b5563; line-height: 1.6;">
