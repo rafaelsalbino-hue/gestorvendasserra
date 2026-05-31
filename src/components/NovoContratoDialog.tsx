@@ -151,13 +151,17 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           ].join("\n");
 
           try {
-            await supabase.from("contrato_comentarios").insert({
-              contrato_id: novo.id,
-              texto: resumo,
-              autor_nome: "Sistema",
-              autor_funcao: "Backoffice Auto",
-              is_system: true,
-            } as any);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from("contrato_comentarios").insert({
+                contrato_id: novo.id,
+                texto: resumo,
+                autor_nome: "Sistema",
+                autor_funcao: "Backoffice Auto",
+                is_system: true,
+                autor_id: user.id,
+              } as any);
+            }
           } catch (err) {
             console.warn("Falha ao registrar comentário automático:", err);
           }
