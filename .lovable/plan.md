@@ -1,97 +1,78 @@
-# Rodada 5 — Segurança, Importação e Refinamentos
+# Rodada 6 — UI/UX + Funcionalidades
 
-Plano de execução em ordem de dependência (banco → backend → frontend).
+Escopo grande. Vou dividir em 6 frentes, implementando em ordem de impacto e dependência. Cada frente é independente o suficiente para ser testada isoladamente.
 
-## 1. Banco de dados (migração única)
+## 1. Sidebar Recolhível
+- Substituir `AppSidebar.tsx` para suportar dois estados (expandido 200px / recolhido 52px)
+- Persistir estado em `localStorage` (`sidebar:collapsed`)
+- Tooltips nos ícones quando recolhido
+- Grupos "Principal" / "Gestão" com separador
+- Badge de pendências em "Visitas" (consulta visitas da semana sem confirmação)
+- Borda esquerda azul (#4DA3FF) no item ativo
+- Botão de recolher/expandir no rodapé (seta ‹ / ›)
+- Mobile (<768px): mantém comportamento drawer (já existe via `offcanvas`)
 
-### 1.1 Enum `app_role`
-- Adicionar valores: `admin`, `vendedor`, `secretaria`, `interlocutora`, `coordenador` (manter `gestor`, `backoffice`, `operador` por compat).
-- Atualizar `handle_new_user` para mapear funções → roles:
-  - Coordenador de Mercado / Analista Comercial → `admin` + `gestor`
-  - Coordenador SESI/SENAI → `coordenador`
-  - Backoffice Comercial → `backoffice`
-  - Agente de Mercado PJ → `vendedor`
-  - Secretaria → `secretaria`
-  - Interlocutora de Faturamento → `interlocutora`
-  - Demais → `operador`
+## 2. Kanban — Status Proposta CRM nos cards
+- Em `Contratos.tsx` cards: linha "Status CRM" abaixo do cliente, antes do valor
+- Badge com ponto colorido + texto, cores semânticas
+- Inline edit via `DropdownMenu` ao clicar no badge (mutate via hook existente)
+- Filtro independente já existe; garantir que não interfere com filtro de etapa
 
-### 1.2 Funções helper
-- `is_admin(uuid)`, `is_backoffice(uuid)`, `is_vendedor(uuid)`, `is_coordenador(uuid)` (security definer, lendo `user_roles`).
-- `can_edit_contrato(uuid, uuid)` → admin/gestor/backoffice/coordenador OR (vendedor AND agente_pj_id = responsavel do user).
-- `can_finalize_contrato(uuid)` → admin/gestor/backoffice/coordenador.
+## 3. Campo Valor — Redesign
+- `NovoContratoDialog` / edição: input com máscara BRL (já temos `formatBRLInput`) — confirmar uso e label "Valor total da proposta (R$)"
+- `ContratoDetailDialog`: bloco de destaque azul claro com valor grande
+- Garantir formatação em listagens
+- Cálculo "por aluno estimado" quando houver nº de alunos
 
-### 1.3 RLS endurecida
-- `contratos`:
-  - SELECT: vendedor vê só onde `agente_pj_id` corresponde ao seu `responsaveis.id`; demais autenticados veem tudo.
-  - INSERT: admin/gestor/vendedor.
-  - UPDATE: `can_edit_contrato(auth.uid(), id)`; bloquear edição se `finalized_at IS NOT NULL` e user é vendedor.
-  - DELETE: já gestor-only ✓.
-- `contrato_arquivos` / `contrato_anexos`: SELECT exige que o user enxergue o contrato (subselect em contratos com RLS).
-- `notificacoes`, `user_roles`, `responsaveis` — manter.
+## 4. SESI Educação — Contraturno / ACE
+- Estender `unit_subdivisions` (seed) com Contraturno e ACE para "SESI Educação"
+- Frontend: filtro dinâmico já existe; garantir que aparece nas opções
+- Modelo XLSX de importação: dropdown com novas opções
+- Validação da importação aceitar Contraturno e ACE
 
-### 1.4 Auditoria
-- Nova tabela `audit_log` (id, user_id, user_email, acao, entidade, entidade_id, detalhes jsonb, ip text, created_at). RLS: SELECT admin/gestor; INSERT authenticated; sem UPDATE/DELETE.
-- Trigger em `contratos` (INSERT/UPDATE/DELETE) gravando ação resumida.
+## 5. Backoffice finaliza processo
+- Atualizar `permissions.ts` → `canFinalizarContrato` incluir `backoffice`
+- Atualizar RLS via migration: `can_edit_contrato` já cobre backoffice em não-finalizados; precisamos permitir backoffice **finalizar**. Como finalizar é UPDATE em `finalized_at`, e a policy de update usa `can_edit_contrato`, basta garantir lógica
+- Modal de confirmação já existe; mostrar botão para backoffice
 
-### 1.5 Finalização
-- Adicionar `finalized_at timestamptz`, `finalized_by uuid`, `finalized_by_nome text` em `contratos`.
-- Adicionar valor `'finalizado'` ao enum `etapa_contrato`.
+## 6. Melhorias visuais gerais
+### 6.1 Topbar
+- Breadcrumb dinâmico baseado na rota
+- Sino de notificações (já existe) + contador (já existe)
+- Busca global ⌘K (já existe via `GlobalSearch`) — adicionar shortcut listener
+- Mostrar cargo do usuário ao lado do avatar
 
-### 1.6 SESI Educação
-- Seed via `INSERT` em `unit_subdivisions`: `Contraturno` e `ACE` para `unit_name = 'SESI Educação'`.
-- Adicionar `"SESI Educação"` ao enum `entidade` (se ainda não existir — verificar).
+### 6.2 Cards
+- Tag por entidade com cores
+- Iniciais dos responsáveis
+- Barra de progresso 1–6 na base
+- Datas relativas (`date-fns` `formatDistanceToNow` em pt-BR)
 
-## 2. Frontend
+### 6.3 Formulários
+- Auto-format CNPJ e telefone (já temos lib cnpj)
+- Asterisco em obrigatórios + foco azul
+- Validação inline
 
-### 2.1 `src/types/contracts.ts`
-- `Entidade` inclui `"SESI Educação"`.
-- `SUBDIVISIONS_BY_UNIT["SESI Educação"] = ["Contraturno", "ACE"]`.
-- `SUBDIVISAO_COLORS` para novas opções.
-- Adicionar etapa `finalizado` em `ETAPAS`.
+### 6.4 Dashboard
+- Mini gráficos por entidade (recharts)
+- Barra de meta mensal
+- Badge "parado há +7 dias"
+- Quick actions por perfil
 
-### 2.2 `useUserRole.ts`
-- Estender `AppRole` para novos valores. Expor `isAdmin`, `isBackoffice`, `isVendedor`, `isCoordenador`, `isSecretaria`, `isInterlocutora`.
+## Gaps
+- G1 Dark/light: usar tokens semânticos (sem hex hardcoded em componentes novos — adicionar tokens em `index.css`)
+- G2 Empty states amigáveis em Kanban e listagens
+- G3 Skeleton loaders em Kanban/listagem (já existe `Skeleton`)
+- G4 a11y: aria-label, focus ring, contraste
 
-### 2.3 RBAC permissions (`src/lib/permissions.ts` novo)
-- `canCreate`, `canEdit(contrato, user)`, `canMoveStatus`, `canFinalize`, `canImport`, `canDelete` — fonte única de verdade.
+## Ordem de execução
+1. Tokens de cor + sidebar recolhível (base visual)
+2. Kanban (cards com CRM, entidade tag, progresso, datas relativas, inline edit CRM)
+3. Detalhe do contrato (bloco valor + permissão backoffice finalizar)
+4. Migration Contraturno/ACE + importação XLSX
+5. Topbar (breadcrumb, ⌘K, cargo)
+6. Dashboard (gráficos, meta, badges)
+7. Empty states + skeletons + a11y pass
 
-### 2.4 ImportarVisitasDialog
-- Modelo XLSX com cabeçalhos exatos da especificação.
-- Aceitar `.csv` adicional (parse via `XLSX.read`).
-- Validações por linha: Entidade ∈ enum; Subdivisão compatível; Cliente obrigatório; Data DD/MM/AAAA → ISO; CNPJ formato; Valor decimal BRL.
-- Tabela de prévia com linhas inválidas destacadas (border-destructive) + tooltip do erro.
-- Botão "Importar válidas" permite import parcial.
-- Toast final com contagem + botão "Baixar relatório de erros (CSV)".
-- Rejeitar mime ≠ xlsx/csv com mensagem.
-- Tratar planilha vazia.
-
-### 2.5 Kanban (`Contratos.tsx`)
-- Card mostra badge `status_proposta_crm` (cor distinta) abaixo do cliente. "Sem status CRM" cinza quando vazio.
-- Edição inline via popover `StatusSelect`.
-- Filtros: separar `filtroEtapa` e `filtroStatusCrm`.
-- Filtro Entidade × Área: ao mudar Entidade, limpar e recarregar Área.
-
-### 2.6 Finalização (ContratoDetailDialog)
-- Botão "Finalizar Processo" visível para `canFinalize`.
-- AlertDialog com resumo (cliente, entidade, valor, etapa).
-- Action: `update` setando `finalized_at`, `finalized_by`, `etapa_atual='finalizado'`.
-- Bloquear edição quando finalizado para vendedor.
-
-### 2.7 Página Arquivo
-- Filtro adicional "Finalizados".
-
-### 2.8 Gaps
-- G1: `parseBRL` para "12000,00" e "12.000,00" → garantir parser cobre ambos no import.
-- G3: gerar CSV de erros via Blob.
-- G4: revisar `AppSessionContext` (já tem refresh) — sem mudança necessária além de garantir interval.
-
-## 3. Testes manuais
-- Import com 4 cenários (válido, parcial, vazio, .docx).
-- Login com cada perfil simulado e verificar botões + tentativa de update direto.
-
-## Arquivos
-- **Migração**: `supabase/migrations/<ts>_rodada5.sql`
-- **Novos**: `src/lib/permissions.ts`
-- **Editados**: `types/contracts.ts`, `useUserRole.ts`, `ImportarVisitasDialog.tsx`, `Contratos.tsx`, `ContratoDetailDialog.tsx`, `NovoContratoDialog.tsx`, `Arquivo.tsx`, `lib/currency.ts`.
-
-Vou executar em duas fases: **(A)** migração (aguarda aprovação), **(B)** código frontend após aprovação dos types regenerados.
+## Riscos
+- Esta é uma rodada grande. Vou tentar manter cada arquivo focado e não quebrar nada existente. Se algum item ficar parcial, deixo nota explícita no fim.

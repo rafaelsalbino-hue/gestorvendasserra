@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Download, Filter, GripVertical, X } from "lucide-react";
+import { Plus, Search, Download, Filter, GripVertical, X, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, type Entidade, STATUS_OPTIONS, SUBDIVISIONS_BY_UNIT, SUBDIVISAO_COLORS } from "@/types/contracts";
@@ -19,6 +19,9 @@ import { exportContratosToXlsx } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { canCreateVisita, canImportar } from "@/lib/permissions";
+import { ENTIDADE_CLASS, entidadeShort } from "@/lib/entidade";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -30,6 +33,18 @@ import { useDroppable } from "@dnd-kit/core";
 import { Upload } from "lucide-react";
 
 type Contrato = Tables<"contratos">;
+
+const ETAPA_ORDER = ETAPAS.map((e) => e.id);
+
+function statusCrmColor(status: string | null | undefined): string {
+  if (!status) return "bg-muted text-muted-foreground border-border";
+  const s = status.toLowerCase();
+  if (s.includes("ganha") || s.includes("aprov") || s.includes("assin")) return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200";
+  if (s.includes("negocia")) return "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200";
+  if (s.includes("elabora") || s.includes("envia")) return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200";
+  if (s.includes("perdido") || s.includes("cancel")) return "bg-zinc-200 text-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300";
+  return "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200";
+}
 
 function DroppableColumn({ etapaId, children }: { etapaId: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: etapaId });
@@ -56,48 +71,102 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const etapaIdx = ETAPA_ORDER.indexOf(contrato.etapa_atual as any);
+  const progressPct = etapaIdx >= 0 ? Math.round(((etapaIdx + 1) / ETAPA_ORDER.length) * 100) : 0;
+  const updateMutation = useUpdateContrato();
+
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, padding: "8px 10px" }}
-      className="rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
+      style={{ ...style }}
+      className="relative rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all overflow-hidden"
     >
-      <div className="flex items-center gap-1">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
-          <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
-        <p className="truncate flex-1 font-medium" style={{ fontSize: 12 }} onClick={onClick}>{contrato.cliente}</p>
-      </div>
-      <div onClick={onClick} style={{ fontSize: 11 }}>
-        <p className="text-muted-foreground">{contrato.cnpj}</p>
-        <span
-          className={`inline-block mt-1 rounded border px-1.5 py-0.5 font-medium ${
-            contrato.status_proposta_crm
-              ? "bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-200"
-              : "bg-muted text-muted-foreground border-border italic"
-          }`}
-          style={{ fontSize: 10 }}
-          title="Status Proposta CRM"
-        >
-          {contrato.status_proposta_crm || "Sem status CRM"}
-        </span>
-        {(contrato as any).subdivisao && (
-          <span
-            className={`inline-block mt-1 rounded border px-1.5 py-0.5 font-medium ${SUBDIVISAO_COLORS[(contrato as any).subdivisao] || "bg-muted text-muted-foreground border-border"}`}
-            style={{ fontSize: 10 }}
+      <div style={{ padding: "8px 10px" }} className="space-y-1.5">
+        <div className="flex items-center gap-1">
+          <button
+            {...attributes} {...listeners}
+            aria-label="Arrastar contrato"
+            className="cursor-grab active:cursor-grabbing touch-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           >
-            {(contrato as any).subdivisao}
+            <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <p className="truncate flex-1 font-medium" style={{ fontSize: 12 }} onClick={onClick}>{contrato.cliente}</p>
+          <span
+            className={`shrink-0 rounded px-1.5 py-0.5 font-semibold ${ENTIDADE_CLASS[contrato.entidade as Entidade] || ""}`}
+            style={{ fontSize: 9, letterSpacing: "0.02em" }}
+            title={contrato.entidade}
+          >
+            {entidadeShort(contrato.entidade)}
           </span>
-        )}
-        {contrato.servico_produto && <p className="text-muted-foreground truncate">{contrato.servico_produto}</p>}
-        {contrato.valor > 0 && (
-          <p className="font-semibold text-primary">
-            R$ {contrato.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </p>
-        )}
-        {(contrato as any).etapa_updated_at && (
-          <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} compact />
-        )}
+        </div>
+
+        <div onClick={onClick} className="space-y-1" style={{ fontSize: 11 }}>
+          {contrato.cnpj && <p className="text-muted-foreground">{contrato.cnpj}</p>}
+
+          {/* Status CRM editável inline */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={contrato.status_proposta_crm || "__empty__"}
+              onValueChange={(v) =>
+                updateMutation.mutate({ id: contrato.id, status_proposta_crm: v === "__empty__" ? "" : v })
+              }
+            >
+              <SelectTrigger
+                className={`h-auto py-0.5 px-1.5 border font-medium w-auto inline-flex gap-1 [&>svg]:h-3 [&>svg]:w-3 ${statusCrmColor(contrato.status_proposta_crm)}`}
+                style={{ fontSize: 10 }}
+                aria-label="Editar status CRM"
+              >
+                <SelectValue>
+                  {contrato.status_proposta_crm || <span className="italic opacity-80">Sem status CRM</span>}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__empty__">— Sem status —</SelectItem>
+                {STATUS_OPTIONS.status_proposta_crm.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(contrato as any).subdivisao && (
+            <span
+              className={`inline-block rounded border px-1.5 py-0.5 font-medium ${SUBDIVISAO_COLORS[(contrato as any).subdivisao] || "bg-muted text-muted-foreground border-border"}`}
+              style={{ fontSize: 10 }}
+            >
+              {(contrato as any).subdivisao}
+            </span>
+          )}
+
+          {contrato.servico_produto && <p className="text-muted-foreground truncate">{contrato.servico_produto}</p>}
+
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            {contrato.valor > 0 ? (
+              <p className="font-semibold text-primary" style={{ fontSize: 12 }}>
+                R$ {contrato.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            ) : (
+              <span className="text-muted-foreground italic" style={{ fontSize: 10 }}>Valor não informado</span>
+            )}
+            {(contrato as any).etapa_updated_at && (
+              <span className="text-muted-foreground whitespace-nowrap" style={{ fontSize: 10 }}>
+                {formatDistanceToNow(new Date((contrato as any).etapa_updated_at), { addSuffix: true, locale: ptBR })}
+              </span>
+            )}
+          </div>
+
+          {(contrato as any).etapa_updated_at && (
+            <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} compact />
+          )}
+        </div>
+      </div>
+
+      {/* Barra de progresso das etapas */}
+      <div className="h-1 bg-muted/60" aria-hidden>
+        <div
+          className="h-full bg-primary transition-all"
+          style={{ width: `${progressPct}%` }}
+        />
       </div>
     </div>
   );
@@ -366,7 +435,14 @@ const Contratos = () => {
                         </div>
                         <DroppableColumn etapaId={etapa.id}>
                           {items.length === 0 ? (
-                            <p className="text-muted-foreground text-center py-6" style={{ fontSize: 11 }}>Sem itens</p>
+                            <div className="flex flex-col items-center justify-center text-muted-foreground py-6 px-2 gap-1.5">
+                              <Inbox className="h-5 w-5 opacity-50" aria-hidden />
+                              <p className="text-center" style={{ fontSize: 11 }}>
+                                {etapa.id === "visita"
+                                  ? "Nenhuma visita aqui ainda"
+                                  : "Sem itens nesta etapa"}
+                              </p>
+                            </div>
                           ) : (
                             items.map((c) => (
                               <DraggableCard key={c.id} contrato={c} onClick={() => setSelected(c)} />

@@ -352,18 +352,36 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">Cliente</Label><Input className="h-9 text-sm" value={form.cliente || ""} onChange={(e) => set("cliente", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">CNPJ</Label><Input className="h-9 text-sm" value={form.cnpj || ""} onChange={(e) => set("cnpj", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5"><Label className="text-xs">Serviço / Produto</Label><Input className="h-9 text-sm" value={form.servico_produto || ""} onChange={(e) => set("servico_produto", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor (R$)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
-                  <Input
-                    className="h-9 text-sm pl-9"
-                    inputMode="numeric"
-                    value={form.valor != null ? formatBRL(Number(form.valor)) : ""}
-                    onChange={(e) => set("valor", parseBRL(formatBRLInput(e.target.value)))}
-                    disabled={!canEdit("dados_basicos")}
-                    placeholder="0,00"
-                  />
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Valor total da proposta (R$)</Label>
+                <div
+                  className="rounded-md border p-3"
+                  style={{
+                    background: "hsl(var(--value-bg))",
+                    borderColor: "hsl(var(--value-border))",
+                  }}
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="font-medium"
+                      style={{ fontSize: 13, color: "hsl(var(--value-text))" }}
+                    >
+                      R$
+                    </span>
+                    <Input
+                      className="h-9 text-sm border-transparent bg-transparent shadow-none px-1 flex-1 font-semibold"
+                      style={{
+                        fontSize: 22,
+                        color: "hsl(var(--value-text))",
+                      }}
+                      inputMode="numeric"
+                      value={form.valor != null ? formatBRL(Number(form.valor)) : ""}
+                      onChange={(e) => set("valor", parseBRL(formatBRLInput(e.target.value)))}
+                      disabled={!canEdit("dados_basicos")}
+                      placeholder="0,00"
+                      aria-label="Valor total da proposta"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="space-y-1.5"><Label className="text-xs">CRM</Label><Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
