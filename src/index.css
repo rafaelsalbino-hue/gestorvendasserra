@@ -60,6 +60,19 @@
     --step-secretaria: 340 65% 47%;
     --step-pcp: 160 60% 42%;
     --step-financeiro: 15 75% 50%;
+
+    /* Entidade colors (badges/tags) */
+    --ent-sesi-edu: 262 52% 47%;       /* roxo */
+    --ent-sesi-saude: 160 60% 38%;     /* verde */
+    --ent-senai: 215 80% 45%;          /* azul */
+
+    /* Value highlight (R$) bloco */
+    --value-bg: 210 100% 97%;
+    --value-border: 210 80% 85%;
+    --value-text: 215 100% 32%;        /* #003DA5 */
+
+    /* Active sidebar accent border */
+    --sidebar-active-bar: 210 100% 65%; /* #4DA3FF */
   }
 
   .dark {
@@ -90,6 +103,16 @@
     --sidebar-accent-foreground: 210 15% 90%;
     --sidebar-border: 215 20% 18%;
     --sidebar-ring: 215 80% 55%;
+
+    --ent-sesi-edu: 262 60% 65%;
+    --ent-sesi-saude: 160 60% 55%;
+    --ent-senai: 215 80% 60%;
+
+    --value-bg: 215 30% 18%;
+    --value-border: 215 40% 30%;
+    --value-text: 210 100% 75%;
+
+    --sidebar-active-bar: 210 100% 65%;
   }
 }
 
@@ -116,4 +139,8 @@
   .step-secretaria { background-color: hsl(var(--step-secretaria)); color: white; }
   .step-pcp { background-color: hsl(var(--step-pcp)); color: white; }
   .step-financeiro { background-color: hsl(var(--step-financeiro)); color: white; }
+
+  .ent-sesi-edu { background-color: hsl(var(--ent-sesi-edu) / 0.15); color: hsl(var(--ent-sesi-edu)); border: 1px solid hsl(var(--ent-sesi-edu) / 0.3); }
+  .ent-sesi-saude { background-color: hsl(var(--ent-sesi-saude) / 0.15); color: hsl(var(--ent-sesi-saude)); border: 1px solid hsl(var(--ent-sesi-saude) / 0.3); }
+  .ent-senai { background-color: hsl(var(--ent-senai) / 0.15); color: hsl(var(--ent-senai)); border: 1px solid hsl(var(--ent-senai) / 0.3); }
 }
