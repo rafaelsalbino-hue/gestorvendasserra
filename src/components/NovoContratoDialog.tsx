@@ -259,14 +259,16 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               <Input value={servico} onChange={(e) => setServico(e.target.value)} placeholder="Descrição do serviço" />
             </div>
             <div className="space-y-2">
-              <Label>Valor (R$)</Label>
+              <Label>Valor total da proposta (R$)</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
                 <Input
                   value={valorDisplay}
                   onChange={(e) => handleValorChange(e.target.value)}
                   placeholder="0,00"
-                  className="pl-10"
+                  inputMode="numeric"
+                  aria-label="Valor total da proposta"
+                  className="pl-10 font-medium"
                 />
               </div>
             </div>
