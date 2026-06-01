@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useContratos } from "@/hooks/useContratos";
@@ -8,8 +8,26 @@ import { ETAPAS } from "@/types/contracts";
 export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { data: contratos = [] } = useContratos();
   const navigate = useNavigate();
+
+  // ⌘K / Ctrl+K para focar a busca
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        inputRef.current?.blur();
+        setOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const results = query.length >= 2
     ? contratos.filter((c) =>
@@ -26,14 +44,21 @@ export function GlobalSearch() {
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar contratos..."
+          ref={inputRef}
+          placeholder="Buscar contratos... (⌘K)"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
           className="pl-8 pr-8 h-9 w-full sm:w-64 text-sm"
+          aria-label="Buscar contratos"
         />
         {query && (
-          <button onClick={() => { setQuery(""); setOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
+          <button
+            onClick={() => { setQuery(""); setOpen(false); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            aria-label="Limpar busca"
+          >
             <X className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         )}
