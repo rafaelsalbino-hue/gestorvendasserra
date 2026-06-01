@@ -435,7 +435,14 @@ const Contratos = () => {
                         </div>
                         <DroppableColumn etapaId={etapa.id}>
                           {items.length === 0 ? (
-                            <p className="text-muted-foreground text-center py-6" style={{ fontSize: 11 }}>Sem itens</p>
+                            <div className="flex flex-col items-center justify-center text-muted-foreground py-6 px-2 gap-1.5">
+                              <Inbox className="h-5 w-5 opacity-50" aria-hidden />
+                              <p className="text-center" style={{ fontSize: 11 }}>
+                                {etapa.id === "visita"
+                                  ? "Nenhuma visita aqui ainda"
+                                  : "Sem itens nesta etapa"}
+                              </p>
+                            </div>
                           ) : (
                             items.map((c) => (
                               <DraggableCard key={c.id} contrato={c} onClick={() => setSelected(c)} />
