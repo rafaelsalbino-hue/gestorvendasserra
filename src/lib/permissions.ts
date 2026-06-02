@@ -20,7 +20,9 @@ export interface ContratoLike {
 }
 
 export function canCreateVisita(r: RoleFlags) {
-  return r.isAdmin || r.isVendedor || r.isCoordenador || r.isBackoffice;
+  // Qualquer usuário autenticado pode lançar uma visita (inclui supervisores,
+  // secretarias, interlocutoras e operadores). RLS no banco também permite.
+  return true;
 }
 
 export function canImportar(r: RoleFlags) {
