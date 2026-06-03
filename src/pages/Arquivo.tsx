@@ -216,6 +216,7 @@ export default function ArquivoPage() {
               const isDeleted = !!c.deleted_at;
               const isCancelled = c.status_proposta_crm === "Cancelada";
               const isLost = c.status_proposta_crm === "Perdido";
+              const isFinalized = !!c.finalized_at && !isDeleted;
               return (
                 <Card key={c.id} className="flex flex-col">
                   <CardContent className="p-4 flex-1 space-y-2">
@@ -225,6 +226,11 @@ export default function ArquivoPage() {
                         <p className="text-xs text-muted-foreground truncate">{c.cnpj || "—"}</p>
                       </div>
                       <div className="flex flex-col gap-1 items-end">
+                        {isFinalized && (
+                          <Badge className="gap-1 text-[10px] bg-emerald-600 text-white hover:bg-emerald-600/90">
+                            <CheckCircle2 className="h-3 w-3" /> Finalizado
+                          </Badge>
+                        )}
                         {isDeleted && (
                           <Badge variant="destructive" className="gap-1 text-[10px]">
                             <Trash2 className="h-3 w-3" /> Excluída
@@ -251,6 +257,9 @@ export default function ArquivoPage() {
                       )}
                       {c.deleted_at && (
                         <p>Excluída em: {new Date(c.deleted_at).toLocaleString("pt-BR")}</p>
+                      )}
+                      {c.finalized_at && !c.deleted_at && (
+                        <p>Finalizado em: {new Date(c.finalized_at).toLocaleString("pt-BR")}</p>
                       )}
                     </div>
                     <div className="pt-2">
