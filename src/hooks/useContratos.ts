@@ -21,7 +21,10 @@ export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
       const { data, error } = await q;
       if (error) throw error;
       return (data as Contrato[]).filter(
-        (c: any) => c.status_proposta_crm !== "Cancelada" && c.status_proposta_crm !== "Perdido"
+        (c: any) =>
+          c.status_proposta_crm !== "Cancelada" &&
+          c.status_proposta_crm !== "Perdido" &&
+          !c.finalized_at
       );
     }, { operation: `contratos.list.${entidade ?? "all"}`, timeoutMs: 15000 }),
     staleTime: 1000 * 60 * 2,
