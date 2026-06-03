@@ -295,12 +295,21 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
       finalized_by: (user?.id ?? null) as any,
       finalized_by_nome: (currentUser?.nome ?? "") as any,
     } as any);
+    setTimeout(() => {
+      toast({
+        title: `Processo de ${form.cliente} finalizado`,
+        description: "Movido para o Arquivo com sucesso.",
+      });
+    }, 400);
   };
 
   const handleDelete = () => {
     deleteMutation.mutate(contrato.id, {
       onSuccess: () => {
-        toast({ title: "Contrato excluído!" });
+        toast({
+          title: `Processo de ${form.cliente} arquivado`,
+          description: "Disponível na seção Arquivo.",
+        });
         onOpenChange(false);
       },
       onError: (e) => toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
