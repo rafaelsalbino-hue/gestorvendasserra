@@ -1,18 +1,34 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
-import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCountUp } from "@/hooks/useCountUp";
+
+function greeting(name?: string) {
+  const h = new Date().getHours();
+  const part = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  const first = (name || "").split(" ")[0] || "";
+  return first ? `${part}, ${first}!` : `${part}!`;
+}
+
+function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+  const v = useCountUp(value);
+  return <div className={className}>{v.toLocaleString("pt-BR")}</div>;
+}
 
 const COLORS = ["#2563eb", "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316"];
 
