@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Archive, Search, RotateCcw, XCircle, Trash2, Download, FileText, Filter, X } from "lucide-react";
+import { Archive, Search, RotateCcw, XCircle, Trash2, Download, FileText, Filter, X, CheckCircle2 } from "lucide-react";
 import { useContratosArquivados, useRestaurarContrato } from "@/hooks/useContratos";
 import { useToast } from "@/hooks/use-toast";
 import { ETAPAS, type Entidade } from "@/types/contracts";
@@ -45,6 +45,7 @@ export default function ArquivoPage() {
       if (filterMotivo === "excluida" && !c.deleted_at) return false;
       if (filterMotivo === "cancelada" && c.status_proposta_crm !== "Cancelada") return false;
       if (filterMotivo === "perdido" && c.status_proposta_crm !== "Perdido") return false;
+      if (filterMotivo === "finalizado" && !c.finalized_at) return false;
       const ref = c.deleted_at ? new Date(c.deleted_at).getTime() : new Date(c.updated_at || c.created_at).getTime();
       if (refDe != null && ref < refDe) return false;
       if (refAte != null && ref > refAte) return false;
@@ -157,6 +158,7 @@ export default function ArquivoPage() {
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="excluida">Excluída</SelectItem>
+                  <SelectItem value="finalizado">Finalizado</SelectItem>
                   <SelectItem value="cancelada">Cancelada</SelectItem>
                   <SelectItem value="perdido">Perdido</SelectItem>
                 </SelectContent>
