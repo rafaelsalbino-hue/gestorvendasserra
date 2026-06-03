@@ -227,7 +227,7 @@ const Dashboard = () => {
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{filtered.length}</div>
+                  <AnimatedNumber value={filtered.length} className="text-2xl md:text-3xl font-bold" />
                   <p className="text-xs text-muted-foreground mt-1">SESI: {sesiCount} | SENAI: {senaiCount} | Saúde: {sesiSaudeCount}</p>
                 </CardContent>
               </Card>
@@ -237,7 +237,7 @@ const Dashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{emAndamento}</div>
+                  <AnimatedNumber value={emAndamento} className="text-2xl md:text-3xl font-bold" />
                   <p className="text-xs text-muted-foreground mt-1">Contratos ativos</p>
                 </CardContent>
               </Card>
@@ -257,19 +257,19 @@ const Dashboard = () => {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{taxaConclusao}%</div>
+                  <div className="text-2xl md:text-3xl font-bold"><AnimatedNumber value={taxaConclusao} className="inline" />%</div>
                   <p className="text-xs text-muted-foreground mt-1">{concluidos} concluído(s) · {responsaveis.length} resp.</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* SLA Alert */}
-            {contratosAtrasados.length > 0 && (
-              <Card className="border-destructive/30">
+            {contratosAtrasados.length > 0 ? (
+              <Card className="border-2 border-orange-500/60 bg-orange-50/40 dark:bg-orange-950/20 animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    Contratos com Atenção ({contratosAtrasados.length})
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    Atenção necessária ({contratosAtrasados.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -288,6 +288,14 @@ const Dashboard = () => {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border bg-emerald-50/40 dark:bg-emerald-950/20 animate-fade-in">
+                <CardContent className="py-4 flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium">Tudo em dia!</span>
+                  <span className="text-muted-foreground">Nenhum processo travado.</span>
                 </CardContent>
               </Card>
             )}
