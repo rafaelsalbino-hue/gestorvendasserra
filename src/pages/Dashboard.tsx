@@ -52,6 +52,8 @@ const Dashboard = () => {
   useDocumentTitle("Dashboard");
   const { data: contratos = [], isLoading: loadC } = useContratos();
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
+  const { currentUser } = useCurrentUser();
+  const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
   const [filterPJ, setFilterPJ] = useState<string>("todos");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
