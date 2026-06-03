@@ -118,9 +118,44 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral dos contratos — SESI/SENAI</p>
+        <div className="animate-fade-in">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            {greeting(currentUser?.nome)}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Você tem <span className="text-foreground font-medium">{emAndamento}</span> processo(s) em andamento
+            {contratosAtrasados.length > 0 && (
+              <> · <span className="text-orange-600 font-medium">{contratosAtrasados.length}</span> precisam de atenção</>
+            )}.
+          </p>
+        </div>
+
+        {/* Atalhos rápidos por perfil */}
+        <div className="flex flex-wrap gap-2 animate-fade-in">
+          {(isVendedor || isAdmin) && (
+            <Button asChild size="sm" variant="default"><Link to="/contratos"><Plus className="mr-1.5 h-3.5 w-3.5" />Nova visita</Link></Button>
+          )}
+          {isVendedor && (
+            <Button asChild size="sm" variant="outline"><Link to="/contratos"><ListChecks className="mr-1.5 h-3.5 w-3.5" />Minhas visitas abertas</Link></Button>
+          )}
+          {isBackoffice && (
+            <>
+              <Button asChild size="sm" variant="default"><Link to="/contratos"><ListChecks className="mr-1.5 h-3.5 w-3.5" />Fila de faturamento</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/contratos"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Processos para finalizar</Link></Button>
+            </>
+          )}
+          {isCoordenador && (
+            <>
+              <Button asChild size="sm" variant="default"><Link to="/contratos">Visão geral</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/arquivo">Relatório do mês</Link></Button>
+            </>
+          )}
+          {isAdmin && (
+            <>
+              <Button asChild size="sm" variant="outline"><Link to="/responsaveis"><Users className="mr-1.5 h-3.5 w-3.5" />Gestão de usuários</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/contratos"><Upload className="mr-1.5 h-3.5 w-3.5" />Importar visitas</Link></Button>
+            </>
+          )}
         </div>
 
         {/* Filters */}
