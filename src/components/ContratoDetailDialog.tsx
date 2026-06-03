@@ -472,6 +472,26 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 />
               </div>
             </div>
+            <div className="rounded-md border border-dashed bg-muted/30 p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium">Turma 2 ou mais? Baixe o modelo →</p>
+                <a
+                  href="/modelos/Modelo_Turmas_Adicionais_RPC.xlsx"
+                  download
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  Baixar modelo de turmas adicionais
+                </a>
+              </div>
+              <ContratoArquivos
+                contratoId={contrato.id}
+                categoria="turmas_adicionais"
+                label="Anexar planilha de turmas adicionais"
+                accept=".xlsx,.xls,.csv"
+                singleFile
+                disabled={!canEdit("rpc")}
+              />
+            </div>
           </div>
 
           {/* Etapa 3 - Status RPC */}
