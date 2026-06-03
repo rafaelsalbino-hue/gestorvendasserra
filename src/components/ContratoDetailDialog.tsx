@@ -295,12 +295,21 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
       finalized_by: (user?.id ?? null) as any,
       finalized_by_nome: (currentUser?.nome ?? "") as any,
     } as any);
+    setTimeout(() => {
+      toast({
+        title: `Processo de ${form.cliente} finalizado`,
+        description: "Movido para o Arquivo com sucesso.",
+      });
+    }, 400);
   };
 
   const handleDelete = () => {
     deleteMutation.mutate(contrato.id, {
       onSuccess: () => {
-        toast({ title: "Contrato excluído!" });
+        toast({
+          title: `Processo de ${form.cliente} arquivado`,
+          description: "Disponível na seção Arquivo.",
+        });
         onOpenChange(false);
       },
       onError: (e) => toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
@@ -471,6 +480,26 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   disabled={!canEdit("rpc")}
                 />
               </div>
+            </div>
+            <div className="rounded-md border border-dashed bg-muted/30 p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-medium">Turma 2 ou mais? Baixe o modelo →</p>
+                <a
+                  href="/modelos/Modelo_Turmas_Adicionais_RPC.xlsx"
+                  download
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  Baixar modelo de turmas adicionais
+                </a>
+              </div>
+              <ContratoArquivos
+                contratoId={contrato.id}
+                categoria="turmas_adicionais"
+                label="Anexar planilha de turmas adicionais"
+                accept=".xlsx,.xls,.csv"
+                singleFile
+                disabled={!canEdit("rpc")}
+              />
             </div>
           </div>
 

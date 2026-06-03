@@ -1,18 +1,34 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
-import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCountUp } from "@/hooks/useCountUp";
+
+function greeting(name?: string) {
+  const h = new Date().getHours();
+  const part = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  const first = (name || "").split(" ")[0] || "";
+  return first ? `${part}, ${first}!` : `${part}!`;
+}
+
+function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+  const v = useCountUp(value);
+  return <div className={className}>{v.toLocaleString("pt-BR")}</div>;
+}
 
 const COLORS = ["#2563eb", "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316"];
 
@@ -36,6 +52,8 @@ const Dashboard = () => {
   useDocumentTitle("Dashboard");
   const { data: contratos = [], isLoading: loadC } = useContratos();
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
+  const { currentUser } = useCurrentUser();
+  const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
   const [filterPJ, setFilterPJ] = useState<string>("todos");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
@@ -100,9 +118,44 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral dos contratos — SESI/SENAI</p>
+        <div className="animate-fade-in">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            {greeting(currentUser?.nome)}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Você tem <span className="text-foreground font-medium">{emAndamento}</span> processo(s) em andamento
+            {contratosAtrasados.length > 0 && (
+              <> · <span className="text-orange-600 font-medium">{contratosAtrasados.length}</span> precisam de atenção</>
+            )}.
+          </p>
+        </div>
+
+        {/* Atalhos rápidos por perfil */}
+        <div className="flex flex-wrap gap-2 animate-fade-in">
+          {(isVendedor || isAdmin) && (
+            <Button asChild size="sm" variant="default"><Link to="/contratos"><Plus className="mr-1.5 h-3.5 w-3.5" />Nova visita</Link></Button>
+          )}
+          {isVendedor && (
+            <Button asChild size="sm" variant="outline"><Link to="/contratos"><ListChecks className="mr-1.5 h-3.5 w-3.5" />Minhas visitas abertas</Link></Button>
+          )}
+          {isBackoffice && (
+            <>
+              <Button asChild size="sm" variant="default"><Link to="/contratos"><ListChecks className="mr-1.5 h-3.5 w-3.5" />Fila de faturamento</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/contratos"><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Processos para finalizar</Link></Button>
+            </>
+          )}
+          {isCoordenador && (
+            <>
+              <Button asChild size="sm" variant="default"><Link to="/contratos">Visão geral</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/arquivo">Relatório do mês</Link></Button>
+            </>
+          )}
+          {isAdmin && (
+            <>
+              <Button asChild size="sm" variant="outline"><Link to="/responsaveis"><Users className="mr-1.5 h-3.5 w-3.5" />Gestão de usuários</Link></Button>
+              <Button asChild size="sm" variant="outline"><Link to="/contratos"><Upload className="mr-1.5 h-3.5 w-3.5" />Importar visitas</Link></Button>
+            </>
+          )}
         </div>
 
         {/* Filters */}
@@ -174,7 +227,7 @@ const Dashboard = () => {
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{filtered.length}</div>
+                  <AnimatedNumber value={filtered.length} className="text-2xl md:text-3xl font-bold" />
                   <p className="text-xs text-muted-foreground mt-1">SESI: {sesiCount} | SENAI: {senaiCount} | Saúde: {sesiSaudeCount}</p>
                 </CardContent>
               </Card>
@@ -184,7 +237,7 @@ const Dashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{emAndamento}</div>
+                  <AnimatedNumber value={emAndamento} className="text-2xl md:text-3xl font-bold" />
                   <p className="text-xs text-muted-foreground mt-1">Contratos ativos</p>
                 </CardContent>
               </Card>
@@ -204,19 +257,19 @@ const Dashboard = () => {
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl md:text-3xl font-bold">{taxaConclusao}%</div>
+                  <div className="text-2xl md:text-3xl font-bold"><AnimatedNumber value={taxaConclusao} className="inline" />%</div>
                   <p className="text-xs text-muted-foreground mt-1">{concluidos} concluído(s) · {responsaveis.length} resp.</p>
                 </CardContent>
               </Card>
             </div>
 
             {/* SLA Alert */}
-            {contratosAtrasados.length > 0 && (
-              <Card className="border-destructive/30">
+            {contratosAtrasados.length > 0 ? (
+              <Card className="border-2 border-orange-500/60 bg-orange-50/40 dark:bg-orange-950/20 animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    Contratos com Atenção ({contratosAtrasados.length})
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    Atenção necessária ({contratosAtrasados.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -235,6 +288,14 @@ const Dashboard = () => {
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border bg-emerald-50/40 dark:bg-emerald-950/20 animate-fade-in">
+                <CardContent className="py-4 flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium">Tudo em dia!</span>
+                  <span className="text-muted-foreground">Nenhum processo travado.</span>
                 </CardContent>
               </Card>
             )}

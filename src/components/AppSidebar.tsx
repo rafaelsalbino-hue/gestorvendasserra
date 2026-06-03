@@ -100,6 +100,24 @@ export function AppSidebar() {
               </div>
             )}
           </div>
+          {!isMobile && (
+            <div className={cn("mt-2 flex", isCollapsed ? "justify-center" : "justify-end")}>
+              <Tooltip delayDuration={120}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
+                    onClick={() => setCollapsed(!collapsed)}
+                    className="h-7 w-7 rounded-md text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                  >
+                    {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{isCollapsed ? "Expandir" : "Recolher"}</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent className={cn("px-2 gap-1", isCollapsed && "px-1.5")}>
@@ -178,21 +196,6 @@ export function AppSidebar() {
             )
           )}
 
-          {!isMobile && (
-            <Button
-              variant="ghost" size="sm"
-              aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-              onClick={() => setCollapsed(!collapsed)}
-              className={cn(
-                "text-sidebar-foreground/70 hover:text-sidebar-foreground",
-                isCollapsed ? "h-8 w-8 p-0 mx-auto" : "w-full justify-end h-7 text-xs",
-              )}
-            >
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : (
-                <><ChevronLeft className="mr-1 h-3.5 w-3.5" />Recolher</>
-              )}
-            </Button>
-          )}
         </SidebarFooter>
       </Sidebar>
     </TooltipProvider>
