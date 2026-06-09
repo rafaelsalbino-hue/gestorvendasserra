@@ -33,6 +33,23 @@ export function canDeleteContrato(r: RoleFlags) {
   return r.isAdmin;
 }
 
+/**
+ * Backoffice pode excluir/arquivar contratos até a etapa "Proposta/CRM".
+ * Admin/gestor pode excluir em qualquer etapa.
+ */
+export function canDeleteContratoAt(
+  r: RoleFlags,
+  contrato: ContratoLike & { etapa_atual?: string | null },
+) {
+  if (r.isAdmin) return true;
+  if (contrato.finalized_at) return false;
+  if (r.isBackoffice) {
+    const etapa = (contrato.etapa_atual ?? "").toString();
+    return etapa === "visita" || etapa === "proposta";
+  }
+  return false;
+}
+
 export function canFinalizarContrato(r: RoleFlags) {
   return r.isAdmin || r.isBackoffice || r.isCoordenador;
 }
