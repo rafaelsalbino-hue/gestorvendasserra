@@ -153,7 +153,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
           try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-              await supabase.from("contrato_comentarios").insert({
+              const { error: commentError } = await supabase.from("contrato_comentarios").insert({
                 contrato_id: novo.id,
                 texto: resumo,
                 autor_nome: "Sistema",
@@ -161,9 +161,12 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
                 is_system: true,
                 autor_id: user.id,
               } as any);
+              if (commentError) {
+                console.error("[novo-contrato] comentário automático falhou", commentError);
+              }
             }
           } catch (err) {
-            console.warn("Falha ao registrar comentário automático:", err);
+            console.error("Falha ao registrar comentário automático:", err);
           }
 
           resetForm();
