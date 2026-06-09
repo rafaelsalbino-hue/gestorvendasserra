@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export function useContratoComentarios(contratoId: string | undefined) {
   return useQuery({
@@ -23,13 +24,33 @@ export function useAddComentario() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (comment: { contrato_id: string; texto: string; autor_nome: string; autor_funcao: string; is_system?: boolean }) => {
+      if (!comment.contrato_id) throw new Error("ID do processo ausente.");
+      if (!comment.texto?.trim()) throw new Error("O comentário não pode ficar em branco.");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada. Faça login novamente.");
-      const payload = { ...comment, autor_id: user.id } as any;
+      const payload = {
+        contrato_id: comment.contrato_id,
+        texto: comment.texto.trim(),
+        autor_nome: comment.autor_nome || "Usuário",
+        autor_funcao: comment.autor_funcao || "",
+        is_system: comment.is_system ?? false,
+        autor_id: user.id,
+      } as any;
       const { data, error } = await supabase.from("contrato_comentarios").insert(payload).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error("[contrato_comentarios] insert failed", error, payload);
+        throw error;
+      }
       return data;
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ["contrato_comentarios", vars.contrato_id] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["contrato_comentarios", vars.contrato_id] });
+      if (!vars.is_system) toast.success("Comentário registrado com sucesso");
+    },
+    onError: (err: any) => {
+      toast.error("Não foi possível salvar o comentário", {
+        description: err?.message || "Tente novamente em instantes.",
+      });
+    },
   });
 }
