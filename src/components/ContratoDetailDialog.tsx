@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateContrato, useSoftDeleteContrato } from "@/hooks/useContratos";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { canFinalizarContrato } from "@/lib/permissions";
+import { canFinalizarContrato, canDeleteContratoAt } from "@/lib/permissions";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
@@ -706,6 +706,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-between gap-2 pt-2 sticky bottom-0 bg-background pb-1 -mx-1 px-1">
+          {canDeleteContratoAt(role, contrato as any) && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="w-full sm:w-auto">
@@ -728,6 +729,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-2 sm:flex-1 sm:justify-end">
             <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
