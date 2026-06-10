@@ -188,6 +188,7 @@ export type Database = {
           crm: string
           dados_estudantes: string
           dados_proposta: string
+          data_entrada_etapa_proposta: string | null
           data_visita: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -214,6 +215,8 @@ export type Database = {
           status_proposta_crm: string
           status_rpc: string
           subdivisao: string | null
+          ultima_movimentacao_at: string
+          ultima_movimentacao_por: string
           updated_at: string
           valor: number
         }
@@ -227,6 +230,7 @@ export type Database = {
           crm?: string
           dados_estudantes?: string
           dados_proposta?: string
+          data_entrada_etapa_proposta?: string | null
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -253,6 +257,8 @@ export type Database = {
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null
+          ultima_movimentacao_at?: string
+          ultima_movimentacao_por?: string
           updated_at?: string
           valor?: number
         }
@@ -266,6 +272,7 @@ export type Database = {
           crm?: string
           dados_estudantes?: string
           dados_proposta?: string
+          data_entrada_etapa_proposta?: string | null
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -292,6 +299,8 @@ export type Database = {
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null
+          ultima_movimentacao_at?: string
+          ultima_movimentacao_por?: string
           updated_at?: string
           valor?: number
         }

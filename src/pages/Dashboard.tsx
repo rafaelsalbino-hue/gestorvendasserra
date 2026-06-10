@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload } from "lucide-react";
+import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload, ArrowRight, AlarmClock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
-import { SlaIndicator } from "@/components/SlaIndicator";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCountUp } from "@/hooks/useCountUp";
+import { getDiasParado, getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit } from "@/lib/sla";
 
 function greeting(name?: string) {
   const h = new Date().getHours();
@@ -31,13 +31,6 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
 }
 
 const COLORS = ["#2563eb", "#f59e0b", "#ef4444", "#ec4899", "#10b981", "#f97316"];
-
-// Helpers
-function getDaysInStage(etapaUpdatedAt: string): number {
-  const updated = new Date(etapaUpdatedAt);
-  const now = new Date();
-  return Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
-}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -85,6 +78,15 @@ const Dashboard = () => {
   const concluidos = filtered.filter((c) => c.etapa_atual === "faturamento").length;
   const taxaConclusao = filtered.length > 0 ? Math.round((concluidos / filtered.length) * 100) : 0;
 
+  // Mapa rápido para nome do agente PJ
+  const respMap = new Map(responsaveis.map((r) => [r.id, r.nome]));
+  const responsavelNome = (c: any): string => {
+    if (c.etapa_atual === "visita" || c.etapa_atual === "proposta") {
+      return (c.agente_pj_id && respMap.get(c.agente_pj_id)) || "Agente PJ";
+    }
+    return ETAPAS.find((e) => e.id === c.etapa_atual)?.responsavel || "—";
+  };
+
   const etapaChartData = ETAPAS.map((e) => ({
     name: e.label,
     quantidade: filtered.filter((c) => c.etapa_atual === e.id).length,
@@ -103,12 +105,13 @@ const Dashboard = () => {
 
   const valorTotal = filtered.reduce((sum, c) => sum + c.valor, 0);
 
-  // SLA - contratos parados há mais de 5 dias
-  const contratosAtrasados = filtered
-    .filter((c) => c.etapa_atual !== "faturamento" && (c as any).etapa_updated_at)
-    .filter((c) => getDaysInStage((c as any).etapa_updated_at) > 5)
-    .sort((a, b) => getDaysInStage((b as any).etapa_updated_at) - getDaysInStage((a as any).etapa_updated_at))
-    .slice(0, 8);
+  // Em atenção (usa ultima_movimentacao_at; Proposta usa SLA por área)
+  const contratosEmAtencaoTodos = filtered
+    .filter((c) => isEmAtencao(c as any))
+    .sort((a, b) => getDiasParado(b as any) - getDiasParado(a as any));
+  const contratosAtrasados = contratosEmAtencaoTodos.slice(0, 5);
+
+  const propostasVencidas = filtered.filter((c) => isPropostaVencida(c as any));
 
   // Activity feed - recent changes (last updated contracts)
   const recentActivity = [...filtered]
@@ -124,8 +127,8 @@ const Dashboard = () => {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Você tem <span className="text-foreground font-medium">{emAndamento}</span> processo(s) em andamento
-            {contratosAtrasados.length > 0 && (
-              <> · <span className="text-orange-600 font-medium">{contratosAtrasados.length}</span> precisam de atenção</>
+            {contratosEmAtencaoTodos.length > 0 && (
+              <> · <span className="text-orange-600 font-medium">{contratosEmAtencaoTodos.length}</span> precisam de atenção</>
             )}.
           </p>
         </div>
@@ -220,7 +223,7 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Contratos</CardTitle>
@@ -261,6 +264,16 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-1">{concluidos} concluído(s) · {responsaveis.length} resp.</p>
                 </CardContent>
               </Card>
+              <Card className={propostasVencidas.length > 0 ? "border-red-300 dark:border-red-900/50" : undefined}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Propostas vencidas</CardTitle>
+                  <AlarmClock className={`h-4 w-4 ${propostasVencidas.length > 0 ? "text-red-600" : "text-muted-foreground"}`} />
+                </CardHeader>
+                <CardContent>
+                  <AnimatedNumber value={propostasVencidas.length} className={`text-2xl md:text-3xl font-bold ${propostasVencidas.length > 0 ? "text-red-600" : ""}`} />
+                  <p className="text-xs text-muted-foreground mt-1">Acima do prazo da área</p>
+                </CardContent>
+              </Card>
             </div>
 
             {/* SLA Alert */}
@@ -269,25 +282,59 @@ const Dashboard = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-orange-600" />
-                    Atenção necessária ({contratosAtrasados.length})
+                    Atenção necessária ({contratosEmAtencaoTodos.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {contratosAtrasados.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{c.cliente}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {ETAPAS.find((e) => e.id === c.etapa_atual)?.label} · {c.entidade}
-                          </p>
-                        </div>
-                        {(c as any).etapa_updated_at && (
-                          <SlaIndicator etapaUpdatedAt={(c as any).etapa_updated_at} />
-                        )}
-                      </div>
-                    ))}
+                    {contratosAtrasados.map((c) => {
+                      const dias = getDiasParado(c as any);
+                      const etapaLabel = ETAPAS.find((e) => e.id === c.etapa_atual)?.label;
+                      const isProposta = c.etapa_atual === "proposta";
+                      const diasProp = isProposta ? getDiasNaProposta(c as any) : 0;
+                      const limitProp = isProposta ? getPropostaSlaLimit(c as any) : 0;
+                      return (
+                        <Link
+                          key={c.id}
+                          to={`/contratos?entidade=${encodeURIComponent(c.entidade)}&highlight=${c.id}`}
+                          className="group flex items-center justify-between rounded-md border bg-card p-3 text-sm hover:border-primary hover:shadow-md transition-all"
+                        >
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="font-medium truncate group-hover:text-primary">{c.cliente}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground/70">{c.entidade}</span>
+                              <span>·</span>
+                              <span>{etapaLabel}</span>
+                              <span>·</span>
+                              <span className="truncate">{responsavelNome(c as any)}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/40 dark:text-orange-200 text-[10px] gap-1">
+                                <Clock className="h-3 w-3" />Parado há {dias} dia{dias === 1 ? "" : "s"}
+                              </Badge>
+                              {isProposta && diasProp > limitProp && (
+                                <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200 text-[10px]">
+                                  Prazo excedido ({diasProp}/{limitProp}d)
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <span className="ml-3 hidden sm:inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            Abrir <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
+                  {contratosEmAtencaoTodos.length > contratosAtrasados.length && (
+                    <div className="mt-3 text-right">
+                      <Button asChild variant="link" size="sm" className="text-orange-700 dark:text-orange-300">
+                        <Link to="/contratos?atencao=1">
+                          Ver todos os {contratosEmAtencaoTodos.length} processos em atenção <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
