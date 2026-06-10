@@ -100,7 +100,7 @@ export const STATUS_OPTIONS = {
   ],
 } as const;
 
-export const ALLOWED_DOMAINS = ["sc.senai.br", "fiesc.com.br", "sesisc.org.br"];
+export const ALLOWED_DOMAINS = ["sc.senai.br", "edu.sc.senai.br", "fiesc.com.br", "sesisc.org.br"];
 
 // Subdivisões disponíveis apenas para SESI Saúde
 export type SubdivisaoSaude = "Promoção de Saúde" | "Saúde Assistencial" | "SST" | "NRs";
