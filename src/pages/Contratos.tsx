@@ -23,6 +23,7 @@ import { ENTIDADE_CLASS, entidadeShort } from "@/lib/entidade";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
+import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit } from "@/lib/sla";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -74,12 +75,14 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
   const etapaIdx = ETAPA_ORDER.indexOf(contrato.etapa_atual as any);
   const progressPct = etapaIdx >= 0 ? Math.round(((etapaIdx + 1) / ETAPA_ORDER.length) * 100) : 0;
   const updateMutation = useUpdateContrato();
+  const ultimaMov = getUltimaMovimentacaoAt(contrato as any);
+  const propostaVencida = isPropostaVencida(contrato as any);
 
   return (
     <div
       ref={setNodeRef}
       style={{ ...style }}
-      className="relative rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all overflow-hidden"
+      className={`relative rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all overflow-hidden ${propostaVencida ? "border-red-500 ring-1 ring-red-500/40 animate-pulse" : ""}`}
     >
       <div style={{ padding: "8px 10px" }} className="space-y-1.5">
         <div className="flex items-center gap-1">
@@ -148,15 +151,25 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
             ) : (
               <span className="text-muted-foreground italic" style={{ fontSize: 10 }}>Valor não informado</span>
             )}
-            {(contrato as any).etapa_updated_at && (
+            {ultimaMov && (
               <span className="text-muted-foreground whitespace-nowrap" style={{ fontSize: 10 }}>
-                {formatDistanceToNow(new Date((contrato as any).etapa_updated_at), { addSuffix: true, locale: ptBR })}
+                {formatDistanceToNow(new Date(ultimaMov), { addSuffix: true, locale: ptBR })}
               </span>
             )}
           </div>
 
-          {(contrato as any).etapa_updated_at && (
-            <SlaIndicator etapaUpdatedAt={(contrato as any).etapa_updated_at} compact />
+          {ultimaMov && (
+            <SlaIndicator
+              etapaUpdatedAt={ultimaMov}
+              compact
+              limit={contrato.etapa_atual === "proposta" ? getPropostaSlaLimit(contrato as any) : 7}
+              tooltipExtra={(contrato as any).ultima_movimentacao_por || undefined}
+            />
+          )}
+          {propostaVencida && (
+            <span className="inline-block rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 px-1.5 py-0.5 font-semibold" style={{ fontSize: 10 }}>
+              ⚠ Prazo excedido ({getDiasNaProposta(contrato as any)}/{getPropostaSlaLimit(contrato as any)}d)
+            </span>
           )}
         </div>
       </div>
@@ -188,6 +201,7 @@ const Contratos = () => {
   const [filterValorMax, setFilterValorMax] = useState("");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
   const [filterStatusCrm, setFilterStatusCrm] = useState<string>("todos");
+  const [onlyAtencao, setOnlyAtencao] = useState(false);
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
@@ -199,6 +213,13 @@ const Contratos = () => {
       setEntidade(ent);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Ativa filtro "somente em atenção" quando vier ?atencao=1
+  useEffect(() => {
+    if (searchParams.get("atencao") === "1") {
+      setOnlyAtencao(true);
+    }
   }, [searchParams]);
 
   // Abre o contrato quando vier ?highlight=ID
@@ -226,6 +247,7 @@ const Contratos = () => {
     if (filterValorMin && c.valor < parseFloat(filterValorMin)) return false;
     if (filterValorMax && c.valor > parseFloat(filterValorMax)) return false;
     if (filterSubdivisao !== "todas" && (c as any).subdivisao !== filterSubdivisao) return false;
+    if (onlyAtencao && !isEmAtencao(c as any)) return false;
     return true;
   });
 
@@ -263,8 +285,9 @@ const Contratos = () => {
   if (filterValorMin) activeFilters.push({ key: "min", label: `≥ R$ ${filterValorMin}`, clear: () => setFilterValorMin("") });
   if (filterValorMax) activeFilters.push({ key: "max", label: `≤ R$ ${filterValorMax}`, clear: () => setFilterValorMax("") });
   if (filterSubdivisao !== "todas") activeFilters.push({ key: "sub", label: `Área: ${filterSubdivisao}`, clear: () => setFilterSubdivisao("todas") });
+  if (onlyAtencao) activeFilters.push({ key: "atencao", label: "⚠ Somente em atenção", clear: () => setOnlyAtencao(false) });
   const clearAllFilters = () => {
-    setSearch(""); setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas");
+    setSearch(""); setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); setOnlyAtencao(false);
   };
 
   const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
@@ -316,6 +339,15 @@ const Contratos = () => {
               </div>
               <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="w-full sm:w-auto">
                 <Filter className="mr-2 h-4 w-4" />{showFilters ? "Ocultar Filtros" : "Filtros"}
+              </Button>
+              <Button
+                variant={onlyAtencao ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOnlyAtencao((v) => !v)}
+                className={`w-full sm:w-auto ${onlyAtencao ? "bg-orange-600 hover:bg-orange-700" : ""}`}
+                title="Mostrar apenas processos com prazo excedido ou parados acima do limite"
+              >
+                ⚠ Somente em atenção
               </Button>
             </div>
 
