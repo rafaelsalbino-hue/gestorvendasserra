@@ -29,10 +29,9 @@ export function FaturamentosParciais({ contratoId, valorTotal, disabled = false 
   const { data: lista = [], isLoading } = useFaturamentosParciais(contratoId);
   const addMut = useAddFaturamentoParcial();
   const delMut = useDeleteFaturamentoParcial();
-  const { profile } = useCurrentUser();
-  const { role } = useUserRole();
-
-  const podeExcluir = role === "admin" || role === "gestor" || role === "coordenador";
+  const { currentUser } = useCurrentUser();
+  const { isAdmin, isCoordenador } = useUserRole();
+  const podeExcluir = isAdmin || isCoordenador;
 
   const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -55,7 +54,7 @@ export function FaturamentosParciais({ contratoId, valorTotal, disabled = false 
       descricao,
       data_faturamento: data,
       numero_nota: numeroNota,
-      criado_por_nome: profile?.nome || profile?.email || "Usuário",
+      criado_por_nome: currentUser?.nome || currentUser?.email || "Usuário",
     });
     setValor("");
     setDescricao("");
