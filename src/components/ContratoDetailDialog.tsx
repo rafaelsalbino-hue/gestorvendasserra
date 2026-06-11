@@ -578,7 +578,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 </div>
                 <Switch
                   checked={!!(form as any).contrato_especial}
-                  onCheckedChange={(v) => set("contrato_especial" as any, v)}
+                  onCheckedChange={(v) => setForm((prev) => ({ ...prev, contrato_especial: v } as any))}
                   disabled={!canEdit("faturamento")}
                 />
               </div>
@@ -592,7 +592,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                       inputMode="numeric"
                       placeholder="0,00"
                       value={(form as any).valor_total_contrato != null ? formatBRL(Number((form as any).valor_total_contrato)) : ""}
-                      onChange={(e) => set("valor_total_contrato" as any, parseBRL(formatBRLInput(e.target.value)))}
+                      onChange={(e) => setForm((prev) => ({ ...prev, valor_total_contrato: parseBRL(formatBRLInput(e.target.value)) } as any))}
                       disabled={!canEdit("faturamento")}
                     />
                     <p className="text-[11px] text-muted-foreground">
