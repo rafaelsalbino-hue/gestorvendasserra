@@ -184,6 +184,7 @@ export type Database = {
           cadastro_estudantes: string
           cliente: string
           cnpj: string
+          contrato_especial: boolean
           created_at: string
           crm: string
           dados_estudantes: string
@@ -219,6 +220,7 @@ export type Database = {
           ultima_movimentacao_por: string
           updated_at: string
           valor: number
+          valor_total_contrato: number | null
         }
         Insert: {
           abertura_chamado?: string
@@ -226,6 +228,7 @@ export type Database = {
           cadastro_estudantes?: string
           cliente: string
           cnpj?: string
+          contrato_especial?: boolean
           created_at?: string
           crm?: string
           dados_estudantes?: string
@@ -261,6 +264,7 @@ export type Database = {
           ultima_movimentacao_por?: string
           updated_at?: string
           valor?: number
+          valor_total_contrato?: number | null
         }
         Update: {
           abertura_chamado?: string
@@ -268,6 +272,7 @@ export type Database = {
           cadastro_estudantes?: string
           cliente?: string
           cnpj?: string
+          contrato_especial?: boolean
           created_at?: string
           crm?: string
           dados_estudantes?: string
@@ -303,6 +308,7 @@ export type Database = {
           ultima_movimentacao_por?: string
           updated_at?: string
           valor?: number
+          valor_total_contrato?: number | null
         }
         Relationships: [
           {
@@ -348,6 +354,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "contratos_historico_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faturamentos_parciais: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          criado_por: string | null
+          criado_por_nome: string
+          data_faturamento: string
+          descricao: string
+          id: string
+          numero_nota: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string
+          data_faturamento?: string
+          descricao?: string
+          id?: string
+          numero_nota?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          criado_por?: string | null
+          criado_por_nome?: string
+          data_faturamento?: string
+          descricao?: string
+          id?: string
+          numero_nota?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faturamentos_parciais_contrato_id_fkey"
             columns: ["contrato_id"]
             isOneToOne: false
             referencedRelation: "contratos"
