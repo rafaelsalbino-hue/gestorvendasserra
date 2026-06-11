@@ -29,6 +29,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContratoAnexos } from "@/components/ContratoAnexos";
 import { ContratoArquivos } from "@/components/ContratoArquivos";
 import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
+import { Switch } from "@/components/ui/switch";
+import { FaturamentosParciais } from "@/components/FaturamentosParciais";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
@@ -566,6 +568,46 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               singleFile
               disabled={!canEdit("faturamento")}
             />
+
+            {/* Contrato Especial — Faturamento Parcial */}
+            <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-medium">Contrato especial (faturamento parcial)</Label>
+                  <p className="text-xs text-muted-foreground">Permite registrar várias parcelas de faturamento ao longo da execução.</p>
+                </div>
+                <Switch
+                  checked={!!(form as any).contrato_especial}
+                  onCheckedChange={(v) => setForm((prev) => ({ ...prev, contrato_especial: v } as any))}
+                  disabled={!canEdit("faturamento")}
+                />
+              </div>
+
+              {(form as any).contrato_especial && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Valor total do contrato (R$)</Label>
+                    <Input
+                      className="h-9 text-sm"
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      value={(form as any).valor_total_contrato != null ? formatBRL(Number((form as any).valor_total_contrato)) : ""}
+                      onChange={(e) => setForm((prev) => ({ ...prev, valor_total_contrato: parseBRL(formatBRLInput(e.target.value)) } as any))}
+                      disabled={!canEdit("faturamento")}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Se vazio, o saldo será calculado pelo valor da proposta (R$ {formatBRL(Number(form.valor || 0))}).
+                    </p>
+                  </div>
+
+                  <FaturamentosParciais
+                    contratoId={contrato.id}
+                    valorTotal={Number((form as any).valor_total_contrato || form.valor || 0)}
+                    disabled={!canEdit("faturamento")}
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           {/* Comentários */}
