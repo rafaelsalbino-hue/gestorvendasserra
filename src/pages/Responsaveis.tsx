@@ -16,7 +16,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download } from "lucide-react";
+import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download, Smartphone } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,46 @@ type Responsavel = Tables<"responsaveis">;
 
 type FormErrors = { nome?: string; email?: string; funcao?: string };
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function maskWhatsapp(digits: string): string {
+  const d = digits.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+function WhatsappField({
+  value, onChange, id,
+}: { value: string; onChange: (digits: string) => void; id?: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Label htmlFor={id} className="flex items-center gap-1">
+          <Smartphone className="h-3.5 w-3.5 text-[#003DA5]" />
+          WhatsApp para notificações
+        </Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs text-muted-foreground cursor-help">(opcional)</span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              Este número receberá mensagens automáticas quando um processo avançar para sua etapa de responsabilidade.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <Input
+        id={id}
+        inputMode="tel"
+        placeholder="(27) 99999-0001"
+        value={maskWhatsapp(value)}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 11))}
+      />
+    </div>
+  );
+}
 
 function validateResponsavel(nome: string, email: string, funcao: string): FormErrors {
   const errors: FormErrors = {};
@@ -63,11 +104,13 @@ const Responsaveis = () => {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [funcao, setFuncao] = useState<FuncaoResponsavel | "">("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [filterFuncao, setFilterFuncao] = useState<string>("todas");
 
   const [editNome, setEditNome] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editFuncao, setEditFuncao] = useState<FuncaoResponsavel | "">("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [editErrors, setEditErrors] = useState<FormErrors>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -82,10 +125,10 @@ const Responsaveis = () => {
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     addMutation.mutate(
-      { nome: nome.trim(), email: email.trim(), funcao: funcao as FuncaoResponsavel },
+      { nome: nome.trim(), email: email.trim(), funcao: funcao as FuncaoResponsavel, whatsapp: whatsapp || null } as any,
       {
         onSuccess: () => {
-          setNome(""); setEmail(""); setFuncao(""); setErrors({});
+          setNome(""); setEmail(""); setFuncao(""); setWhatsapp(""); setErrors({});
           setDialogOpen(false);
           toast({ title: "Responsável cadastrado com sucesso!" });
         },
@@ -99,6 +142,7 @@ const Responsaveis = () => {
     setEditNome(resp.nome);
     setEditEmail(resp.email);
     setEditFuncao(resp.funcao as FuncaoResponsavel);
+    setEditWhatsapp(((resp as any).whatsapp as string) ?? "");
     setEditErrors({});
     setEditDialogOpen(true);
   };
@@ -109,7 +153,7 @@ const Responsaveis = () => {
     setEditErrors(v);
     if (Object.keys(v).length > 0) return;
     updateMutation.mutate(
-      { id: editingResp.id, nome: editNome.trim(), email: editEmail.trim(), funcao: editFuncao as FuncaoResponsavel },
+      { id: editingResp.id, nome: editNome.trim(), email: editEmail.trim(), funcao: editFuncao as FuncaoResponsavel, whatsapp: editWhatsapp || null } as any,
       {
         onSuccess: () => {
           setEditDialogOpen(false);
@@ -202,6 +246,7 @@ const Responsaveis = () => {
                   </Select>
                   {errors.funcao && <p className="text-xs text-destructive">{errors.funcao}</p>}
                 </div>
+                <WhatsappField id="wa-novo" value={whatsapp} onChange={setWhatsapp} />
               </div>
               <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
@@ -340,6 +385,7 @@ const Responsaveis = () => {
                 </Select>
                 {editErrors.funcao && <p className="text-xs text-destructive">{editErrors.funcao}</p>}
               </div>
+              <WhatsappField id="wa-edit" value={editWhatsapp} onChange={setEditWhatsapp} />
             </div>
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>

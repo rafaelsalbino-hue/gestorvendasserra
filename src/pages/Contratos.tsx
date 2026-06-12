@@ -24,6 +24,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit } from "@/lib/sla";
+import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -269,7 +270,11 @@ const Contratos = () => {
     updateMutation.mutate(
       { id: contratoId, etapa_atual: newEtapa as any },
       {
-        onSuccess: () => toast({ title: `Contrato movido para ${ETAPAS.find((e) => e.id === newEtapa)?.label}` }),
+        onSuccess: () => {
+          toast({ title: `Contrato movido para ${ETAPAS.find((e) => e.id === newEtapa)?.label}` });
+          // WhatsApp (fire-and-forget)
+          notifyEtapaWhatsapp({ contratoId, novaEtapa: newEtapa, etapaAnterior: contrato.etapa_atual });
+        },
         onError: (e) => toast({ title: "Erro ao mover", description: e.message, variant: "destructive" }),
       }
     );
