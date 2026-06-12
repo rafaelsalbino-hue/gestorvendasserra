@@ -31,6 +31,8 @@ import { ContratoArquivos } from "@/components/ContratoArquivos";
 import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
 import { Switch } from "@/components/ui/switch";
 import { FaturamentosParciais } from "@/components/FaturamentosParciais";
+import { NotificacoesWhatsapp } from "@/components/NotificacoesWhatsapp";
+import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
@@ -264,6 +266,13 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 },
               })
               .catch(() => {});
+
+            // WhatsApp (Z-API) — fire-and-forget, nunca bloqueia o fluxo
+            notifyEtapaWhatsapp({
+              contratoId: contrato.id,
+              novaEtapa: finalForm.etapa_atual as string,
+              etapaAnterior: contrato.etapa_atual,
+            });
           }
         },
         onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
