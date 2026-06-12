@@ -621,6 +621,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
           {/* Comentários */}
           <div className="space-y-3">
+            {/* Histórico de notificações WhatsApp (visível para admin/gestor/coord/backoffice) */}
+            <NotificacoesWhatsapp contratoId={contrato.id} />
             <Button variant="outline" size="sm" onClick={() => setShowComments(!showComments)}>
               <MessageSquare className="mr-2 h-4 w-4" />
               {showComments ? "Ocultar Comentários" : "Comentários"}
