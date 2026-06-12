@@ -441,6 +441,50 @@ export type Database = {
         }
         Relationships: []
       }
+      notificacoes_whatsapp: {
+        Row: {
+          contrato_id: string | null
+          created_at: string
+          destinatario_nome: string | null
+          erro: string | null
+          etapa_destino: string | null
+          id: string
+          mensagem: string | null
+          numero_destinatario: string | null
+          status: string | null
+        }
+        Insert: {
+          contrato_id?: string | null
+          created_at?: string
+          destinatario_nome?: string | null
+          erro?: string | null
+          etapa_destino?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_destinatario?: string | null
+          status?: string | null
+        }
+        Update: {
+          contrato_id?: string | null
+          created_at?: string
+          destinatario_nome?: string | null
+          erro?: string | null
+          etapa_destino?: string | null
+          id?: string
+          mensagem?: string | null
+          numero_destinatario?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_whatsapp_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -486,6 +530,7 @@ export type Database = {
           nome: string
           updated_at: string
           user_id: string | null
+          whatsapp: string | null
         }
         Insert: {
           ativo?: boolean
@@ -496,6 +541,7 @@ export type Database = {
           nome: string
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Update: {
           ativo?: boolean
@@ -506,6 +552,7 @@ export type Database = {
           nome?: string
           updated_at?: string
           user_id?: string | null
+          whatsapp?: string | null
         }
         Relationships: []
       }
