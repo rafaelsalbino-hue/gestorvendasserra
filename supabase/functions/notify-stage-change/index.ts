@@ -19,6 +19,7 @@ function escapeHtml(input: unknown): string {
 // Map each etapa to the responsible function(s) that should be notified
 const ETAPA_RESPONSAVEIS: Record<string, string[]> = {
   proposta: ['Agente de Mercado PJ', 'Supervisor SESI', 'Supervisor SENAI'],
+  supervisor: ['Supervisor SESI', 'Supervisor SENAI', 'Backoffice Comercial'],
   rpc: ['Backoffice Comercial'],
   execucao: ['Backoffice Comercial'],
   matricula: ['Secretaria'],
@@ -28,6 +29,7 @@ const ETAPA_RESPONSAVEIS: Record<string, string[]> = {
 
 const ETAPA_LABELS: Record<string, string> = {
   proposta: 'Proposta / CRM',
+  supervisor: 'Supervisor',
   rpc: 'RPC / Execução',
   execucao: 'Status RPC',
   matricula: 'Matrícula / Dados',
