@@ -444,10 +444,133 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           {/* Anexos da Proposta */}
           <ContratoAnexos contratoId={contrato.id} />
 
-          {/* Etapa 2 - RPC */}
+          {/* Etapa Supervisor */}
+          <div className="space-y-3 rounded-md border-l-4 border-[#003DA5] bg-[#003DA5]/5 dark:bg-[#003DA5]/10 p-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#003DA5] uppercase tracking-wider">2. Supervisor</h3>
+              <SectionLock locked={!canEdit("supervisor")} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Carga Horária Total do Curso</Label>
+                <Input className="h-9 text-sm" value={(form as any).sup_carga_horaria || ""} onChange={(e) => set("sup_carga_horaria" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nº de Participantes</Label>
+                <Input type="number" min={0} className="h-9 text-sm" value={(form as any).sup_num_participantes ?? ""} onChange={(e) => set("sup_num_participantes" as any, e.target.value === "" ? (null as any) : Number(e.target.value))} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data de Início</Label>
+                <Input type="date" className="h-9 text-sm" value={(form as any).sup_data_inicio || ""} onChange={(e) => set("sup_data_inicio" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data de Término</Label>
+                <Input type="date" className="h-9 text-sm" value={(form as any).sup_data_termino || ""} onChange={(e) => set("sup_data_termino" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Dias da Semana e Horários das Aulas</Label>
+                <Textarea className="text-sm min-h-[60px]" value={(form as any).sup_dias_horarios || ""} onChange={(e) => set("sup_dias_horarios" as any, e.target.value)} disabled={!canEdit("supervisor")} placeholder="Ex.: Segunda e Quarta, 19h–22h" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Conteúdo Programático (Conforme produto cadastrado no SGN) e Carga horária de cada U.C.</Label>
+                <Textarea className="text-sm min-h-[120px]" value={(form as any).sup_conteudo_programatico || ""} onChange={(e) => set("sup_conteudo_programatico" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2 flex flex-col gap-2">
+                <label className="flex items-start gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-[#003DA5]"
+                    checked={!!(form as any).sup_avaliacao_frequencia_nota}
+                    onChange={(e) => setForm((p) => ({ ...p, sup_avaliacao_frequencia_nota: e.target.checked } as any))}
+                    disabled={!canEdit("supervisor")}
+                  />
+                  <span>Processo de avaliação: min 75% freq. + Nota 7,0</span>
+                </label>
+                <label className="flex items-start gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-[#003DA5]"
+                    checked={!!(form as any).sup_avaliacao_frequencia}
+                    onChange={(e) => setForm((p) => ({ ...p, sup_avaliacao_frequencia: e.target.checked } as any))}
+                    disabled={!canEdit("supervisor")}
+                  />
+                  <span>Processo de avaliação: min 75% freq.</span>
+                </label>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">CR/PJ</Label>
+                <Input className="h-9 text-sm" value={(form as any).sup_cr_pj || ""} onChange={(e) => set("sup_cr_pj" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Sugestão de Professor</Label>
+                <Input className="h-9 text-sm" value={(form as any).sup_sugestao_professor || ""} onChange={(e) => set("sup_sugestao_professor" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs">Local Execução</Label>
+                <Input className="h-9 text-sm" value={(form as any).sup_local_execucao || ""} onChange={(e) => set("sup_local_execucao" as any, e.target.value)} disabled={!canEdit("supervisor")} />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-[#003DA5]/20">
+              <label className="flex items-center gap-2 text-xs font-semibold text-[#003DA5]">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#003DA5]"
+                  checked={!!(form as any).sup_finalizado}
+                  onChange={async (e) => {
+                    const finalizado = e.target.checked;
+                    if (finalizado) {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      setForm((p) => ({
+                        ...p,
+                        sup_finalizado: true,
+                        sup_finalizado_at: new Date().toISOString(),
+                        sup_finalizado_by: user?.id ?? null,
+                        etapa_atual: "rpc",
+                      } as any));
+                      toast({ title: "Etapa Supervisor finalizada", description: "Avançando para RPC / Execução ao salvar." });
+                    } else {
+                      setForm((p) => ({ ...p, sup_finalizado: false, sup_finalizado_at: null, sup_finalizado_by: null } as any));
+                    }
+                  }}
+                  disabled={!canEdit("supervisor")}
+                />
+                FINALIZADO (avança para RPC/Execução)
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!canEdit("supervisor")}
+                  onClick={() => {
+                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
+                    toast({ title: "Notificação enviada ao Backoffice" });
+                  }}
+                >
+                  Notificar Backoffice
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-[#003DA5] hover:bg-[#003095]"
+                  disabled={!canEdit("supervisor")}
+                  onClick={() => {
+                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
+                    toast({ title: "Notificação enviada via WhatsApp" });
+                  }}
+                >
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                  ENVIAR NOTIFICAÇÃO
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Etapa 3 - RPC */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">2. RPC / Execução</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. RPC / Execução</h3>
               <SectionLock locked={!canEdit("rpc")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
