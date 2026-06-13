@@ -45,6 +45,7 @@ export const FUNCOES_STATUS_AMPLO: FuncaoResponsavel[] = [
 export type EtapaContrato =
   | "visita"
   | "proposta"
+  | "supervisor"
   | "rpc"
   | "execucao"
   | "matricula"
@@ -61,6 +62,7 @@ export interface EtapaInfo {
 export const ETAPAS: EtapaInfo[] = [
   { id: "visita", label: "Visitas", responsavel: "Agente PJ", colorClass: "step-pj" },
   { id: "proposta", label: "Proposta / CRM", responsavel: "PJ / Supervisor", colorClass: "step-pj" },
+  { id: "supervisor", label: "Supervisor", responsavel: "Supervisor SESI/SENAI", colorClass: "step-pj" },
   { id: "rpc", label: "RPC / Execução", responsavel: "Backoffice Comercial", colorClass: "step-backoffice" },
   { id: "execucao", label: "Status RPC", responsavel: "Backoffice Comercial", colorClass: "step-backoffice" },
   { id: "matricula", label: "Matrícula / Dados", responsavel: "Secretaria", colorClass: "step-secretaria" },
