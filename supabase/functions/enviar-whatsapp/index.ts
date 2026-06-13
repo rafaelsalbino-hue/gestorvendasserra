@@ -12,6 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const ETAPA_LABELS: Record<string, string> = {
   proposta: "Proposta / CRM",
+  supervisor: "Supervisor",
   rpc: "RPC / Execução",
   execucao: "Status RPC",
   matricula: "Matrícula / Dados",
@@ -23,6 +24,7 @@ const ETAPA_LABELS: Record<string, string> = {
 // Funções responsáveis por etapa (mesma lógica do notify-stage-change)
 const ETAPA_FUNCOES: Record<string, string[]> = {
   proposta: ["Agente de Mercado PJ", "Supervisor SESI", "Supervisor SENAI"],
+  supervisor: ["Supervisor SESI", "Supervisor SENAI", "Backoffice Comercial"],
   rpc: ["Backoffice Comercial"],
   execucao: ["Backoffice Comercial"],
   matricula: ["Secretaria"],
