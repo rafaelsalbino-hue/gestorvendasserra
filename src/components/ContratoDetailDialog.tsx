@@ -51,14 +51,14 @@ const SGN_URL = "https://sgn.sesisenai.org.br/login.html";
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   "Agente de Mercado PJ": ["dados_basicos", "proposta", "rpc", "execucao"],
-  "Supervisor SESI": ["dados_basicos", "proposta"],
-  "Supervisor SENAI": ["dados_basicos", "proposta"],
-  "Backoffice Comercial": ["dados_basicos", "proposta", "rpc", "execucao", "matricula"],
+  "Supervisor SESI": ["dados_basicos", "proposta", "supervisor"],
+  "Supervisor SENAI": ["dados_basicos", "proposta", "supervisor"],
+  "Backoffice Comercial": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula"],
   "Secretaria": ["matricula"],
   "PCP": ["ensalamento"],
   "Analista Financeiro": ["faturamento"],
   "Interlocutora de Faturamento": ["faturamento"],
-  "Coordenador SESI/SENAI": ["dados_basicos", "proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  "Coordenador SESI/SENAI": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
 };
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
@@ -111,7 +111,7 @@ const FIELD_LABELS: Record<string, string> = {
   execucao_faturamento: "Execução Faturamento",
 };
 
-const ETAPA_ORDER: EtapaContrato[] = ["visita", "proposta", "rpc", "execucao", "matricula", "ensalamento", "faturamento"];
+const ETAPA_ORDER: EtapaContrato[] = ["visita", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"];
 
 function getNextEtapa(current: EtapaContrato): EtapaContrato | null {
   const idx = ETAPA_ORDER.indexOf(current);
