@@ -216,6 +216,20 @@ export type Database = {
           status_proposta_crm: string
           status_rpc: string
           subdivisao: string | null
+          sup_avaliacao_frequencia: boolean | null
+          sup_avaliacao_frequencia_nota: boolean | null
+          sup_carga_horaria: string | null
+          sup_conteudo_programatico: string | null
+          sup_cr_pj: string | null
+          sup_data_inicio: string | null
+          sup_data_termino: string | null
+          sup_dias_horarios: string | null
+          sup_finalizado: boolean | null
+          sup_finalizado_at: string | null
+          sup_finalizado_by: string | null
+          sup_local_execucao: string | null
+          sup_num_participantes: number | null
+          sup_sugestao_professor: string | null
           ultima_movimentacao_at: string
           ultima_movimentacao_por: string
           updated_at: string
@@ -260,6 +274,20 @@ export type Database = {
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null
+          sup_avaliacao_frequencia?: boolean | null
+          sup_avaliacao_frequencia_nota?: boolean | null
+          sup_carga_horaria?: string | null
+          sup_conteudo_programatico?: string | null
+          sup_cr_pj?: string | null
+          sup_data_inicio?: string | null
+          sup_data_termino?: string | null
+          sup_dias_horarios?: string | null
+          sup_finalizado?: boolean | null
+          sup_finalizado_at?: string | null
+          sup_finalizado_by?: string | null
+          sup_local_execucao?: string | null
+          sup_num_participantes?: number | null
+          sup_sugestao_professor?: string | null
           ultima_movimentacao_at?: string
           ultima_movimentacao_por?: string
           updated_at?: string
@@ -304,6 +332,20 @@ export type Database = {
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null
+          sup_avaliacao_frequencia?: boolean | null
+          sup_avaliacao_frequencia_nota?: boolean | null
+          sup_carga_horaria?: string | null
+          sup_conteudo_programatico?: string | null
+          sup_cr_pj?: string | null
+          sup_data_inicio?: string | null
+          sup_data_termino?: string | null
+          sup_dias_horarios?: string | null
+          sup_finalizado?: boolean | null
+          sup_finalizado_at?: string | null
+          sup_finalizado_by?: string | null
+          sup_local_execucao?: string | null
+          sup_num_participantes?: number | null
+          sup_sugestao_professor?: string | null
           ultima_movimentacao_at?: string
           ultima_movimentacao_por?: string
           updated_at?: string
@@ -638,6 +680,7 @@ export type Database = {
       etapa_contrato:
         | "visita"
         | "proposta"
+        | "supervisor"
         | "rpc"
         | "execucao"
         | "matricula"
@@ -798,6 +841,7 @@ export const Constants = {
       etapa_contrato: [
         "visita",
         "proposta",
+        "supervisor",
         "rpc",
         "execucao",
         "matricula",
