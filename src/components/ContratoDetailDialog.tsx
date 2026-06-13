@@ -640,7 +640,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           {/* Etapa 3 - Status RPC */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. Status RPC</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">4. Status RPC</h3>
               <SectionLock locked={!canEdit("execucao")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -655,7 +655,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           {/* Etapa 4 - Matrícula */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">4. Matrícula / Dados</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">5. Matrícula / Dados</h3>
               <SectionLock locked={!canEdit("matricula")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -675,7 +675,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           {/* Etapa 5 - Ensalamento */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">5. Ensalamento</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">6. Ensalamento</h3>
               <SectionLock locked={!canEdit("ensalamento")} />
             </div>
             <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canStatus("ensalamento")} />
@@ -684,7 +684,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           {/* Etapa 6 - Faturamento */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">6. Faturamento</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">7. Faturamento</h3>
               <SectionLock locked={!canEdit("faturamento")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
