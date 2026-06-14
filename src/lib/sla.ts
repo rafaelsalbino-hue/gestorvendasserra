@@ -67,11 +67,39 @@ export function isPropostaProximaVencimento(c: Partial<Contrato> & Record<string
 }
 
 /**
+ * Limite de dias na etapa Supervisor, em dias corridos.
+ * SESI Saúde, SENAI e SESI Educação (Contraturno/ACE) = 4 dias.
+ * Demais = 7 dias.
+ */
+export function getSupervisorSlaLimit(c: Partial<Contrato> & Record<string, any>): number {
+  const ent = (c as any).entidade as string | undefined;
+  const sub = (c as any).subdivisao as string | undefined;
+  if (ent === "SESI Saúde") return 4;
+  if (ent === "SENAI") return 4;
+  if (ent === "SESI" && (sub === "Contraturno" || sub === "ACE")) return 4;
+  return 7;
+}
+
+/**
+ * Dias decorridos na etapa Supervisor (usa etapa_updated_at).
+ */
+export function getDiasNoSupervisor(c: Partial<Contrato> & Record<string, any>): number {
+  const ref = (c as any).etapa_updated_at ?? (c as any).updated_at ?? null;
+  return daysSince(ref);
+}
+
+export function isSupervisorVencida(c: Partial<Contrato> & Record<string, any>): boolean {
+  if ((c as any).etapa_atual !== "supervisor") return false;
+  return getDiasNoSupervisor(c) > getSupervisorSlaLimit(c);
+}
+
+/**
  * Genérico: contrato "em atenção" = parado acima do limite da etapa.
- * Para Proposta usa limite por área; demais etapas usam 5 dias.
+ * Para Proposta e Supervisor usa limite por área; demais etapas usam 5 dias.
  */
 export function isEmAtencao(c: Partial<Contrato> & Record<string, any>): boolean {
   if ((c as any).etapa_atual === "faturamento") return false;
   if ((c as any).etapa_atual === "proposta") return isPropostaVencida(c);
+  if ((c as any).etapa_atual === "supervisor") return isSupervisorVencida(c);
   return getDiasParado(c) > 5;
 }
