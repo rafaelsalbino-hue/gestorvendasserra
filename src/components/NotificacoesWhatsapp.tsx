@@ -7,10 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const ETAPA_LABELS: Record<string, string> = {
   proposta: "Proposta / CRM",
+  supervisor: "Supervisor",
   rpc: "RPC / Execução",
-  execucao: "Status RPC",
+  execucao: "RPC / Execução",
   matricula: "Matrícula / Dados",
-  ensalamento: "Ensalamento",
+  ensalamento: "PCP",
+  pcp: "PCP",
   faturamento: "Faturamento",
   finalizado: "Finalizado",
 };
@@ -42,8 +44,8 @@ function StatusBadge({ status }: { status: string | null }) {
 }
 
 export function NotificacoesWhatsapp({ contratoId }: { contratoId: string }) {
-  const { isAdmin, isCoordenador, isBackoffice, loading: loadingRoles } = useUserRole();
-  const canView = isAdmin || isCoordenador || isBackoffice;
+  const { isAdmin, isCoordenador, loading: loadingRoles } = useUserRole();
+  const canView = isAdmin || isCoordenador;
   const [open, setOpen] = useState(false);
   const { data, isLoading } = useNotificacoesWhatsapp(contratoId, canView && open);
 
