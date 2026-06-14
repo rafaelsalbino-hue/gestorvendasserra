@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload, ArrowRight, AlarmClock } from "lucide-react";
+import { FileText, TrendingUp, Clock, AlertTriangle, CheckCircle2, Plus, ListChecks, Users, Upload, ArrowRight, AlarmClock, Wallet } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
 import { useContratos } from "@/hooks/useContratos";
@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCountUp } from "@/hooks/useCountUp";
 import { getDiasParado, getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit } from "@/lib/sla";
+import { useSaldoEspeciais } from "@/hooks/useSaldoEspeciais";
 
 function greeting(name?: string) {
   const h = new Date().getHours();
@@ -45,6 +46,7 @@ const Dashboard = () => {
   useDocumentTitle("Dashboard");
   const { data: contratos = [], isLoading: loadC } = useContratos();
   const { data: responsaveis = [], isLoading: loadR } = useResponsaveis();
+  const { data: saldoEspeciais } = useSaldoEspeciais();
   const { currentUser } = useCurrentUser();
   const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
@@ -274,6 +276,20 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-1">Acima do prazo da área</p>
                 </CardContent>
               </Card>
+              {saldoEspeciais && saldoEspeciais.totalContratos > 0 && (
+                <Card className="border-emerald-300/60 dark:border-emerald-900/50">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Saldo em Contratos Especiais</CardTitle>
+                    <Wallet className="h-4 w-4 text-emerald-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-xl md:text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                      R$ {saldoEspeciais.totalSaldo.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{saldoEspeciais.totalContratos} contrato(s) especial(is)</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* SLA Alert */}

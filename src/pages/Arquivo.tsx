@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Archive, Search, RotateCcw, XCircle, Trash2, Download, FileText, Filter, X, CheckCircle2 } from "lucide-react";
 import { useContratosArquivados, useRestaurarContrato } from "@/hooks/useContratos";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
+import { canReabrirContrato } from "@/lib/permissions";
 import { ETAPAS, type Entidade } from "@/types/contracts";
 import { exportContratosToXlsx, exportContratosToPdf } from "@/lib/export";
 import { formatBRL } from "@/lib/currency";
@@ -17,6 +19,8 @@ import { formatBRL } from "@/lib/currency";
 export default function ArquivoPage() {
   useDocumentTitle("Arquivo");
   const { toast } = useToast();
+  const role = useUserRole();
+  const podeRestaurar = canReabrirContrato(role);
   const { data: itens = [], isLoading } = useContratosArquivados();
   const restoreMutation = useRestaurarContrato();
   const [busca, setBusca] = useState("");
@@ -263,16 +267,22 @@ export default function ArquivoPage() {
                       )}
                     </div>
                     <div className="pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => handleRestore(c.id, c.cliente)}
-                        disabled={restoreMutation.isPending}
-                      >
-                        <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                        Restaurar
-                      </Button>
+                      {podeRestaurar ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleRestore(c.id, c.cliente)}
+                          disabled={restoreMutation.isPending}
+                        >
+                          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                          Restaurar
+                        </Button>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground italic text-center">
+                          Apenas Admin ou Coordenador podem restaurar.
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
