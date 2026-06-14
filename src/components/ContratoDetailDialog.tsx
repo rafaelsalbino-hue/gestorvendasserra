@@ -315,12 +315,19 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   };
 
   const handleDelete = () => {
-    deleteMutation.mutate(contrato.id, {
+    const motivo = deleteMotivo.trim();
+    if (motivo.length < 3) {
+      toast({ title: "Informe o motivo da exclusão", variant: "destructive" });
+      return;
+    }
+    deleteMutation.mutate({ id: contrato.id, motivo }, {
       onSuccess: () => {
         toast({
           title: `Processo de ${form.cliente} arquivado`,
           description: "Disponível na seção Arquivo.",
         });
+        setDeleteMotivo("");
+        setDeleteOpen(false);
         onOpenChange(false);
       },
       onError: (e) => toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
