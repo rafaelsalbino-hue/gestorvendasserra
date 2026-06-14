@@ -14,23 +14,12 @@ const ETAPA_LABELS: Record<string, string> = {
   proposta: "Proposta / CRM",
   supervisor: "Supervisor",
   rpc: "RPC / Execução",
-  execucao: "Status RPC",
+  execucao: "RPC / Execução",
   matricula: "Matrícula / Dados",
-  ensalamento: "Ensalamento",
+  ensalamento: "PCP",
+  pcp: "PCP",
   faturamento: "Faturamento",
   finalizado: "Finalizado",
-};
-
-// Funções responsáveis por etapa (mesma lógica do notify-stage-change)
-const ETAPA_FUNCOES: Record<string, string[]> = {
-  proposta: ["Agente de Mercado PJ", "Supervisor SESI", "Supervisor SENAI"],
-  supervisor: ["Supervisor SESI", "Supervisor SENAI", "Backoffice Comercial"],
-  rpc: ["Backoffice Comercial"],
-  execucao: ["Backoffice Comercial"],
-  matricula: ["Secretaria"],
-  ensalamento: ["PCP"],
-  faturamento: ["Analista Financeiro", "Interlocutora de Faturamento"],
-  finalizado: ["Agente de Mercado PJ", "Backoffice Comercial"],
 };
 
 function onlyDigits(s: string | null | undefined): string {
@@ -45,6 +34,107 @@ function ensureDdi55(num: string): string {
 function brl(v: number | null | undefined): string {
   if (v === null || v === undefined) return "Não informado";
   return Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+type Dest = { nome: string; whatsapp: string | null; funcao: string };
+
+async function buildDestinatarios(
+  supabase: ReturnType<typeof createClient>,
+  etapa: string,
+  entidadeRaw: string,
+): Promise<Dest[]> {
+  const ent = (entidadeRaw || "").toLowerCase();
+  const isSaude = ent.includes("saúde") || ent.includes("saude");
+  const isSenai = ent.includes("senai");
+  // Default SESI (não-saúde) = SESI Educação / Expansão
+
+  const fetchByFuncao = async (funcoes: string[]): Promise<Dest[]> => {
+    if (funcoes.length === 0) return [];
+    const { data } = await supabase
+      .from("responsaveis")
+      .select("nome, whatsapp, funcao")
+      .eq("ativo", true)
+      .in("funcao", funcoes);
+    return (data ?? []) as Dest[];
+  };
+
+  const fetchByFuncaoLike = async (pattern: string): Promise<Dest[]> => {
+    const { data } = await supabase
+      .from("responsaveis")
+      .select("nome, whatsapp, funcao")
+      .eq("ativo", true)
+      .ilike("funcao", pattern);
+    return (data ?? []) as Dest[];
+  };
+
+  const fetchByFuncaoAndNome = async (funcoes: string[], nome: string): Promise<Dest[]> => {
+    const { data } = await supabase
+      .from("responsaveis")
+      .select("nome, whatsapp, funcao")
+      .eq("ativo", true)
+      .in("funcao", funcoes)
+      .ilike("nome", `%${nome}%`);
+    return (data ?? []) as Dest[];
+  };
+
+  const analistas = () => fetchByFuncao(["Analista Comercial"]);
+  const secretaria = () => fetchByFuncao(["Secretaria", "Secretaria Escolar"]);
+  const interlocutora = () => fetchByFuncao(["Interlocutora de Faturamento"]);
+  const coordComercial = () => fetchByFuncao(["Coordenador Comercial"]);
+
+  const backoffice = () => {
+    const nome = isSaude ? "Ticyane" : "Deborah";
+    return fetchByFuncaoAndNome(["Backoffice", "Backoffice Comercial"], nome);
+  };
+
+  const coordEntidade = () => {
+    const cargo = isSenai
+      ? "Coordenador SENAI"
+      : isSaude
+      ? "Coordenador SESI Saúde"
+      : "Coordenador SESI Expansão";
+    return fetchByFuncao([cargo]);
+  };
+
+  const supervisorEntidade = () => {
+    const prefixo = isSenai
+      ? "Supervisor SENAI%"
+      : isSaude
+      ? "Supervisor SESI Saúde%"
+      : "Supervisor SESI Educação%";
+    return fetchByFuncaoLike(prefixo);
+  };
+
+  const pcpEntidade = () => {
+    const cargo = isSenai ? "PCP SENAI" : "PCP SESI";
+    return fetchByFuncao([cargo, "PCP"]);
+  };
+
+  switch (etapa) {
+    case "proposta": // Visita concluída → Proposta/CRM
+      return [...(await backoffice()), ...(await analistas())];
+    case "supervisor": // Proposta/CRM concluída → Supervisor
+      return [...(await supervisorEntidade()), ...(await coordEntidade())];
+    case "rpc":
+    case "execucao": // Supervisor concluído → RPC/Execução
+      return [...(await backoffice()), ...(await analistas()), ...(await coordEntidade())];
+    case "matricula": // RPC/Execução concluído → Matrícula
+      return [...(await secretaria()), ...(await analistas()), ...(await interlocutora())];
+    case "ensalamento":
+    case "pcp": // Matrícula concluída → PCP
+      return [
+        ...(await pcpEntidade()),
+        ...(await supervisorEntidade()),
+        ...(await analistas()),
+        ...(await interlocutora()),
+      ];
+    case "faturamento": // PCP concluído → Faturamento
+      return [...(await analistas()), ...(await interlocutora())];
+    case "finalizado": // Faturamento concluído → Finalizado
+      return [...(await analistas()), ...(await coordComercial()), ...(await coordEntidade())];
+    default:
+      return [];
+  }
 }
 
 Deno.serve(async (req) => {
@@ -115,30 +205,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Destinatários (responsaveis com whatsapp)
-    let funcoes = ETAPA_FUNCOES[etapa_destino] ?? [];
-    const entidade = String(contrato.entidade ?? "");
-    if (entidade === "SENAI") funcoes = funcoes.filter((f) => f !== "Supervisor SESI");
-    if (entidade === "SESI" || entidade === "SESI Saúde") funcoes = funcoes.filter((f) => f !== "Supervisor SENAI");
+    // Destinatários por etapa+entidade (regras do fluxo Visita → Finalizado)
+    const brutos = await buildDestinatarios(supabase, etapa_destino, String(contrato.entidade ?? ""));
 
-    if (funcoes.length === 0) {
-      return new Response(JSON.stringify({ message: "Sem funções mapeadas para esta etapa" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: responsaveis, error: errResp } = await supabase
-      .from("responsaveis")
-      .select("nome, whatsapp, funcao, ativo")
-      .eq("ativo", true)
-      .in("funcao", funcoes);
-
-    if (errResp) throw new Error(`DB error: ${errResp.message}`);
-
-    const destinatarios = (responsaveis ?? [])
+    // Dedup por número + filtro de WhatsApp válido
+    const seen = new Set<string>();
+    const destinatarios = brutos
       .map((r) => ({ nome: r.nome ?? "Responsável", numero: onlyDigits(r.whatsapp) }))
-      .filter((r) => r.numero.length >= 10);
+      .filter((r) => {
+        if (r.numero.length < 10) return false;
+        if (seen.has(r.numero)) return false;
+        seen.add(r.numero);
+        return true;
+      });
 
     if (destinatarios.length === 0) {
       await supabase.from("notificacoes_whatsapp").insert({
