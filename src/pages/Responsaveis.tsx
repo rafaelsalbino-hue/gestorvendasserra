@@ -281,8 +281,8 @@ const Responsaveis = () => {
                     placeholder="Nome completo"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
-                    onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao) }))}
-                    aria-invalid={!!errors.nome}
+                  onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao, whatsapp, isSupGeneric, entidade, especialidade) }))}
+                  aria-invalid={!!errors.nome}
                     className={errors.nome ? "border-destructive" : ""}
                   />
                   {errors.nome && <p className="text-xs text-destructive">{errors.nome}</p>}
@@ -294,7 +294,7 @@ const Responsaveis = () => {
                     placeholder="email@empresa.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao) }))}
+                  onBlur={() => setErrors((p) => ({ ...p, ...validateResponsavel(nome, email, funcao, whatsapp, isSupGeneric, entidade, especialidade) }))}
                     aria-invalid={!!errors.email}
                     className={errors.email ? "border-destructive" : ""}
                   />
@@ -302,7 +302,21 @@ const Responsaveis = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Função</Label>
-                  <Select value={funcao} onValueChange={(v) => setFuncao(v as FuncaoResponsavel)}>
+                  <Select
+                    value={funcao}
+                    onValueChange={(v) => {
+                      setFuncao(v as FuncaoResponsavel);
+                      // Limpa entidade/especialidade quando o usuário escolhe diretamente um cargo
+                      const m = v.match(/^Supervisor (SENAI|SESI Saúde|SESI Educação) — (.+)$/);
+                      if (m) {
+                        setEntidade(m[1] as EntidadeAtuacao);
+                        setEspecialidade(m[2]);
+                      } else {
+                        setEntidade("");
+                        setEspecialidade("");
+                      }
+                    }}
+                  >
                     <SelectTrigger className={errors.funcao ? "border-destructive" : ""}><SelectValue placeholder="Selecione a função" /></SelectTrigger>
                     <SelectContent>
                       {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
@@ -310,7 +324,33 @@ const Responsaveis = () => {
                   </Select>
                   {errors.funcao && <p className="text-xs text-destructive">{errors.funcao}</p>}
                 </div>
-                <WhatsappField id="wa-novo" value={whatsapp} onChange={setWhatsapp} />
+                {isSupervisorRole(funcao) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-[#003DA5]/30 bg-[#003DA5]/5 p-3">
+                    <div className="space-y-2">
+                      <Label>Entidade de atuação *</Label>
+                      <Select value={entidade} onValueChange={(v) => { setEntidade(v as EntidadeAtuacao); setEspecialidade(""); }}>
+                        <SelectTrigger className={errors.entidade ? "border-destructive" : ""}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {ENTIDADES_ATUACAO.map((e) => (<SelectItem key={e} value={e}>{e}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                      {errors.entidade && <p className="text-xs text-destructive">{errors.entidade}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Especialidade *</Label>
+                      <Select value={especialidade} onValueChange={setEspecialidade} disabled={!entidade}>
+                        <SelectTrigger className={errors.especialidade ? "border-destructive" : ""}><SelectValue placeholder={entidade ? "Selecione" : "Escolha a entidade"} /></SelectTrigger>
+                        <SelectContent>
+                          {entidade && ESPECIALIDADES_POR_ENTIDADE[entidade].map((esp) => (
+                            <SelectItem key={esp} value={esp}>{esp}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.especialidade && <p className="text-xs text-destructive">{errors.especialidade}</p>}
+                    </div>
+                  </div>
+                )}
+                <WhatsappField id="wa-novo" value={whatsapp} onChange={setWhatsapp} required={isNotificavelRole(funcao)} error={errors.whatsapp} />
               </div>
               <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
@@ -421,7 +461,7 @@ const Responsaveis = () => {
                 <Input
                   value={editNome}
                   onChange={(e) => setEditNome(e.target.value)}
-                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao) }))}
+                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao, editWhatsapp, isEditSupGeneric, editEntidade, editEspecialidade) }))}
                   aria-invalid={!!editErrors.nome}
                   className={editErrors.nome ? "border-destructive" : ""}
                 />
@@ -433,7 +473,7 @@ const Responsaveis = () => {
                   type="email"
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao) }))}
+                  onBlur={() => setEditErrors((p) => ({ ...p, ...validateResponsavel(editNome, editEmail, editFuncao, editWhatsapp, isEditSupGeneric, editEntidade, editEspecialidade) }))}
                   aria-invalid={!!editErrors.email}
                   className={editErrors.email ? "border-destructive" : ""}
                 />
@@ -441,7 +481,15 @@ const Responsaveis = () => {
               </div>
               <div className="space-y-2">
                 <Label>Função</Label>
-                <Select value={editFuncao} onValueChange={(v) => setEditFuncao(v as FuncaoResponsavel)}>
+                <Select
+                  value={editFuncao}
+                  onValueChange={(v) => {
+                    setEditFuncao(v as FuncaoResponsavel);
+                    const m = v.match(/^Supervisor (SENAI|SESI Saúde|SESI Educação) — (.+)$/);
+                    if (m) { setEditEntidade(m[1] as EntidadeAtuacao); setEditEspecialidade(m[2]); }
+                    else { setEditEntidade(""); setEditEspecialidade(""); }
+                  }}
+                >
                   <SelectTrigger className={editErrors.funcao ? "border-destructive" : ""}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {FUNCOES_RESPONSAVEL.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
@@ -449,7 +497,33 @@ const Responsaveis = () => {
                 </Select>
                 {editErrors.funcao && <p className="text-xs text-destructive">{editErrors.funcao}</p>}
               </div>
-              <WhatsappField id="wa-edit" value={editWhatsapp} onChange={setEditWhatsapp} />
+              {isSupervisorRole(editFuncao) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-[#003DA5]/30 bg-[#003DA5]/5 p-3">
+                  <div className="space-y-2">
+                    <Label>Entidade de atuação *</Label>
+                    <Select value={editEntidade} onValueChange={(v) => { setEditEntidade(v as EntidadeAtuacao); setEditEspecialidade(""); }}>
+                      <SelectTrigger className={editErrors.entidade ? "border-destructive" : ""}><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {ENTIDADES_ATUACAO.map((e) => (<SelectItem key={e} value={e}>{e}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                    {editErrors.entidade && <p className="text-xs text-destructive">{editErrors.entidade}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Especialidade *</Label>
+                    <Select value={editEspecialidade} onValueChange={setEditEspecialidade} disabled={!editEntidade}>
+                      <SelectTrigger className={editErrors.especialidade ? "border-destructive" : ""}><SelectValue placeholder={editEntidade ? "Selecione" : "Escolha a entidade"} /></SelectTrigger>
+                      <SelectContent>
+                        {editEntidade && ESPECIALIDADES_POR_ENTIDADE[editEntidade].map((esp) => (
+                          <SelectItem key={esp} value={esp}>{esp}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {editErrors.especialidade && <p className="text-xs text-destructive">{editErrors.especialidade}</p>}
+                  </div>
+                </div>
+              )}
+              <WhatsappField id="wa-edit" value={editWhatsapp} onChange={setEditWhatsapp} required={isNotificavelRole(editFuncao)} error={editErrors.whatsapp} />
             </div>
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
