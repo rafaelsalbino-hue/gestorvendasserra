@@ -531,26 +531,35 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          entidade_atuacao: string | null
+          especialidade_atuacao: string | null
           id: string
           nome: string
           responsavel_id: string | null
           updated_at: string
+          whatsapp: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          entidade_atuacao?: string | null
+          especialidade_atuacao?: string | null
           id: string
           nome?: string
           responsavel_id?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          entidade_atuacao?: string | null
+          especialidade_atuacao?: string | null
           id?: string
           nome?: string
           responsavel_id?: string | null
           updated_at?: string
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -700,6 +709,23 @@ export type Database = {
         | "Gerente Regional"
         | "Interlocutora de Faturamento"
         | "Coordenador SESI/SENAI"
+        | "Supervisor SENAI — Lages Cursos Técnicos"
+        | "Supervisor SENAI — Lages Cursos de Qualificação"
+        | "Supervisor SENAI — Correia Pinto"
+        | "Supervisor SENAI — Otacílio Costa"
+        | "Supervisor SESI Saúde — SST"
+        | "Supervisor SESI Saúde — Promoção de Saúde"
+        | "Supervisor SESI Saúde — Saúde Assistencial"
+        | "Supervisor SESI Educação — ACE"
+        | "Supervisor SESI Educação — Maker"
+        | "Coordenador SENAI"
+        | "Coordenador SESI Saúde"
+        | "Coordenador SESI Expansão"
+        | "Coordenador Comercial"
+        | "Backoffice"
+        | "Secretaria Escolar"
+        | "PCP SESI"
+        | "PCP SENAI"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -862,6 +888,23 @@ export const Constants = {
         "Gerente Regional",
         "Interlocutora de Faturamento",
         "Coordenador SESI/SENAI",
+        "Supervisor SENAI — Lages Cursos Técnicos",
+        "Supervisor SENAI — Lages Cursos de Qualificação",
+        "Supervisor SENAI — Correia Pinto",
+        "Supervisor SENAI — Otacílio Costa",
+        "Supervisor SESI Saúde — SST",
+        "Supervisor SESI Saúde — Promoção de Saúde",
+        "Supervisor SESI Saúde — Saúde Assistencial",
+        "Supervisor SESI Educação — ACE",
+        "Supervisor SESI Educação — Maker",
+        "Coordenador SENAI",
+        "Coordenador SESI Saúde",
+        "Coordenador SESI Expansão",
+        "Coordenador Comercial",
+        "Backoffice",
+        "Secretaria Escolar",
+        "PCP SESI",
+        "PCP SENAI",
       ],
     },
   },
