@@ -193,6 +193,7 @@ export type Database = {
           data_visita: string | null
           deleted_at: string | null
           deleted_by: string | null
+          deleted_reason: string | null
           dias_execucao: string[]
           ensalamento_pcp: string
           entidade: Database["public"]["Enums"]["entidade_type"]
@@ -251,6 +252,7 @@ export type Database = {
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          deleted_reason?: string | null
           dias_execucao?: string[]
           ensalamento_pcp?: string
           entidade: Database["public"]["Enums"]["entidade_type"]
@@ -309,6 +311,7 @@ export type Database = {
           data_visita?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          deleted_reason?: string | null
           dias_execucao?: string[]
           ensalamento_pcp?: string
           entidade?: Database["public"]["Enums"]["entidade_type"]

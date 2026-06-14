@@ -20,9 +20,9 @@ export interface ContratoLike {
 }
 
 export function canCreateVisita(r: RoleFlags) {
-  // Qualquer usuário autenticado pode lançar uma visita (inclui supervisores,
-  // secretarias, interlocutoras e operadores). RLS no banco também permite.
-  return true;
+  // Spec: somente Admin/Gestor, Vendedor (Agente PJ) e Coordenadores podem
+  // criar uma nova visita. Backoffice e Secretaria NÃO podem.
+  return r.isAdmin || r.isGestor || r.isVendedor || r.isCoordenador;
 }
 
 export function canImportar(r: RoleFlags) {
@@ -45,7 +45,8 @@ export function canDeleteContratoAt(
   if (contrato.finalized_at) return false;
   if (r.isBackoffice) {
     const etapa = (contrato.etapa_atual ?? "").toString();
-    return etapa === "visita" || etapa === "proposta";
+    // Backoffice pode excluir/arquivar até a etapa Supervisor (etapas 1-3).
+    return etapa === "visita" || etapa === "proposta" || etapa === "supervisor";
   }
   return false;
 }

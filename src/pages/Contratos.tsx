@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
 import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit, isSupervisorVencida, getDiasNoSupervisor, getSupervisorSlaLimit } from "@/lib/sla";
 import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
+import { useSaldoEspeciais } from "@/hooks/useSaldoEspeciais";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -78,6 +79,9 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
   const updateMutation = useUpdateContrato();
   const ultimaMov = getUltimaMovimentacaoAt(contrato as any);
   const propostaVencida = isPropostaVencida(contrato as any);
+  const { data: saldoEspeciais } = useSaldoEspeciais();
+  const isEspecial = !!(contrato as any).contrato_especial;
+  const saldoInfo = isEspecial ? saldoEspeciais?.byContrato.get(contrato.id) : undefined;
 
   return (
     <div
@@ -181,6 +185,15 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
           {isSupervisorVencida(contrato as any) && (
             <span className="inline-block rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 px-1.5 py-0.5 font-semibold" style={{ fontSize: 10 }}>
               ⚠ Prazo excedido ({getDiasNoSupervisor(contrato as any)}/{getSupervisorSlaLimit(contrato as any)}d)
+            </span>
+          )}
+          {isEspecial && saldoInfo && saldoInfo.total > 0 && (
+            <span
+              className="inline-block rounded border px-1.5 py-0.5 font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-800"
+              style={{ fontSize: 10 }}
+              title={`Total R$ ${saldoInfo.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Faturado R$ ${saldoInfo.faturado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            >
+              💰 Saldo: R$ {saldoInfo.saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </span>
           )}
         </div>

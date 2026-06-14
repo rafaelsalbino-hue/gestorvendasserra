@@ -68,17 +68,23 @@ export function useSoftDeleteContrato() {
   const qc = useQueryClient();
   const { runGuarded } = useAppSession();
   return useMutation({
-    mutationFn: async (id: string) => runGuarded(async () => {
+    mutationFn: async (args: string | { id: string; motivo?: string }) => runGuarded(async () => {
+      const id = typeof args === "string" ? args : args.id;
+      const motivo = typeof args === "string" ? null : (args.motivo?.trim() || null);
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("contratos")
-        .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id ?? null } as any)
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user?.id ?? null,
+          deleted_reason: motivo,
+        } as any)
         .eq("id", id)
         .select()
         .single();
       if (error) throw error;
       return data as Contrato;
-    }, { operation: `contratos.softDelete.${id}`, timeoutMs: 15000 }),
+    }, { operation: `contratos.softDelete.${typeof args === "string" ? args : args.id}`, timeoutMs: 15000 }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contratos"] });
     },

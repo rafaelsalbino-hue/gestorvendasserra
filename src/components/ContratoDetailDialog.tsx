@@ -130,6 +130,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [showAllComments, setShowAllComments] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteMotivo, setDeleteMotivo] = useState("");
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
   const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
 
@@ -315,12 +317,19 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   };
 
   const handleDelete = () => {
-    deleteMutation.mutate(contrato.id, {
+    const motivo = deleteMotivo.trim();
+    if (motivo.length < 3) {
+      toast({ title: "Informe o motivo da exclusão", variant: "destructive" });
+      return;
+    }
+    deleteMutation.mutate({ id: contrato.id, motivo }, {
       onSuccess: () => {
         toast({
           title: `Processo de ${form.cliente} arquivado`,
           description: "Disponível na seção Arquivo.",
         });
+        setDeleteMotivo("");
+        setDeleteOpen(false);
         onOpenChange(false);
       },
       onError: (e) => toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" }),
@@ -883,12 +892,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
         <div className="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:justify-between gap-2 pt-2 sticky bottom-0 bg-background pb-1 -mx-1 px-1">
           {canDeleteContratoAt(role, contrato as any) && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="w-full sm:w-auto">
-                <Trash2 className="mr-2 h-4 w-4" />Excluir
-              </Button>
-            </AlertDialogTrigger>
+          <AlertDialog open={deleteOpen} onOpenChange={(v) => { setDeleteOpen(v); if (!v) setDeleteMotivo(""); }}>
+            <Button variant="destructive" size="sm" className="w-full sm:w-auto" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />Excluir
+            </Button>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Arquivar contrato?</AlertDialogTitle>
@@ -896,9 +903,27 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   O contrato "{contrato.cliente}" será movido para o Arquivo. Você poderá restaurá-lo a qualquer momento.
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              <div className="space-y-1.5 pt-1">
+                <Label htmlFor="delete-motivo" className="text-sm">
+                  Motivo da exclusão <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="delete-motivo"
+                  value={deleteMotivo}
+                  onChange={(e) => setDeleteMotivo(e.target.value)}
+                  placeholder="Ex.: cliente desistiu, proposta duplicada, valor incorreto..."
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-[11px] text-muted-foreground">Mínimo 3 caracteres. Registrado no histórico junto com seu nome.</p>
+              </div>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <AlertDialogAction
+                  onClick={(e) => { e.preventDefault(); handleDelete(); }}
+                  disabled={deleteMutation.isPending || deleteMotivo.trim().length < 3}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                >
                   {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Excluir
                 </AlertDialogAction>
