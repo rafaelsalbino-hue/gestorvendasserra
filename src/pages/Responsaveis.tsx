@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,12 +138,16 @@ const Responsaveis = () => {
   const [email, setEmail] = useState("");
   const [funcao, setFuncao] = useState<FuncaoResponsavel | "">("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [entidade, setEntidade] = useState<EntidadeAtuacao | "">("");
+  const [especialidade, setEspecialidade] = useState<string>("");
   const [filterFuncao, setFilterFuncao] = useState<string>("todas");
 
   const [editNome, setEditNome] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editFuncao, setEditFuncao] = useState<FuncaoResponsavel | "">("");
   const [editWhatsapp, setEditWhatsapp] = useState("");
+  const [editEntidade, setEditEntidade] = useState<EntidadeAtuacao | "">("");
+  const [editEspecialidade, setEditEspecialidade] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [editErrors, setEditErrors] = useState<FormErrors>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -153,15 +157,32 @@ const Responsaveis = () => {
   const deleteMutation = useDeleteResponsavel();
   const updateMutation = useUpdateResponsavel();
 
+  // Mantém função composta quando entidade+especialidade estiverem preenchidos.
+  useEffect(() => {
+    if (entidade && especialidade) {
+      setFuncao(`Supervisor ${entidade} — ${especialidade}` as FuncaoResponsavel);
+    }
+  }, [entidade, especialidade]);
+
+  useEffect(() => {
+    if (editEntidade && editEspecialidade) {
+      setEditFuncao(`Supervisor ${editEntidade} — ${editEspecialidade}` as FuncaoResponsavel);
+    }
+  }, [editEntidade, editEspecialidade]);
+
+  const isSupGeneric = isSupervisorRole(funcao) && (!!entidade || !!especialidade || !funcao);
+  const isEditSupGeneric = isSupervisorRole(editFuncao) && (!!editEntidade || !!editEspecialidade || !editFuncao);
+
   const handleAdd = () => {
-    const v = validateResponsavel(nome, email, funcao);
+    const v = validateResponsavel(nome, email, funcao, whatsapp, isSupGeneric, entidade, especialidade);
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     addMutation.mutate(
       { nome: nome.trim(), email: email.trim(), funcao: funcao as FuncaoResponsavel, whatsapp: whatsapp || null } as any,
       {
         onSuccess: () => {
-          setNome(""); setEmail(""); setFuncao(""); setWhatsapp(""); setErrors({});
+          setNome(""); setEmail(""); setFuncao(""); setWhatsapp("");
+          setEntidade(""); setEspecialidade(""); setErrors({});
           setDialogOpen(false);
           toast({ title: "Responsável cadastrado com sucesso!" });
         },
@@ -176,13 +197,23 @@ const Responsaveis = () => {
     setEditEmail(resp.email);
     setEditFuncao(resp.funcao as FuncaoResponsavel);
     setEditWhatsapp(((resp as any).whatsapp as string) ?? "");
+    // Pré-popula entidade/especialidade se a função for um Supervisor composto
+    const f = String(resp.funcao || "");
+    const m = f.match(/^Supervisor (SENAI|SESI Saúde|SESI Educação) — (.+)$/);
+    if (m) {
+      setEditEntidade(m[1] as EntidadeAtuacao);
+      setEditEspecialidade(m[2]);
+    } else {
+      setEditEntidade("");
+      setEditEspecialidade("");
+    }
     setEditErrors({});
     setEditDialogOpen(true);
   };
 
   const handleSaveEdit = () => {
     if (!editingResp) return;
-    const v = validateResponsavel(editNome, editEmail, editFuncao);
+    const v = validateResponsavel(editNome, editEmail, editFuncao, editWhatsapp, isEditSupGeneric, editEntidade, editEspecialidade);
     setEditErrors(v);
     if (Object.keys(v).length > 0) return;
     updateMutation.mutate(
