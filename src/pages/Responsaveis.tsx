@@ -19,7 +19,15 @@ import {
 import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download, Smartphone } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FUNCOES_RESPONSAVEL, type FuncaoResponsavel } from "@/types/contracts";
+import {
+  FUNCOES_RESPONSAVEL,
+  ENTIDADES_ATUACAO,
+  ESPECIALIDADES_POR_ENTIDADE,
+  isSupervisorRole,
+  isNotificavelRole,
+  type FuncaoResponsavel,
+  type EntidadeAtuacao,
+} from "@/types/contracts";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
 import { useUpdateResponsavel } from "@/hooks/useUpdateResponsavel";
@@ -28,7 +36,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Responsavel = Tables<"responsaveis">;
 
-type FormErrors = { nome?: string; email?: string; funcao?: string };
+type FormErrors = { nome?: string; email?: string; funcao?: string; whatsapp?: string; entidade?: string; especialidade?: string };
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function maskWhatsapp(digits: string): string {
@@ -40,19 +48,19 @@ function maskWhatsapp(digits: string): string {
 }
 
 function WhatsappField({
-  value, onChange, id,
-}: { value: string; onChange: (digits: string) => void; id?: string }) {
+  value, onChange, id, required, error,
+}: { value: string; onChange: (digits: string) => void; id?: string; required?: boolean; error?: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Label htmlFor={id} className="flex items-center gap-1">
           <Smartphone className="h-3.5 w-3.5 text-[#003DA5]" />
-          WhatsApp para notificações
+          WhatsApp para notificações{required ? " *" : ""}
         </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-xs text-muted-foreground cursor-help">(opcional)</span>
+              <span className="text-xs text-muted-foreground cursor-help">{required ? "(obrigatório)" : "(opcional)"}</span>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               Este número receberá mensagens automáticas quando um processo avançar para sua etapa de responsabilidade.
@@ -66,18 +74,43 @@ function WhatsappField({
         placeholder="(27) 99999-0001"
         value={maskWhatsapp(value)}
         onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 11))}
+        aria-invalid={!!error}
+        className={error ? "border-destructive" : ""}
       />
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
 
-function validateResponsavel(nome: string, email: string, funcao: string): FormErrors {
+function validateResponsavel(
+  nome: string,
+  email: string,
+  funcao: string,
+  whatsapp: string,
+  isSupervisorGeneric: boolean,
+  entidade: string,
+  especialidade: string,
+): FormErrors {
   const errors: FormErrors = {};
   if (!nome.trim()) errors.nome = "Informe o nome.";
   else if (nome.trim().length < 2) errors.nome = "Nome muito curto.";
   if (!email.trim()) errors.email = "Informe o e-mail.";
   else if (!emailRegex.test(email.trim())) errors.email = "E-mail inválido.";
   if (!funcao) errors.funcao = "Selecione uma função.";
+  if (isSupervisorGeneric) {
+    if (!entidade) errors.entidade = "Selecione a entidade de atuação.";
+    if (!especialidade) errors.especialidade = "Selecione a especialidade.";
+  }
+  const digits = (whatsapp || "").replace(/\D/g, "");
+  const finalFuncao = isSupervisorGeneric && entidade && especialidade
+    ? `Supervisor ${entidade} — ${especialidade}`
+    : funcao;
+  if (isNotificavelRole(finalFuncao)) {
+    if (!digits) errors.whatsapp = "WhatsApp é obrigatório para esta função.";
+    else if (digits.length < 10 || digits.length > 11) errors.whatsapp = "WhatsApp deve ter 10 ou 11 dígitos.";
+  } else if (digits && (digits.length < 10 || digits.length > 11)) {
+    errors.whatsapp = "WhatsApp deve ter 10 ou 11 dígitos.";
+  }
   return errors;
 }
 
