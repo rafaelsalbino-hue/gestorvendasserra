@@ -12,21 +12,69 @@ export type FuncaoResponsavel =
   | "Analista Comercial"
   | "Gerente Regional"
   | "Interlocutora de Faturamento"
-  | "Coordenador SESI/SENAI";
+  | "Coordenador SESI/SENAI"
+  // Supervisores SENAI
+  | "Supervisor SENAI — Lages Cursos Técnicos"
+  | "Supervisor SENAI — Lages Cursos de Qualificação"
+  | "Supervisor SENAI — Correia Pinto"
+  | "Supervisor SENAI — Otacílio Costa"
+  // Supervisores SESI Saúde
+  | "Supervisor SESI Saúde — SST"
+  | "Supervisor SESI Saúde — Promoção de Saúde"
+  | "Supervisor SESI Saúde — Saúde Assistencial"
+  // Supervisores SESI Educação
+  | "Supervisor SESI Educação — ACE"
+  | "Supervisor SESI Educação — Maker"
+  // Coordenadores
+  | "Coordenador SENAI"
+  | "Coordenador SESI Saúde"
+  | "Coordenador SESI Expansão"
+  | "Coordenador Comercial"
+  // Outros
+  | "Backoffice"
+  | "Secretaria Escolar"
+  | "PCP SESI"
+  | "PCP SENAI";
 
 export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Agente de Mercado PJ",
+  // Supervisores SENAI
+  "Supervisor SENAI — Lages Cursos Técnicos",
+  "Supervisor SENAI — Lages Cursos de Qualificação",
+  "Supervisor SENAI — Correia Pinto",
+  "Supervisor SENAI — Otacílio Costa",
+  // Supervisores SESI Saúde
+  "Supervisor SESI Saúde — SST",
+  "Supervisor SESI Saúde — Promoção de Saúde",
+  "Supervisor SESI Saúde — Saúde Assistencial",
+  // Supervisores SESI Educação
+  "Supervisor SESI Educação — ACE",
+  "Supervisor SESI Educação — Maker",
+  // Supervisores legados (mantidos para compatibilidade)
   "Supervisor SESI",
   "Supervisor SENAI",
-  "Backoffice Comercial",
-  "Secretaria",
-  "PCP",
-  "Analista Financeiro",
+  // Coordenadores
+  "Coordenador SENAI",
+  "Coordenador SESI Saúde",
+  "Coordenador SESI Expansão",
+  "Coordenador Comercial",
   "Coordenador de Mercado",
-  "Analista Comercial",
-  "Gerente Regional",
-  "Interlocutora de Faturamento",
   "Coordenador SESI/SENAI",
+  // Comercial / Backoffice
+  "Analista Comercial",
+  "Backoffice",
+  "Backoffice Comercial",
+  // Operacional
+  "Secretaria Escolar",
+  "Secretaria",
+  "PCP SESI",
+  "PCP SENAI",
+  "PCP",
+  // Financeiro
+  "Interlocutora de Faturamento",
+  "Analista Financeiro",
+  // Gerência
+  "Gerente Regional",
 ];
 
 // Funções com papel de Gestor (acesso total)
@@ -34,6 +82,51 @@ export const FUNCOES_GESTOR: FuncaoResponsavel[] = [
   "Coordenador de Mercado",
   "Analista Comercial",
 ];
+
+// Entidade de atuação (para supervisores)
+export type EntidadeAtuacao = "SENAI" | "SESI Saúde" | "SESI Educação";
+
+export const ENTIDADES_ATUACAO: EntidadeAtuacao[] = ["SENAI", "SESI Saúde", "SESI Educação"];
+
+// Especialidade dinâmica por entidade
+export const ESPECIALIDADES_POR_ENTIDADE: Record<EntidadeAtuacao, string[]> = {
+  "SENAI": [
+    "Lages Cursos Técnicos",
+    "Lages Cursos de Qualificação",
+    "Correia Pinto",
+    "Otacílio Costa",
+  ],
+  "SESI Saúde": ["SST", "Promoção de Saúde", "Saúde Assistencial"],
+  "SESI Educação": ["ACE", "Maker"],
+};
+
+// Funções que recebem notificações automáticas (WhatsApp obrigatório no cadastro)
+export function isSupervisorRole(funcao: string): boolean {
+  return typeof funcao === "string" && funcao.startsWith("Supervisor");
+}
+
+export function isNotificavelRole(funcao: string): boolean {
+  if (!funcao) return false;
+  if (isSupervisorRole(funcao)) return true;
+  return [
+    "Agente de Mercado PJ",
+    "Backoffice",
+    "Backoffice Comercial",
+    "Secretaria",
+    "Secretaria Escolar",
+    "PCP",
+    "PCP SESI",
+    "PCP SENAI",
+    "Analista Financeiro",
+    "Interlocutora de Faturamento",
+    "Coordenador SENAI",
+    "Coordenador SESI Saúde",
+    "Coordenador SESI Expansão",
+    "Coordenador Comercial",
+    "Coordenador de Mercado",
+    "Coordenador SESI/SENAI",
+  ].includes(funcao);
+}
 
 // Funções que podem alterar QUALQUER campo de status (status_*) em qualquer etapa.
 // Secretaria e Interlocutora de Faturamento têm permissão ampliada de status.
