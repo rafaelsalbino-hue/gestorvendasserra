@@ -116,18 +116,27 @@ async function buildDestinatarios(
     case "supervisor": // Proposta/CRM concluída → Supervisor
       return [...(await supervisorEntidade()), ...(await coordEntidade())];
     case "rpc":
-    case "execucao": // Supervisor concluído → RPC/Execução
-      return [...(await backoffice()), ...(await analistas()), ...(await coordEntidade())];
-    case "matricula": // RPC/Execução concluído → Matrícula
-      return [...(await secretaria()), ...(await analistas()), ...(await interlocutora())];
-    case "ensalamento":
-    case "pcp": // Matrícula concluída → PCP
+    case "execucao":
+      // Etapa 4 RPC/Execução: Backoffice + Analista + Coordenador + Secretaria + Interlocutora
+      return [
+        ...(await backoffice()),
+        ...(await analistas()),
+        ...(await coordEntidade()),
+        ...(await secretaria()),
+        ...(await interlocutora()),
+      ];
+    case "matricula":
+      // Etapa 5 Matrícula: PCP da entidade + Supervisor + Analista + Interlocutora
       return [
         ...(await pcpEntidade()),
         ...(await supervisorEntidade()),
         ...(await analistas()),
         ...(await interlocutora()),
       ];
+    case "ensalamento":
+    case "pcp":
+      // Etapa 6 PCP: Analista Comercial + Interlocutora de Faturamento
+      return [...(await analistas()), ...(await interlocutora())];
     case "faturamento": // PCP concluído → Faturamento
       return [...(await analistas()), ...(await interlocutora())];
     case "finalizado": // Faturamento concluído → Finalizado
