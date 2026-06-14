@@ -23,7 +23,7 @@ import { ENTIDADE_CLASS, entidadeShort } from "@/lib/entidade";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
-import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit } from "@/lib/sla";
+import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit, isSupervisorVencida, getDiasNoSupervisor, getSupervisorSlaLimit } from "@/lib/sla";
 import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -163,13 +163,24 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
             <SlaIndicator
               etapaUpdatedAt={ultimaMov}
               compact
-              limit={contrato.etapa_atual === "proposta" ? getPropostaSlaLimit(contrato as any) : 7}
+              limit={
+                contrato.etapa_atual === "proposta"
+                  ? getPropostaSlaLimit(contrato as any)
+                  : contrato.etapa_atual === "supervisor"
+                  ? getSupervisorSlaLimit(contrato as any)
+                  : 7
+              }
               tooltipExtra={(contrato as any).ultima_movimentacao_por || undefined}
             />
           )}
           {propostaVencida && (
             <span className="inline-block rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 px-1.5 py-0.5 font-semibold" style={{ fontSize: 10 }}>
               ⚠ Prazo excedido ({getDiasNaProposta(contrato as any)}/{getPropostaSlaLimit(contrato as any)}d)
+            </span>
+          )}
+          {isSupervisorVencida(contrato as any) && (
+            <span className="inline-block rounded bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 px-1.5 py-0.5 font-semibold" style={{ fontSize: 10 }}>
+              ⚠ Prazo excedido ({getDiasNoSupervisor(contrato as any)}/{getSupervisorSlaLimit(contrato as any)}d)
             </span>
           )}
         </div>
