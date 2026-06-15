@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ const Dashboard = () => {
   const { data: saldoEspeciais } = useSaldoEspeciais();
   const { currentUser } = useCurrentUser();
   const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
+  const navigate = useNavigate();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
   const [filterPJ, setFilterPJ] = useState<string>("todos");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
@@ -114,6 +115,9 @@ const Dashboard = () => {
   const contratosAtrasados = contratosEmAtencaoTodos.slice(0, 5);
 
   const propostasVencidas = filtered.filter((c) => isPropostaVencida(c as any));
+  const propostasVencidasOrdenadas = [...propostasVencidas].sort(
+    (a, b) => getDiasNaProposta(b as any) - getDiasNaProposta(a as any),
+  );
 
   // Activity feed - recent changes (last updated contracts)
   const recentActivity = [...filtered]
@@ -368,11 +372,18 @@ const Dashboard = () => {
                 <CardHeader><CardTitle className="text-base">Contratos por Etapa</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={etapaChartData}>
+                    <BarChart
+                      data={etapaChartData}
+                      onClick={(e: any) => {
+                        const label = e?.activePayload?.[0]?.payload?.name;
+                        const etapa = ETAPAS.find((x) => x.label === label);
+                        if (etapa) navigate(`/contratos?etapa=${etapa.id}`);
+                      }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} cursor="pointer" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -383,7 +394,26 @@ const Dashboard = () => {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      <Pie data={entidadeChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      <Pie
+                        data={entidadeChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label
+                        cursor="pointer"
+                        onClick={(slice: any) => {
+                          const name = slice?.name as string | undefined;
+                          const map: Record<string, string> = {
+                            "SESI Educação": "SESI",
+                            "SENAI": "SENAI",
+                            "SESI Saúde": "SESI Saúde",
+                          };
+                          const ent = name && map[name];
+                          if (ent) navigate(`/contratos?entidade=${encodeURIComponent(ent)}`);
+                        }}
+                      >
                         {entidadeChartData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
@@ -401,11 +431,18 @@ const Dashboard = () => {
                 <CardHeader><CardTitle className="text-base">Valor (R$) por Etapa</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={valorPorEtapa}>
+                    <BarChart
+                      data={valorPorEtapa}
+                      onClick={(e: any) => {
+                        const label = e?.activePayload?.[0]?.payload?.name;
+                        const etapa = ETAPAS.find((x) => x.label === label);
+                        if (etapa) navigate(`/contratos?etapa=${etapa.id}`);
+                      }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
                       <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-                      <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} cursor="pointer" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
