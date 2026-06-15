@@ -81,10 +81,12 @@ export function getSupervisorSlaLimit(c: Partial<Contrato> & Record<string, any>
 }
 
 /**
- * Dias decorridos na etapa Supervisor (usa etapa_updated_at).
+ * Dias decorridos na etapa Supervisor.
+ * Usa apenas etapa_updated_at — sem fallback para updated_at (que é bumpado por
+ * qualquer edição de campo e inflaria os dias parados artificialmente).
  */
 export function getDiasNoSupervisor(c: Partial<Contrato> & Record<string, any>): number {
-  const ref = (c as any).etapa_updated_at ?? (c as any).updated_at ?? null;
+  const ref = (c as any).etapa_updated_at ?? null;
   return daysSince(ref);
 }
 
