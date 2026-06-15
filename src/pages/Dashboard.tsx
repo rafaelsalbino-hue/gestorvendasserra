@@ -256,7 +256,9 @@ const Dashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl md:text-2xl font-bold">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+                  <div className="text-xl md:text-2xl font-bold">
+                    R$ <AnimatedNumber value={Math.round(valorTotal)} className="inline" />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">Soma de todos os contratos</p>
                 </CardContent>
               </Card>
