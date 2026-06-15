@@ -18,7 +18,7 @@ import { useContratos, useUpdateContrato } from "@/hooks/useContratos";
 import { exportContratosToXlsx } from "@/lib/export";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { canCreateVisita, canImportar } from "@/lib/permissions";
+import { canCreateVisita, canImportar, canMoverStatus } from "@/lib/permissions";
 import { ENTIDADE_CLASS, entidadeShort } from "@/lib/entidade";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -281,6 +281,11 @@ const Contratos = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
+    if (!canMoverStatus(role)) {
+      toast({ title: "Sem permissão", description: "Você não pode mover contratos entre etapas.", variant: "destructive" });
+      return;
+    }
 
     const contratoId = active.id as string;
     const newEtapa = over.id as string;

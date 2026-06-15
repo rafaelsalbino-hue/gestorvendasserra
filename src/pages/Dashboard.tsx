@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +49,7 @@ const Dashboard = () => {
   const { data: saldoEspeciais } = useSaldoEspeciais();
   const { currentUser } = useCurrentUser();
   const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
+  const navigate = useNavigate();
   const [filterEntidade, setFilterEntidade] = useState<string>("todas");
   const [filterPJ, setFilterPJ] = useState<string>("todos");
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
@@ -114,6 +115,9 @@ const Dashboard = () => {
   const contratosAtrasados = contratosEmAtencaoTodos.slice(0, 5);
 
   const propostasVencidas = filtered.filter((c) => isPropostaVencida(c as any));
+  const propostasVencidasOrdenadas = [...propostasVencidas].sort(
+    (a, b) => getDiasNaProposta(b as any) - getDiasNaProposta(a as any),
+  );
 
   // Activity feed - recent changes (last updated contracts)
   const recentActivity = [...filtered]
@@ -363,16 +367,72 @@ const Dashboard = () => {
               </Card>
             )}
 
+            {propostasVencidasOrdenadas.length > 0 && (
+              <Card className="border-2 border-red-500/60 bg-red-50/40 dark:bg-red-950/20 animate-fade-in">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlarmClock className="h-4 w-4 text-red-600" />
+                    Propostas com prazo excedido ({propostasVencidasOrdenadas.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {propostasVencidasOrdenadas.slice(0, 6).map((c) => {
+                      const dias = getDiasNaProposta(c as any);
+                      const limit = getPropostaSlaLimit(c as any);
+                      return (
+                        <Link
+                          key={c.id}
+                          to={`/contratos?entidade=${encodeURIComponent(c.entidade)}&highlight=${c.id}`}
+                          className="group flex items-center justify-between rounded-md border bg-card p-3 text-sm hover:border-red-500 hover:shadow-md transition-all"
+                        >
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="font-medium truncate group-hover:text-red-700 dark:group-hover:text-red-300">{c.cliente}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground/70">{c.entidade}</span>
+                              {(c as any).subdivisao && (<><span>·</span><span>{(c as any).subdivisao}</span></>)}
+                              <span>·</span>
+                              <span className="truncate">{responsavelNome(c as any)}</span>
+                            </div>
+                            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200 text-[10px]">
+                              Prazo excedido ({dias}/{limit}d)
+                            </Badge>
+                          </div>
+                          <ArrowRight className="ml-3 h-3 w-3 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {propostasVencidasOrdenadas.length > 6 && (
+                    <div className="mt-3 text-right">
+                      <Button asChild variant="link" size="sm" className="text-red-700 dark:text-red-300">
+                        <Link to="/contratos?etapa=proposta&atencao=1">
+                          Ver todas as {propostasVencidasOrdenadas.length} propostas vencidas <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader><CardTitle className="text-base">Contratos por Etapa</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={etapaChartData}>
+                    <BarChart
+                      data={etapaChartData}
+                      onClick={(e: any) => {
+                        const label = e?.activePayload?.[0]?.payload?.name;
+                        const etapa = ETAPAS.find((x) => x.label === label);
+                        if (etapa) navigate(`/contratos?etapa=${etapa.id}`);
+                      }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                       <Tooltip />
-                      <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="quantidade" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} cursor="pointer" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -383,7 +443,26 @@ const Dashboard = () => {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      <Pie data={entidadeChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      <Pie
+                        data={entidadeChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label
+                        cursor="pointer"
+                        onClick={(slice: any) => {
+                          const name = slice?.name as string | undefined;
+                          const map: Record<string, string> = {
+                            "SESI Educação": "SESI",
+                            "SENAI": "SENAI",
+                            "SESI Saúde": "SESI Saúde",
+                          };
+                          const ent = name && map[name];
+                          if (ent) navigate(`/contratos?entidade=${encodeURIComponent(ent)}`);
+                        }}
+                      >
                         {entidadeChartData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
@@ -401,11 +480,18 @@ const Dashboard = () => {
                 <CardHeader><CardTitle className="text-base">Valor (R$) por Etapa</CardTitle></CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={valorPorEtapa}>
+                    <BarChart
+                      data={valorPorEtapa}
+                      onClick={(e: any) => {
+                        const label = e?.activePayload?.[0]?.payload?.name;
+                        const etapa = ETAPAS.find((x) => x.label === label);
+                        if (etapa) navigate(`/contratos?etapa=${etapa.id}`);
+                      }}
+                    >
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
                       <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-                      <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="valor" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} cursor="pointer" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>

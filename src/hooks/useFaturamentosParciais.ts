@@ -68,6 +68,7 @@ export function useAddFaturamentoParcial() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["faturamentos_parciais", vars.contrato_id] });
       qc.invalidateQueries({ queryKey: ["contratos"] });
+      qc.invalidateQueries({ queryKey: ["saldo-especiais"] });
       toast.success("Faturamento parcial registrado");
     },
     onError: (err: any) => {
@@ -91,6 +92,8 @@ export function useDeleteFaturamentoParcial() {
     },
     onSuccess: (input) => {
       qc.invalidateQueries({ queryKey: ["faturamentos_parciais", input.contrato_id] });
+      qc.invalidateQueries({ queryKey: ["contratos"] });
+      qc.invalidateQueries({ queryKey: ["saldo-especiais"] });
       toast.success("Faturamento excluído");
     },
     onError: (err: any) => {
