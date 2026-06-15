@@ -45,6 +45,14 @@ export function FaturamentosParciais({ contratoId, valorTotal, disabled = false 
   const saldo = Math.max(0, Number(valorTotal || 0) - totalFaturado);
   const pctNum = valorTotal > 0 ? Math.min(100, (totalFaturado / Number(valorTotal)) * 100) : 0;
 
+  // Cores adaptativas conforme avanço do faturamento.
+  const blockTone =
+    pctNum >= 100
+      ? "border-emerald-300/60 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20"
+      : pctNum > 0
+      ? "border-amber-300/60 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/20"
+      : "border-slate-300/60 dark:border-slate-800/60 bg-slate-50/60 dark:bg-slate-950/30";
+
   const handleAdd = async () => {
     const v = parseBRL(valor);
     if (!v || v <= 0) return;
@@ -63,7 +71,7 @@ export function FaturamentosParciais({ contratoId, valorTotal, disabled = false 
   };
 
   return (
-    <div className="space-y-3 rounded-md border border-blue-200/50 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20 p-3">
+    <div className={`space-y-3 rounded-md border p-3 ${blockTone}`}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Receipt className="h-4 w-4 text-primary" />
