@@ -367,6 +367,55 @@ const Dashboard = () => {
               </Card>
             )}
 
+            {propostasVencidasOrdenadas.length > 0 && (
+              <Card className="border-2 border-red-500/60 bg-red-50/40 dark:bg-red-950/20 animate-fade-in">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <AlarmClock className="h-4 w-4 text-red-600" />
+                    Propostas com prazo excedido ({propostasVencidasOrdenadas.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {propostasVencidasOrdenadas.slice(0, 6).map((c) => {
+                      const dias = getDiasNaProposta(c as any);
+                      const limit = getPropostaSlaLimit(c as any);
+                      return (
+                        <Link
+                          key={c.id}
+                          to={`/contratos?entidade=${encodeURIComponent(c.entidade)}&highlight=${c.id}`}
+                          className="group flex items-center justify-between rounded-md border bg-card p-3 text-sm hover:border-red-500 hover:shadow-md transition-all"
+                        >
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <p className="font-medium truncate group-hover:text-red-700 dark:group-hover:text-red-300">{c.cliente}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                              <span className="font-medium text-foreground/70">{c.entidade}</span>
+                              {(c as any).subdivisao && (<><span>·</span><span>{(c as any).subdivisao}</span></>)}
+                              <span>·</span>
+                              <span className="truncate">{responsavelNome(c as any)}</span>
+                            </div>
+                            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/40 dark:text-red-200 text-[10px]">
+                              Prazo excedido ({dias}/{limit}d)
+                            </Badge>
+                          </div>
+                          <ArrowRight className="ml-3 h-3 w-3 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  {propostasVencidasOrdenadas.length > 6 && (
+                    <div className="mt-3 text-right">
+                      <Button asChild variant="link" size="sm" className="text-red-700 dark:text-red-300">
+                        <Link to="/contratos?etapa=proposta&atencao=1">
+                          Ver todas as {propostasVencidasOrdenadas.length} propostas vencidas <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 <CardHeader><CardTitle className="text-base">Contratos por Etapa</CardTitle></CardHeader>
