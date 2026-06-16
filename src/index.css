@@ -91,7 +91,7 @@
     --card-foreground: 210 15% 90%;
     --popover: 215 25% 14%;
     --popover-foreground: 210 15% 90%;
-    --primary: 215 80% 55%;
+    --primary: 214 90% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 215 20% 20%;
     --secondary-foreground: 210 15% 85%;
@@ -103,15 +103,20 @@
     --destructive-foreground: 210 40% 98%;
     --border: 215 20% 22%;
     --input: 215 20% 22%;
-    --ring: 215 80% 55%;
-    --sidebar-background: 215 35% 12%;
-    --sidebar-foreground: 210 15% 80%;
-    --sidebar-primary: 215 80% 55%;
+    --ring: 214 90% 55%;
+    --sidebar-background: 222 70% 12%;
+    --sidebar-foreground: 210 20% 88%;
+    --sidebar-primary: 210 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 20%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 215 20% 18%;
-    --sidebar-ring: 215 80% 55%;
+    --sidebar-accent: 222 50% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 40% 22%;
+    --sidebar-ring: 210 100% 65%;
+    --topbar-background: 222 70% 14%;
+    --topbar-foreground: 0 0% 100%;
+    --topbar-border: 222 50% 22%;
+    --brand-orange: 22 100% 55%;
+    --brand-orange-foreground: 0 0% 100%;
 
     --ent-sesi-edu: 262 60% 65%;
     --ent-sesi-saude: 160 60% 55%;
