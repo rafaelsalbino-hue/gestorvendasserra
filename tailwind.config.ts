@@ -62,6 +62,15 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        "brand-orange": {
+          DEFAULT: "hsl(var(--brand-orange))",
+          foreground: "hsl(var(--brand-orange-foreground))",
+        },
+        topbar: {
+          DEFAULT: "hsl(var(--topbar-background))",
+          foreground: "hsl(var(--topbar-foreground))",
+          border: "hsl(var(--topbar-border))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
