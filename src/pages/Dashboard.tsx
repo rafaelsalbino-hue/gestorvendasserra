@@ -134,7 +134,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground text-sm mt-1">
             Você tem <span className="text-foreground font-medium">{emAndamento}</span> processo(s) em andamento
             {contratosEmAtencaoTodos.length > 0 && (
-              <> · <span className="text-orange-600 font-medium">{contratosEmAtencaoTodos.length}</span> precisam de atenção</>
+              <> · <span className="text-warning font-medium">{contratosEmAtencaoTodos.length}</span> precisam de atenção</>
             )}.
           </p>
         </div>
@@ -168,7 +168,7 @@ const Dashboard = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-4 items-end p-3 bg-muted/50 rounded-lg">
+        <div className="flex flex-wrap gap-4 items-end p-3 rounded-lg border bg-card shadow-sm">
           <div className="space-y-1">
             <Label className="text-xs font-medium text-muted-foreground">Entidade</Label>
             <Select value={filterEntidade} onValueChange={setFilterEntidade}>
@@ -272,24 +272,24 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground mt-1">{concluidos} concluído(s) · {responsaveis.length} resp.</p>
                 </CardContent>
               </Card>
-              <Card className={propostasVencidas.length > 0 ? "border-red-300 dark:border-red-900/50" : undefined}>
+              <Card className={propostasVencidas.length > 0 ? "border-destructive/40 hover:shadow-md" : "hover:shadow-md"}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Propostas vencidas</CardTitle>
-                  <AlarmClock className={`h-4 w-4 ${propostasVencidas.length > 0 ? "text-red-600" : "text-muted-foreground"}`} />
+                  <AlarmClock className={`h-4 w-4 ${propostasVencidas.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
                 </CardHeader>
                 <CardContent>
-                  <AnimatedNumber value={propostasVencidas.length} className={`text-2xl md:text-3xl font-bold ${propostasVencidas.length > 0 ? "text-red-600" : ""}`} />
+                  <AnimatedNumber value={propostasVencidas.length} className={`text-2xl md:text-3xl font-bold ${propostasVencidas.length > 0 ? "text-destructive" : ""}`} />
                   <p className="text-xs text-muted-foreground mt-1">Acima do prazo da área</p>
                 </CardContent>
               </Card>
               {saldoEspeciais && saldoEspeciais.totalContratos > 0 && (
-                <Card className="border-emerald-300/60 dark:border-emerald-900/50">
+                <Card className="border-success/40 hover:shadow-md">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">Saldo em Contratos Especiais</CardTitle>
-                    <Wallet className="h-4 w-4 text-emerald-600" />
+                    <Wallet className="h-4 w-4 text-success" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-xl md:text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                    <div className="text-xl md:text-2xl font-bold text-success">
                       R$ {saldoEspeciais.totalSaldo.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">{saldoEspeciais.totalContratos} contrato(s) especial(is)</p>
@@ -300,10 +300,10 @@ const Dashboard = () => {
 
             {/* SLA Alert */}
             {contratosAtrasados.length > 0 ? (
-              <Card className="border-2 border-orange-500/60 bg-orange-50/40 dark:bg-orange-950/20 animate-fade-in">
+              <Card className="border-2 border-warning/50 bg-warning/5 animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <AlertTriangle className="h-4 w-4 text-warning" />
                     Atenção necessária ({contratosEmAtencaoTodos.length})
                   </CardTitle>
                 </CardHeader>
