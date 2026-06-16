@@ -54,7 +54,11 @@ function DroppableColumn({ etapaId, children }: { etapaId: string; children: Rea
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg border border-dashed space-y-2 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-muted/30"}`}
+      className={`rounded-lg border space-y-2 transition-all ${
+        isOver
+          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+          : "border-border/40 bg-muted/30"
+      }`}
       style={{ padding: 10, minWidth: 160 }}
     >
       {children}
