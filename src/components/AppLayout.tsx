@@ -33,15 +33,15 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center justify-between border-b bg-card px-3 sm:px-4 shrink-0 gap-2 sticky top-0 z-30">
+          <header className="h-14 flex items-center justify-between border-b border-topbar-border bg-topbar text-topbar-foreground px-3 sm:px-4 shrink-0 gap-2 sticky top-0 z-30 shadow-sm">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <SidebarTrigger className="md:hidden shrink-0" aria-label="Abrir menu" />
-              <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                <Link to="/" className="hover:text-foreground transition-colors">Início</Link>
+              <SidebarTrigger className="md:hidden shrink-0 text-topbar-foreground hover:bg-white/10" aria-label="Abrir menu" />
+              <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-xs text-topbar-foreground/70 shrink-0">
+                <Link to="/" className="hover:text-topbar-foreground transition-colors">Início</Link>
                 {!isRoot && (
                   <>
                     <ChevronRight className="h-3 w-3" aria-hidden />
-                    <span className="font-medium text-foreground truncate max-w-[200px]">{currentLabel}</span>
+                    <span className="font-medium text-topbar-foreground truncate max-w-[200px]">{currentLabel}</span>
                   </>
                 )}
               </nav>
@@ -51,17 +51,17 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             <div className="flex items-center gap-2">
               {!isOnline && (
-                <Badge variant="outline" className="gap-1.5">
+                <Badge variant="outline" className="gap-1.5 border-white/30 text-topbar-foreground">
                   <WifiOff className="h-3 w-3" /> Offline
                 </Badge>
               )}
               {isRecovering && (
-                <Badge variant="outline" className="gap-1.5">
+                <Badge variant="outline" className="gap-1.5 border-white/30 text-topbar-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" /> Reconectando
                 </Badge>
               )}
               {currentUser?.funcao && (
-                <Badge variant="secondary" className="hidden lg:inline-flex text-[10px] px-2 py-0.5">
+                <Badge variant="secondary" className="hidden lg:inline-flex text-[10px] px-2 py-0.5 bg-white/15 text-topbar-foreground hover:bg-white/25 border-transparent">
                   {currentUser.funcao}
                 </Badge>
               )}
