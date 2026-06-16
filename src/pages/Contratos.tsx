@@ -491,15 +491,21 @@ const Contratos = () => {
                     const items = byEtapa(etapa.id);
                     return (
                       <div key={etapa.id} className="space-y-2 min-w-[160px]">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2 rounded-md bg-card border border-border/60 px-2 py-1.5 shadow-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              aria-hidden
+                              className={`${etapa.colorClass} h-2 w-2 rounded-full shrink-0`}
+                            />
+                            <span
+                              className="font-semibold uppercase truncate text-foreground/90"
+                              style={{ fontSize: 11, letterSpacing: "0.04em" }}
+                            >
+                              {etapa.label}
+                            </span>
+                          </div>
                           <span
-                            className={etapa.colorClass + " rounded px-1.5 py-0.5 font-semibold uppercase truncate"}
-                            style={{ fontSize: 11, letterSpacing: "0.04em" }}
-                          >
-                            {etapa.label}
-                          </span>
-                          <span
-                            className="rounded-full bg-muted text-muted-foreground font-medium px-2 py-0.5"
+                            className="rounded-full bg-primary/10 text-primary font-semibold px-2 py-0.5 tabular-nums"
                             style={{ fontSize: 10 }}
                           >
                             {items.length}
