@@ -75,7 +75,6 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
   };
 
   const etapaIdx = ETAPA_ORDER.indexOf(contrato.etapa_atual as any);
-  const progressPct = etapaIdx >= 0 ? Math.round(((etapaIdx + 1) / ETAPA_ORDER.length) * 100) : 0;
   const updateMutation = useUpdateContrato();
   const ultimaMov = getUltimaMovimentacaoAt(contrato as any);
   const propostaVencida = isPropostaVencida(contrato as any);
@@ -87,7 +86,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
     <div
       ref={setNodeRef}
       style={{ ...style }}
-      className={`relative rounded-md border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/50 hover:shadow-md transition-all overflow-hidden ${propostaVencida ? "border-red-500 ring-1 ring-red-500/40 animate-pulse" : ""}`}
+      className={`relative rounded-lg border bg-card space-y-1 shadow-sm cursor-pointer hover:border-primary/60 hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden ${propostaVencida ? "border-destructive ring-1 ring-destructive/40 animate-pulse" : ""}`}
     >
       <div style={{ padding: "8px 10px" }} className="space-y-1.5">
         <div className="flex items-center gap-1">
@@ -199,12 +198,19 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
         </div>
       </div>
 
-      {/* Barra de progresso das etapas */}
-      <div className="h-1 bg-muted/60" aria-hidden>
-        <div
-          className="h-full bg-primary transition-all"
-          style={{ width: `${progressPct}%` }}
-        />
+      {/* Progresso por etapa (8 segmentos) */}
+      <div
+        className="flex gap-[2px] px-1.5 pb-1.5 pt-0.5"
+        aria-label={`Etapa ${etapaIdx + 1} de ${ETAPA_ORDER.length}`}
+      >
+        {ETAPA_ORDER.map((_, i) => (
+          <span
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-colors ${
+              i <= etapaIdx ? "bg-primary" : "bg-muted"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
