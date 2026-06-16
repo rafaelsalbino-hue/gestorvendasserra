@@ -15,7 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    --primary: 215 80% 45%;
+    /* FIESC primary #003DA5 */
+    --primary: 214 100% 32%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 15% 93%;
@@ -32,29 +33,37 @@
 
     --border: 214 20% 88%;
     --input: 214 20% 88%;
-    --ring: 215 80% 45%;
+    --ring: 214 100% 32%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 215 30% 18%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 215 80% 55%;
+    /* FIESC sidebar #001F6B */
+    --sidebar-background: 222 100% 21%;
+    --sidebar-foreground: 210 25% 92%;
+    --sidebar-primary: 210 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 25% 25%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 215 80% 55%;
+    --sidebar-accent: 222 60% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 50% 30%;
+    --sidebar-ring: 210 100% 65%;
+
+    /* App shell tokens */
+    --topbar-background: 214 100% 32%;
+    --topbar-foreground: 0 0% 100%;
+    --topbar-border: 214 100% 28%;
 
     /* Custom tokens */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     --success: 160 60% 42%;
     --success-foreground: 0 0% 100%;
-    --info: 215 80% 55%;
+    --info: 214 100% 45%;
     --info-foreground: 0 0% 100%;
+    --brand-orange: 22 100% 50%;
+    --brand-orange-foreground: 0 0% 100%;
 
     /* Pipeline step colors */
-    --step-pj: 215 80% 45%;
+    --step-pj: 214 100% 32%;
     --step-supervisor: 262 52% 47%;
     --step-backoffice: 38 92% 50%;
     --step-secretaria: 340 65% 47%;
