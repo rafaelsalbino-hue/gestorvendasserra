@@ -10,6 +10,7 @@ export type NotificacaoWhatsapp = {
   mensagem: string | null;
   status: string | null;
   erro: string | null;
+  origem: string | null;
   created_at: string;
 };
 
