@@ -569,34 +569,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 />
                 FINALIZADO (avança para RPC/Execução)
               </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!canEdit("supervisor")}
-                  onClick={() => {
-                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
-                    toast({ title: "Notificação enviada ao Backoffice" });
-                  }}
-                >
-                  Notificar Backoffice
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-[#003DA5] hover:bg-[#003095]"
-                  disabled={!canEdit("supervisor")}
-                  onClick={() => {
-                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
-                    toast({ title: "Notificação enviada via WhatsApp" });
-                  }}
-                >
-                  <Send className="mr-1.5 h-3.5 w-3.5" />
-                  ENVIAR NOTIFICAÇÃO
-                </Button>
-              </div>
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="supervisor" etapaLabel="Supervisor" disabled={!canEdit("supervisor")} />
           </div>
 
           {/* Etapa 3 - RPC */}
