@@ -1,0 +1,1 @@
+ALTER TABLE public.notificacoes_whatsapp ADD COLUMN IF NOT EXISTS origem varchar(20) NOT NULL DEFAULT 'automatico';
