@@ -26,13 +26,13 @@ function maskNumber(num: string | null) {
 
 function StatusBadge({ status }: { status: string | null }) {
   if (status === "enviado") {
-    return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 gap-1"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>;
+    return <Badge variant="green" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Enviado</Badge>;
   }
   if (status === "falhou") {
-    return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 gap-1"><XCircle className="h-3 w-3" /> Falhou</Badge>;
+    return <Badge variant="red" className="gap-1"><XCircle className="h-3 w-3" /> Falhou</Badge>;
   }
   if (status === "sem_numero") {
-    return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 gap-1"><AlertTriangle className="h-3 w-3" /> Sem número</Badge>;
+    return <Badge variant="amber" className="gap-1"><AlertTriangle className="h-3 w-3" /> Sem número</Badge>;
   }
   if (status === "api_nao_configurada") {
     return <Badge variant="outline" className="gap-1"><AlertTriangle className="h-3 w-3" /> API não configurada</Badge>;
@@ -59,7 +59,7 @@ export function NotificacoesWhatsapp({ contratoId }: { contratoId: string }) {
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium hover:bg-muted/50 rounded-lg"
       >
         <span className="flex items-center gap-2">
-          <Smartphone className="h-4 w-4 text-[#003DA5]" />
+          <Smartphone className="h-4 w-4 text-primary" />
           📱 Notificações enviadas
         </span>
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
