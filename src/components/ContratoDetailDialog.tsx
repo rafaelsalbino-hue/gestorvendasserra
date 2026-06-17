@@ -284,6 +284,27 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const handleSave = () => doSave();
 
+  const [sendingNotif, setSendingNotif] = useState(false);
+  const handleSendNotif = async () => {
+    if (!form.etapa_atual) return;
+    setSendingNotif(true);
+    try {
+      await notifyEtapaWhatsapp({
+        contratoId: contrato.id,
+        novaEtapa: form.etapa_atual as string,
+        etapaAnterior: contrato.etapa_atual,
+      });
+      toast({
+        title: "Notificação enviada",
+        description: "Os responsáveis da etapa atual foram notificados via WhatsApp.",
+      });
+    } catch (e: any) {
+      toast({ title: "Falha ao enviar", description: e?.message ?? "Erro inesperado", variant: "destructive" });
+    } finally {
+      setSendingNotif(false);
+    }
+  };
+
   const handleSaveAndNext = () => {
     if (!nextEtapa) return;
     const faltantes = validarEtapaParaAvancar(form, form.etapa_atual as EtapaContrato);
