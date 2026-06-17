@@ -21,7 +21,7 @@ export async function notifyEtapaWhatsapp(params: {
         .maybeSingle();
       nome = perfil?.nome ?? null;
     }
-    supabase.functions
+    return await supabase.functions
       .invoke("enviar-whatsapp", {
         body: {
           contrato_id: params.contratoId,
@@ -33,8 +33,10 @@ export async function notifyEtapaWhatsapp(params: {
       })
       .catch((err) => {
         console.warn("Notificação WhatsApp não enviada:", err);
+        return { data: null, error: err };
       });
   } catch (err) {
     console.warn("Notificação WhatsApp não enviada:", err);
+    return { data: null, error: err };
   }
 }
