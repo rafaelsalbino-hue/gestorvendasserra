@@ -133,7 +133,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const [showAllComments, setShowAllComments] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState("");
-  const [sendingNotif, setSendingNotif] = useState(false);
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
   const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
 
@@ -285,26 +284,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   };
 
   const handleSave = () => doSave();
-
-  const handleSendNotif = async () => {
-    if (!form.etapa_atual) return;
-    setSendingNotif(true);
-    try {
-      await notifyEtapaWhatsapp({
-        contratoId: contrato.id,
-        novaEtapa: form.etapa_atual as string,
-        etapaAnterior: contrato.etapa_atual,
-      });
-      toast({
-        title: "Notificação enviada",
-        description: "Os responsáveis da etapa atual foram notificados via WhatsApp.",
-      });
-    } catch (e: any) {
-      toast({ title: "Falha ao enviar", description: e?.message ?? "Erro inesperado", variant: "destructive" });
-    } finally {
-      setSendingNotif(false);
-    }
-  };
 
   const handleSaveAndNext = () => {
     if (!nextEtapa) return;
@@ -941,16 +920,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
               {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSendNotif}
-              disabled={sendingNotif || !currentUser}
-              className="w-full sm:w-auto"
-              title="Reenviar notificação WhatsApp aos responsáveis da etapa atual"
-            >
-              {sendingNotif ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Enviar notificação
             </Button>
             {!isLastEtapa && nextEtapa && (
               <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
