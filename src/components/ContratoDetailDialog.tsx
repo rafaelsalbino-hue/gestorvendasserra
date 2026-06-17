@@ -32,6 +32,7 @@ import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
 import { Switch } from "@/components/ui/switch";
 import { FaturamentosParciais } from "@/components/FaturamentosParciais";
 import { NotificacoesWhatsapp } from "@/components/NotificacoesWhatsapp";
+import { NotifyEtapaBlock } from "@/components/NotifyEtapaBlock";
 import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -132,7 +133,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const [showAllComments, setShowAllComments] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState("");
-  const [sendingNotif, setSendingNotif] = useState(false);
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
   const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
 
@@ -284,26 +284,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   };
 
   const handleSave = () => doSave();
-
-  const handleSendNotif = async () => {
-    if (!form.etapa_atual) return;
-    setSendingNotif(true);
-    try {
-      await notifyEtapaWhatsapp({
-        contratoId: contrato.id,
-        novaEtapa: form.etapa_atual as string,
-        etapaAnterior: contrato.etapa_atual,
-      });
-      toast({
-        title: "Notificação enviada",
-        description: "Os responsáveis da etapa atual foram notificados via WhatsApp.",
-      });
-    } catch (e: any) {
-      toast({ title: "Falha ao enviar", description: e?.message ?? "Erro inesperado", variant: "destructive" });
-    } finally {
-      setSendingNotif(false);
-    }
-  };
 
   const handleSaveAndNext = () => {
     if (!nextEtapa) return;
@@ -469,6 +449,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
               <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="proposta" etapaLabel="Proposta / CRM" />
           </div>
 
           {/* Anexos da Proposta */}
@@ -567,34 +548,8 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 />
                 FINALIZADO (avança para RPC/Execução)
               </label>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!canEdit("supervisor")}
-                  onClick={() => {
-                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
-                    toast({ title: "Notificação enviada ao Backoffice" });
-                  }}
-                >
-                  Notificar Backoffice
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-[#003DA5] hover:bg-[#003095]"
-                  disabled={!canEdit("supervisor")}
-                  onClick={() => {
-                    notifyEtapaWhatsapp({ contratoId: contrato.id, novaEtapa: "supervisor", etapaAnterior: contrato.etapa_atual });
-                    toast({ title: "Notificação enviada via WhatsApp" });
-                  }}
-                >
-                  <Send className="mr-1.5 h-3.5 w-3.5" />
-                  ENVIAR NOTIFICAÇÃO
-                </Button>
-              </div>
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="supervisor" etapaLabel="Supervisor" disabled={!canEdit("supervisor")} />
           </div>
 
           {/* Etapa 3 - RPC */}
@@ -665,6 +620,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 disabled={!canEdit("rpc")}
               />
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="rpc" etapaLabel="RPC / Execução" disabled={!canEdit("rpc")} />
           </div>
 
           {/* Etapa 3 - Status RPC */}
@@ -680,6 +636,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 <Textarea className="text-sm min-h-[60px]" value={form.observacao_terceiro || ""} onChange={(e) => set("observacao_terceiro", e.target.value)} disabled={!canEdit("execucao")} />
               </div>
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="execucao" etapaLabel="Status RPC / Execução" disabled={!canEdit("execucao")} />
           </div>
 
           {/* Etapa 4 - Matrícula */}
@@ -700,6 +657,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               allowMultiple
               disabled={!canEdit("matricula")}
             />
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="matricula" etapaLabel="Matrícula / Dados" disabled={!canEdit("matricula")} />
           </div>
 
           {/* Etapa 5 - Ensalamento */}
@@ -709,6 +667,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("ensalamento")} />
             </div>
             <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canStatus("ensalamento")} />
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="ensalamento" etapaLabel="PCP / Ensalamento" disabled={!canEdit("ensalamento")} />
           </div>
 
           {/* Etapa 6 - Faturamento */}
@@ -770,6 +729,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 </>
               )}
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="faturamento" etapaLabel="Faturamento" disabled={!canEdit("faturamento")} />
+            {(contrato as any).finalized_at && (
+              <NotifyEtapaBlock contratoId={contrato.id} etapa="finalizado" etapaLabel="Finalizado" />
+            )}
           </div>
 
           {/* Comentários */}
@@ -957,16 +920,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             <Button variant="outline" onClick={handleSave} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
               {updateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Salvar
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSendNotif}
-              disabled={sendingNotif || !currentUser}
-              className="w-full sm:w-auto"
-              title="Reenviar notificação WhatsApp aos responsáveis da etapa atual"
-            >
-              {sendingNotif ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              Enviar notificação
             </Button>
             {!isLastEtapa && nextEtapa && (
               <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">

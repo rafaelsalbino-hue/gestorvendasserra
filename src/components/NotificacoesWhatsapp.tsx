@@ -82,6 +82,7 @@ export function NotificacoesWhatsapp({ contratoId }: { contratoId: string }) {
                   <tr className="text-left text-xs text-muted-foreground border-b">
                     <th className="py-2 pr-2 font-medium">Destinatário</th>
                     <th className="py-2 pr-2 font-medium">Etapa</th>
+                    <th className="py-2 pr-2 font-medium">Origem</th>
                     <th className="py-2 pr-2 font-medium">Data/hora</th>
                     <th className="py-2 pr-2 font-medium">Status</th>
                   </tr>
@@ -94,6 +95,13 @@ export function NotificacoesWhatsapp({ contratoId }: { contratoId: string }) {
                         <div className="text-xs text-muted-foreground">{maskNumber(n.numero_destinatario)}</div>
                       </td>
                       <td className="py-2 pr-2">{ETAPA_LABELS[n.etapa_destino ?? ""] ?? n.etapa_destino ?? "—"}</td>
+                      <td className="py-2 pr-2">
+                        {n.origem === "manual" ? (
+                          <Badge variant="outline" className="text-[10px]">Manual</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px]">Automático</Badge>
+                        )}
+                      </td>
                       <td className="py-2 pr-2 whitespace-nowrap">
                         {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
                       </td>

@@ -496,6 +496,7 @@ export type Database = {
           id: string
           mensagem: string | null
           numero_destinatario: string | null
+          origem: string
           status: string | null
         }
         Insert: {
@@ -507,6 +508,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           numero_destinatario?: string | null
+          origem?: string
           status?: string | null
         }
         Update: {
@@ -518,6 +520,7 @@ export type Database = {
           id?: string
           mensagem?: string | null
           numero_destinatario?: string | null
+          origem?: string
           status?: string | null
         }
         Relationships: [

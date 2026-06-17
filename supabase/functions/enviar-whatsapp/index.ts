@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
     const contrato_id: string | undefined = body.contrato_id ?? body.processo_id;
     const etapa_destino: string | undefined = body.etapa_destino;
     const usuario_atual_nome: string = body.usuario_atual_nome ?? "Sistema";
+    const origem: string = body.origem === "manual" ? "manual" : "automatico";
 
     if (!contrato_id || !etapa_destino) {
       return new Response(JSON.stringify({ error: "contrato_id e etapa_destino são obrigatórios" }), {
@@ -207,6 +208,7 @@ Deno.serve(async (req) => {
         etapa_destino,
         status: "api_nao_configurada",
         erro: "ZAPI_INSTANCE_ID/ZAPI_TOKEN não configurados",
+        origem,
       });
       return new Response(JSON.stringify({ warning: "Z-API não configurada" }), {
         status: 200,
@@ -234,6 +236,7 @@ Deno.serve(async (req) => {
         etapa_destino,
         status: "sem_numero",
         erro: "Nenhum responsável com WhatsApp cadastrado para esta etapa",
+        origem,
       });
       return new Response(JSON.stringify({ warning: "Sem destinatários" }), {
         status: 200,
@@ -311,6 +314,7 @@ Deno.serve(async (req) => {
         mensagem,
         status: statusEnvio,
         erro: erroEnvio,
+        origem,
       });
 
       resultados.push({ numero, nome: dest.nome, status: statusEnvio });
