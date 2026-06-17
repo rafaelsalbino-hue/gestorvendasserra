@@ -132,6 +132,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const [showAllComments, setShowAllComments] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteMotivo, setDeleteMotivo] = useState("");
+  const [sendingNotif, setSendingNotif] = useState(false);
   const { data: historico = [] } = useContratosHistorico(showHistory ? contrato?.id : undefined);
   const { data: comentarios = [] } = useContratoComentarios(showComments ? contrato?.id : undefined);
 
@@ -284,7 +285,6 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
 
   const handleSave = () => doSave();
 
-  const [sendingNotif, setSendingNotif] = useState(false);
   const handleSendNotif = async () => {
     if (!form.etapa_atual) return;
     setSendingNotif(true);
