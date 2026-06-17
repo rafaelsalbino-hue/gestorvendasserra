@@ -750,6 +750,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 </>
               )}
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="faturamento" etapaLabel="Faturamento" disabled={!canEdit("faturamento")} />
+            {(contrato as any).finalized_at && (
+              <NotifyEtapaBlock contratoId={contrato.id} etapa="finalizado" etapaLabel="Finalizado" />
+            )}
           </div>
 
           {/* Comentários */}
