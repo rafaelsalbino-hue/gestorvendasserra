@@ -641,6 +641,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 disabled={!canEdit("rpc")}
               />
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="rpc" etapaLabel="RPC / Execução" disabled={!canEdit("rpc")} />
           </div>
 
           {/* Etapa 3 - Status RPC */}
@@ -656,6 +657,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                 <Textarea className="text-sm min-h-[60px]" value={form.observacao_terceiro || ""} onChange={(e) => set("observacao_terceiro", e.target.value)} disabled={!canEdit("execucao")} />
               </div>
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="execucao" etapaLabel="Status RPC / Execução" disabled={!canEdit("execucao")} />
           </div>
 
           {/* Etapa 4 - Matrícula */}
@@ -676,6 +678,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               allowMultiple
               disabled={!canEdit("matricula")}
             />
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="matricula" etapaLabel="Matrícula / Dados" disabled={!canEdit("matricula")} />
           </div>
 
           {/* Etapa 5 - Ensalamento */}
@@ -685,6 +688,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <SectionLock locked={!canEdit("ensalamento")} />
             </div>
             <StatusSelect label="Ensalamento PCP" value={form.ensalamento_pcp || ""} options={STATUS_OPTIONS.ensalamento_pcp} onChange={(v) => set("ensalamento_pcp", v)} disabled={!canStatus("ensalamento")} />
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="ensalamento" etapaLabel="PCP / Ensalamento" disabled={!canEdit("ensalamento")} />
           </div>
 
           {/* Etapa 6 - Faturamento */}
