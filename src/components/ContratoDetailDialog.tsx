@@ -32,6 +32,7 @@ import { DiasSemanaSelect } from "@/components/DiasSemanaSelect";
 import { Switch } from "@/components/ui/switch";
 import { FaturamentosParciais } from "@/components/FaturamentosParciais";
 import { NotificacoesWhatsapp } from "@/components/NotificacoesWhatsapp";
+import { NotifyEtapaBlock } from "@/components/NotifyEtapaBlock";
 import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import type { Tables } from "@/integrations/supabase/types";
 
