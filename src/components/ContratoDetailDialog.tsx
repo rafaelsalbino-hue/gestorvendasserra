@@ -470,6 +470,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
               <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
             </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="proposta" etapaLabel="Proposta / CRM" />
           </div>
 
           {/* Anexos da Proposta */}
