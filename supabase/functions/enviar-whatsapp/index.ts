@@ -83,8 +83,21 @@ async function buildDestinatarios(
   const coordComercial = () => fetchByFuncao(["Coordenador Comercial"]);
 
   const backoffice = () => {
-    const nome = isSaude ? "Ticyane" : "Deborah";
-    return fetchByFuncaoAndNome(["Backoffice", "Backoffice Comercial"], nome);
+    // Cargo segmentado por entidade (Melhoria 3).
+    // Fallback inclui os cargos legados "Backoffice" / "Backoffice Comercial"
+    // filtrados por nome, para garantir compatibilidade enquanto os registros
+    // antigos não forem migrados.
+    const cargoSegmentado = isSenai
+      ? "Backoffice SENAI"
+      : isSaude
+      ? "Backoffice SESI Saúde"
+      : "Backoffice SESI Educação";
+    return fetchByFuncao([cargoSegmentado]).then(async (segmentado) => {
+      if (segmentado.length > 0) return segmentado;
+      // Fallback legado
+      const nome = isSaude ? "Ticyane" : "Deborah";
+      return fetchByFuncaoAndNome(["Backoffice", "Backoffice Comercial"], nome);
+    });
   };
 
   const coordEntidade = () => {

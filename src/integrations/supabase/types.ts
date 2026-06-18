@@ -732,6 +732,9 @@ export type Database = {
         | "Secretaria Escolar"
         | "PCP SESI"
         | "PCP SENAI"
+        | "Backoffice SESI Saúde"
+        | "Backoffice SESI Educação"
+        | "Backoffice SENAI"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -911,6 +914,9 @@ export const Constants = {
         "Secretaria Escolar",
         "PCP SESI",
         "PCP SENAI",
+        "Backoffice SESI Saúde",
+        "Backoffice SESI Educação",
+        "Backoffice SENAI",
       ],
     },
   },

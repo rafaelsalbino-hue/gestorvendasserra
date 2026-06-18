@@ -34,7 +34,11 @@ export type FuncaoResponsavel =
   | "Backoffice"
   | "Secretaria Escolar"
   | "PCP SESI"
-  | "PCP SENAI";
+  | "PCP SENAI"
+  // Backoffice segmentado por entidade
+  | "Backoffice SESI Saúde"
+  | "Backoffice SESI Educação"
+  | "Backoffice SENAI";
 
 export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Agente de Mercado PJ",
@@ -62,6 +66,9 @@ export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   "Coordenador SESI/SENAI",
   // Comercial / Backoffice
   "Analista Comercial",
+  "Backoffice SESI Saúde",
+  "Backoffice SESI Educação",
+  "Backoffice SENAI",
   "Backoffice",
   "Backoffice Comercial",
   // Operacional
@@ -112,6 +119,9 @@ export function isNotificavelRole(funcao: string): boolean {
     "Agente de Mercado PJ",
     "Backoffice",
     "Backoffice Comercial",
+    "Backoffice SESI Saúde",
+    "Backoffice SESI Educação",
+    "Backoffice SENAI",
     "Secretaria",
     "Secretaria Escolar",
     "PCP",
