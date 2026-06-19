@@ -180,6 +180,7 @@ export type Database = {
       contratos: {
         Row: {
           abertura_chamado: string
+          acao_esperada: string | null
           agente_pj_id: string | null
           cadastro_estudantes: string
           cliente: string
@@ -239,6 +240,7 @@ export type Database = {
         }
         Insert: {
           abertura_chamado?: string
+          acao_esperada?: string | null
           agente_pj_id?: string | null
           cadastro_estudantes?: string
           cliente: string
@@ -298,6 +300,7 @@ export type Database = {
         }
         Update: {
           abertura_chamado?: string
+          acao_esperada?: string | null
           agente_pj_id?: string | null
           cadastro_estudantes?: string
           cliente?: string
@@ -678,6 +681,7 @@ export type Database = {
       is_backoffice: { Args: { _user_id: string }; Returns: boolean }
       is_coordenador: { Args: { _user_id: string }; Returns: boolean }
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
+      is_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_vendedor: { Args: { _user_id: string }; Returns: boolean }
       responsavel_id_of: { Args: { _user_id: string }; Returns: string }
     }
