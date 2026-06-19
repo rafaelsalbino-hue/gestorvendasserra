@@ -18,7 +18,7 @@ export type AppRole =
  */
 export function useUserRole() {
   const query = useQuery({
-    queryKey: ["user-roles"],
+    queryKey: ["user-roles", "v2"],
     queryFn: async (): Promise<{ roles: AppRole[]; funcao: string | null }> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return { roles: [], funcao: null };
