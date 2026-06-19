@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     // Busca contrato
     const { data: contrato, error: erroProc } = await supabase
       .from("contratos")
-      .select("id, cliente, entidade, servico_produto, valor")
+      .select("id, cliente, entidade, servico_produto, valor, acao_esperada")
       .eq("id", contrato_id)
       .single();
 
@@ -291,7 +291,9 @@ Deno.serve(async (req) => {
         `• Entidade: ${contrato.entidade ?? "Não informado"}\n` +
         `• Serviço: ${contrato.servico_produto ?? "Não informado"}\n` +
         `• Valor: R$ ${valorFmt}\n` +
-        `• Responsável anterior: ${usuario_atual_nome}\n\n` +
+        `• Responsável anterior: ${usuario_atual_nome}\n` +
+        (contrato.acao_esperada ? `\n🎯 *Ação esperada:* ${contrato.acao_esperada}\n` : "") +
+        `\n` +
         `Acesse o sistema para dar continuidade:\n` +
         `🔗 https://gestorvendasserra.lovable.app\n\n` +
         `_FIESC Serra Catarinense — Gestão RPC Serra_`;

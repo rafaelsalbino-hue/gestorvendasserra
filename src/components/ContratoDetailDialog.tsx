@@ -371,6 +371,13 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
           </div>
         )}
 
+        {(contrato as any).acao_esperada && (
+          <div className="rounded-md border-l-4 border-[#003DA5] bg-[#003DA5]/5 dark:bg-[#003DA5]/10 px-3 py-2 text-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[#003DA5]">Ação esperada agora</div>
+            <div className="mt-0.5 text-foreground">{(contrato as any).acao_esperada}</div>
+          </div>
+        )}
+
         <div className="space-y-6 py-2">
           {/* Dados básicos */}
           <div className="space-y-3">

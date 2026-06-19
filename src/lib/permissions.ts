@@ -11,6 +11,7 @@ export interface RoleFlags {
   isVendedor: boolean;
   isSecretaria: boolean;
   isInterlocutora: boolean;
+  isSupervisor?: boolean;
 }
 
 export interface ContratoLike {
@@ -20,9 +21,9 @@ export interface ContratoLike {
 }
 
 export function canCreateVisita(r: RoleFlags) {
-  // Spec: somente Admin/Gestor, Vendedor (Agente PJ) e Coordenadores podem
+  // Admin/Gestor, Vendedor (Agente PJ), Coordenadores e Supervisores podem
   // criar uma nova visita. Backoffice e Secretaria NÃO podem.
-  return r.isAdmin || r.isGestor || r.isVendedor || r.isCoordenador;
+  return r.isAdmin || r.isGestor || r.isVendedor || r.isCoordenador || !!r.isSupervisor;
 }
 
 export function canImportar(r: RoleFlags) {
@@ -79,6 +80,8 @@ export function canEditContrato(
   if (r.isAdmin || r.isCoordenador) return true;
   if (contrato.finalized_at) return false;
   if (r.isBackoffice) return true;
+  // Supervisores podem editar contratos parados na etapa Supervisor.
+  if (r.isSupervisor && (contrato as any).etapa_atual === "supervisor") return true;
   if (r.isVendedor)
     return !!meResponsavelId && contrato.agente_pj_id === meResponsavelId;
   return false;
