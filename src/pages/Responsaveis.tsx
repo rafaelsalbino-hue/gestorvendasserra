@@ -39,6 +39,25 @@ import { MatrizPermissoesEtapas } from "@/components/MatrizPermissoesEtapas";
 
 type Responsavel = Tables<"responsaveis">;
 
+function AdminTools() {
+  const { isAdmin } = useUserRole();
+  const [zapiOpen, setZapiOpen] = useState(false);
+  const [matrizOpen, setMatrizOpen] = useState(false);
+  if (!isAdmin) return null;
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setZapiOpen(true)}>
+        <Activity className="mr-2 h-4 w-4" />Diagnosticar Z-API
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => setMatrizOpen(true)}>
+        <Shield className="mr-2 h-4 w-4" />Permissões por etapa
+      </Button>
+      <DiagnosticoZapiDialog open={zapiOpen} onOpenChange={setZapiOpen} />
+      <MatrizPermissoesEtapas open={matrizOpen} onOpenChange={setMatrizOpen} />
+    </>
+  );
+}
+
 type FormErrors = { nome?: string; email?: string; funcao?: string; whatsapp?: string; entidade?: string; especialidade?: string };
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
