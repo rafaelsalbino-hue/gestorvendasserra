@@ -22,13 +22,33 @@ const ETAPA_LABELS: Record<string, string> = {
   finalizado: "Finalizado",
 };
 
-function onlyDigits(s: string | null | undefined): string {
-  return (s ?? "").replace(/\D/g, "");
+function mask(s: string): string {
+  if (!s) return "";
+  return s.length <= 6 ? s.slice(0, 2) + "***" : s.slice(0, 6) + "...";
 }
 
-function ensureDdi55(num: string): string {
-  if (!num) return num;
-  return num.startsWith("55") ? num : `55${num}`;
+/**
+ * Formata número BR de forma estrita.
+ * - Remove não-dígitos
+ * - Prefixa 55 se faltar
+ * - Insere o "9" de celular quando vier com 12 dígitos (55 + DDD + 8)
+ * - Aceita 12 (fixo) ou 13 (celular) dígitos finais
+ */
+function formatPhoneBR(raw: string | null | undefined): string | null {
+  let digits = (raw ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+
+  if (!digits.startsWith("55")) digits = "55" + digits;
+
+  if (digits.length === 12) {
+    const ddd = parseInt(digits.slice(2, 4), 10);
+    if (ddd >= 11 && ddd <= 99) {
+      digits = digits.slice(0, 4) + "9" + digits.slice(4);
+    }
+  }
+
+  if (digits.length < 12 || digits.length > 13) return null;
+  return digits;
 }
 
 function brl(v: number | null | undefined): string {
