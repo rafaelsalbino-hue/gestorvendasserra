@@ -409,6 +409,39 @@ export type Database = {
           },
         ]
       }
+      etapa_cargo_permissoes: {
+        Row: {
+          created_at: string
+          etapa: Database["public"]["Enums"]["etapa_contrato"]
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id: string
+          pode_avancar: boolean
+          pode_criar: boolean
+          pode_editar: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          etapa: Database["public"]["Enums"]["etapa_contrato"]
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          pode_avancar?: boolean
+          pode_criar?: boolean
+          pode_editar?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          etapa?: Database["public"]["Enums"]["etapa_contrato"]
+          funcao?: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          pode_avancar?: boolean
+          pode_criar?: boolean
+          pode_editar?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       faturamentos_parciais: {
         Row: {
           contrato_id: string
@@ -683,6 +716,14 @@ export type Database = {
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
       is_supervisor: { Args: { _user_id: string }; Returns: boolean }
       is_vendedor: { Args: { _user_id: string }; Returns: boolean }
+      pode_lancar_etapa: {
+        Args: {
+          _acao: string
+          _etapa: Database["public"]["Enums"]["etapa_contrato"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       responsavel_id_of: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
