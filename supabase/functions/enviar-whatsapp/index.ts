@@ -185,6 +185,64 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ========================================================================
+    // GET ?action=status — diagnóstico Z-API sem autenticação Supabase
+    // Não envia mensagem; só consulta o status da instância e dos secrets.
+    // ========================================================================
+    const reqUrl = new URL(req.url);
+    if (req.method === "GET" || reqUrl.searchParams.get("action") === "status") {
+      const secretsLoaded = {
+        ZAPI_INSTANCE_ID: !!ZAPI_INSTANCE_ID,
+        ZAPI_TOKEN: !!ZAPI_TOKEN,
+        ZAPI_CLIENT_TOKEN: !!ZAPI_CLIENT_TOKEN,
+      };
+      const secretsPreview = {
+        ZAPI_INSTANCE_ID: mask(ZAPI_INSTANCE_ID),
+        ZAPI_TOKEN: mask(ZAPI_TOKEN),
+        ZAPI_CLIENT_TOKEN: mask(ZAPI_CLIENT_TOKEN),
+      };
+      let instanceStatus: unknown = null;
+      let statusHttp = 0;
+      let statusError: string | null = null;
+      if (ZAPI_INSTANCE_ID && ZAPI_TOKEN) {
+        try {
+          const statusUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`;
+          const headers: Record<string, string> = {};
+          if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
+          const r = await fetch(statusUrl, { headers });
+          statusHttp = r.status;
+          instanceStatus = await r.json().catch(() => ({}));
+        } catch (err) {
+          statusError = String(err).slice(0, 500);
+        }
+      } else {
+        statusError = "Secrets ZAPI_INSTANCE_ID/ZAPI_TOKEN ausentes";
+      }
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          secretsLoaded,
+          secretsPreview,
+          httpStatus: statusHttp,
+          instanceStatus,
+          statusError,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ========================================================================
+    // Check de secrets ANTES de qualquer envio
+    // ========================================================================
+    console.log("[Z-API] Secrets check:", {
+      hasInstanceId: !!ZAPI_INSTANCE_ID,
+      instanceIdPreview: mask(ZAPI_INSTANCE_ID),
+      hasToken: !!ZAPI_TOKEN,
+      tokenPreview: mask(ZAPI_TOKEN),
+      hasClientToken: !!ZAPI_CLIENT_TOKEN,
+      clientTokenPreview: mask(ZAPI_CLIENT_TOKEN),
+    });
+
     // Autenticação
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) {
@@ -252,16 +310,19 @@ Deno.serve(async (req) => {
     // Destinatários por etapa+entidade (regras do fluxo Visita → Finalizado)
     const brutos = await buildDestinatarios(supabase, etapa_destino, String(contrato.entidade ?? ""));
 
-    // Dedup por número + filtro de WhatsApp válido
+    // Formata + dedupe por número final
     const seen = new Set<string>();
-    const destinatarios = brutos
-      .map((r) => ({ nome: r.nome ?? "Responsável", numero: onlyDigits(r.whatsapp) }))
-      .filter((r) => {
-        if (r.numero.length < 10) return false;
-        if (seen.has(r.numero)) return false;
-        seen.add(r.numero);
-        return true;
-      });
+    const destinatarios: Array<{ nome: string; numero: string }> = [];
+    for (const r of brutos) {
+      const numero = formatPhoneBR(r.whatsapp);
+      if (!numero) {
+        console.warn("[Z-API] Telefone inválido descartado:", { nome: r.nome, whatsapp_raw: r.whatsapp });
+        continue;
+      }
+      if (seen.has(numero)) continue;
+      seen.add(numero);
+      destinatarios.push({ nome: r.nome ?? "Responsável", numero });
+    }
 
     if (destinatarios.length === 0) {
       await supabase.from("notificacoes_whatsapp").insert({
@@ -286,7 +347,7 @@ Deno.serve(async (req) => {
     const resultados: Array<{ numero: string; nome: string; status: string }> = [];
 
     for (const dest of destinatarios) {
-      const numero = ensureDdi55(dest.numero);
+      const numero = dest.numero;
 
       const { data: dup } = await supabase
         .from("notificacoes_whatsapp")
@@ -320,6 +381,7 @@ Deno.serve(async (req) => {
 
       let statusEnvio = "falhou";
       let erroEnvio: string | null = null;
+      let zaapId: string | null = null;
 
       try {
         const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
@@ -332,13 +394,26 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ phone: numero, message: mensagem }),
         });
         const json = await resp.json().catch(() => ({}));
-        if (resp.ok) {
+
+        // Logs completos para diagnóstico
+        console.log("[Z-API] HTTP Status:", resp.status);
+        console.log("[Z-API] Response body:", JSON.stringify(json));
+        console.log("[Z-API] Phone sent:", numero);
+        console.log("[Z-API] Message preview:", mensagem.slice(0, 80));
+
+        // Z-API retorna 200 mesmo em falha silenciosa.
+        // Sucesso real = HTTP 200 + zaapId presente no body.
+        const realSuccess = resp.ok && !!(json as any)?.zaapId;
+        if (realSuccess) {
           statusEnvio = "enviado";
+          zaapId = String((json as any).zaapId);
         } else {
-          erroEnvio = JSON.stringify(json).slice(0, 1000);
+          erroEnvio = `HTTP ${resp.status} | body=${JSON.stringify(json).slice(0, 800)}`;
+          console.error("[Z-API] Falha (sem zaapId):", erroEnvio);
         }
       } catch (err) {
         erroEnvio = String(err).slice(0, 1000);
+        console.error("[Z-API] Exceção no fetch:", erroEnvio);
       }
 
       await supabase.from("notificacoes_whatsapp").insert({
@@ -352,7 +427,7 @@ Deno.serve(async (req) => {
         origem,
       });
 
-      resultados.push({ numero, nome: dest.nome, status: statusEnvio });
+      resultados.push({ numero, nome: dest.nome, status: statusEnvio, zaapId: zaapId ?? undefined, erro: erroEnvio ?? undefined } as any);
     }
 
     return new Response(JSON.stringify({ ok: true, resultados }), {
