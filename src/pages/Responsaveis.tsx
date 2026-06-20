@@ -16,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download, Smartphone } from "lucide-react";
+import { Plus, Trash2, Mail, UserCircle, Loader2, Pencil, Download, Smartphone, Activity, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -33,6 +33,9 @@ import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hook
 import { useUpdateResponsavel } from "@/hooks/useUpdateResponsavel";
 import { exportResponsaveisToXlsx } from "@/lib/export";
 import type { Tables } from "@/integrations/supabase/types";
+import { useUserRole } from "@/hooks/useUserRole";
+import { DiagnosticoZapiDialog } from "@/components/DiagnosticoZapiDialog";
+import { MatrizPermissoesEtapas } from "@/components/MatrizPermissoesEtapas";
 
 type Responsavel = Tables<"responsaveis">;
 
@@ -265,6 +268,7 @@ const Responsaveis = () => {
             >
               <Download className="mr-2 h-4 w-4" />Exportar
             </Button>
+            <AdminTools />
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="mr-2 h-4 w-4" />Novo Responsável</Button>
