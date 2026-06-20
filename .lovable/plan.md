@@ -1,45 +1,76 @@
-## Onda 3 — Melhoria 4 + Expansão de Permissões
+# Onda 4 + Diagnóstico Z-API
 
-### Parte A — Expansão de permissões (novo, pedido nesta rodada)
+Duas frentes na mesma rodada.
 
-**Objetivo:** Coordenadores e Supervisores também podem (1) criar visitas e (2) editar/avançar contratos na etapa "Supervisor".
+## Frente A — Debug Z-API (mensagens não chegam)
 
-**Banco**
-- Nova função `public.is_supervisor(_user_id uuid)` (SECURITY DEFINER) — retorna `true` se o responsável vinculado ao user tem `funcao` começando com `'Supervisor'`.
-- Atualizar `public.can_edit_contrato`: permitir quando `is_supervisor(uid)` E `etapa_atual = 'supervisor'` (ou o supervisor for o `agente_pj_id`? — apenas por etapa, sem restrição extra, conforme pedido).
-- Política RLS de INSERT em `contratos` já é aberta para autenticados — sem mudança.
+Hoje `enviar-whatsapp` grava `status='enviado'` sempre que HTTP=200, mas a Z-API retorna 200 mesmo quando não enfileira a mensagem (sem `zaapId`). Por isso o app diz "enviado" e nada chega.
 
-**Frontend**
-- `useUserRole`: expor `isSupervisor` (via query em `responsaveis.funcao` do user logado — usa `responsavel_id_of` ou join simples).
-- `permissions.ts`:
-  - `canCreateVisita`: incluir `isSupervisor`.
-  - `canEditContrato`: quando contrato.etapa_atual === 'supervisor', permitir supervisor.
-  - `canMoverStatus`: já amplo, sem mudança.
+Mudanças na função `supabase/functions/enviar-whatsapp/index.ts`:
 
-### Parte B — Melhoria 4 (escopo original)
+1. **Check de secrets no topo** com preview mascarado dos 3 (ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN). Retorna 500 se faltar algum.
+2. **Logs completos por destinatário** antes do envio: status HTTP, body bruto, telefone formatado, preview da mensagem.
+3. **Sucesso real = HTTP 200 + `zaapId` presente.** Sem `zaapId` → grava `status='falhou'`, erro inclui o body retornado pela Z-API.
+4. **`formatPhoneBR` estrito**: remove não-dígitos, prefixa `55`, insere o `9` quando vier com 12 dígitos (celular BR), valida 12–13 dígitos, retorna `null` se inválido. Substitui o `onlyDigits`+`ensureDdi55` atual.
+5. **Endpoint GET `?action=status`**: chama `https://api.z-api.io/instances/{id}/token/{tok}/status` com `Client-Token` e devolve `{ instanceStatus, smartphoneConnected, secretsLoaded }`. Sem auth (mantém `verify_jwt=false`).
+6. **Retorno enriquecido**: por destinatário devolve `{ numero, nome, status, zaapId?, erro? }` para o frontend exibir.
 
-**B1. Campo `acao_esperada` em `contratos`**
-- Migration: `ALTER TABLE contratos ADD COLUMN acao_esperada text;`
-- Atualizado automaticamente por trigger conforme a etapa atual + status, descrevendo "o que se espera agora" (ex.: "Aguardando proposta do Agente PJ", "Aguardando aprovação do Supervisor", "Aguardando emissão de RPC").
-- Mostrado no `ContratoDetailDialog` (card destacado azul #003DA5) e nas linhas da tabela em `Contratos.tsx`.
+Frontend:
 
-**B2. Automação Visita → Proposta**
-- Trigger: ao mudar `dados_proposta` para `'Dados entregues'` em uma visita (etapa_atual='visita'), avançar automaticamente para `etapa_atual='proposta'` e disparar notificação WhatsApp.
+- `src/lib/whatsappNotify.ts`: deixa de ser totalmente silencioso. Após cada `invoke`, conta `enviados` / `falhou` / `duplicado` e dispara `toast.success` ou `toast.error` com resumo "X enviados, Y falharam" (link "ver detalhes" abre console). Mantém try/catch para nunca quebrar fluxo.
+- Novo botão **"Diagnosticar Z-API"** no topo da página `/responsaveis` (só para admin/gestor): chama o GET `?action=status` via `supabase.functions.invoke('enviar-whatsapp', { method: 'GET' })`, abre `Dialog` mostrando: status da instância, smartphoneConnected, e check (✅/❌) de cada secret carregado.
 
-**B3. Blocos internos "Status RPC" e "Ensalamento"**
-- Reorganizar `ContratoDetailDialog`: dentro da etapa **RPC/Execução** mostrar bloco "Status RPC" (status_rpc + numero_rpc + info_execucao); dentro de **Ensalamento** mostrar bloco "Ensalamento" (ensalamento_pcp + abertura_chamado + numero_chamado).
-- Sem alterar nomes ou quantidade das 8 etapas.
+## Frente B — Matriz admin de permissões por etapa
 
-**B4. Template WhatsApp expandido**
-- Atualizar `enviar-whatsapp/index.ts` para incluir no corpo da mensagem: nome do cliente, etapa anterior → nova etapa, `acao_esperada` calculada, link direto do contrato. Origem (manual/automático) já é registrada.
+Hoje as permissões estão hard-coded em `src/lib/permissions.ts` + funções SQL. O admin precisa ligar/desligar cargos por etapa sem nova deploy.
 
-### Arquivos esperados
-- 1 migration SQL (is_supervisor, can_edit_contrato, acao_esperada coluna+trigger, trigger visita→proposta)
-- `src/hooks/useUserRole.ts`, `src/lib/permissions.ts`
-- `src/components/ContratoDetailDialog.tsx` (blocos + card acao_esperada)
-- `src/pages/Contratos.tsx` (coluna/badge acao_esperada — opcional, leve)
-- `supabase/functions/enviar-whatsapp/index.ts` (template)
+**Modelo (granular como sugerido):** uma linha por (etapa, função) com 3 flags `pode_criar`, `pode_editar`, `pode_avancar`. Cobre os 3 verbos sem explodir em tabelas separadas.
 
-### Confirmações antes de executar
-1. **Supervisor edita contrato em qualquer etapa "supervisor", ou só os contratos do seu segmento (SESI/SENAI/Saúde)?** — proponho **qualquer contrato na etapa supervisor**, sem filtro por entidade, para casar com o pedido literal. Posso refinar depois.
-2. **`acao_esperada` calculada por trigger no banco (sempre consistente)** ou **derivada no frontend (mais flexível)**? — proponho **trigger no banco** para garantir consistência com notificações WhatsApp.
+Nova migration:
+
+```sql
+CREATE TABLE public.etapa_cargo_permissoes (
+  id uuid PK,
+  etapa etapa_contrato NOT NULL,
+  funcao funcao_responsavel NOT NULL,
+  pode_criar boolean DEFAULT false,
+  pode_editar boolean DEFAULT false,
+  pode_avancar boolean DEFAULT false,
+  UNIQUE(etapa, funcao)
+);
+```
+
+- GRANT padrão + `service_role` + `anon` negado.
+- RLS: SELECT para `authenticated`; INSERT/UPDATE/DELETE só para `is_admin(auth.uid())`.
+- Seed: replica permissões atuais (todos supervisores+coordenadores com `pode_criar/editar/avancar` em `visita` e `supervisor`; backoffice em rpc/execucao; secretaria em matricula; PCP em ensalamento; financeiro em faturamento; agente PJ em visita/proposta).
+
+Funções SQL:
+
+- `public.pode_lancar_etapa(_user_id uuid, _etapa etapa_contrato, _acao text)` — consulta a matriz pela `funcao` do usuário em `responsaveis`. SECURITY DEFINER.
+- `can_edit_contrato` atualizada: admin/gestor/backoffice/agente-dono continuam liberados (compatibilidade); demais usam `pode_lancar_etapa(uid, etapa_atual, 'editar')`. Mantém `is_supervisor` como atalho.
+
+Frontend:
+
+- `src/hooks/usePermissoesEtapa.ts` — query + mutations (toggle flag).
+- `src/lib/permissions.ts` — `canCreateVisita` e `canEditContrato` passam a aceitar matriz (carregada em `useUserRole`); fallback para regras atuais se matriz vazia.
+- Nova aba **"Permissões"** dentro de `/responsaveis` (segmento ao lado da lista): grid Cargos (linhas, todas as `FUNCOES_RESPONSAVEL`) × Etapas (colunas, as 8 do pipeline). Cada célula é um `Popover` com 3 `Switch` (criar/editar/avançar). Header mostra contagem "X cargos ativos nesta etapa". Só admin/gestor vê e edita.
+- Toast confirma cada alteração; mutation invalida cache.
+
+## Plano de execução
+
+1. Migration matriz (Frente B SQL) → aguarda aprovação.
+2. Após approve: edge function `enviar-whatsapp` reescrita + `whatsappNotify.ts` + botão diagnóstico (Frente A completa).
+3. Hook `usePermissoesEtapa` + `permissions.ts` atualizado + aba Permissões em `/responsaveis` (Frente B UI).
+4. Smoke test: envio WhatsApp (verifica zaapId nos logs), toggle de permissão (cargo desligado perde botão de editar).
+
+## Arquivos afetados
+
+- `supabase/migrations/<novo>.sql` (matriz + seed + função `pode_lancar_etapa` + update `can_edit_contrato`)
+- `supabase/functions/enviar-whatsapp/index.ts` (reescrita)
+- `src/lib/whatsappNotify.ts` (toast com resumo)
+- `src/hooks/usePermissoesEtapa.ts` (novo)
+- `src/hooks/useUserRole.ts` (expor matriz se necessário)
+- `src/lib/permissions.ts` (consulta matriz)
+- `src/pages/Responsaveis.tsx` (botão diagnóstico + aba Permissões)
+- `src/components/DiagnosticoZapiDialog.tsx` (novo)
+- `src/components/MatrizPermissoesEtapas.tsx` (novo)
