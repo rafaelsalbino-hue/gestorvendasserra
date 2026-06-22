@@ -17,6 +17,7 @@ const Arquivo = lazy(() => import("./pages/Arquivo"));
 const EditarConta = lazy(() => import("./pages/EditarConta"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Auth = lazy(() => import("./pages/Auth"));
+const Seguranca = lazy(() => import("./pages/Seguranca"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<AuthRoute />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/seguranca" element={<Seguranca />} />
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
                   <Route path="/responsaveis" element={<ProtectedRoute><Responsaveis /></ProtectedRoute>} />
