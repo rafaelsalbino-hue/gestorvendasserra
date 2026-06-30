@@ -1,25 +1,18 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Z-API
-const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID") ?? "";
-const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN") ?? "";
-const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN") ?? "";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const ETAPA_LABELS: Record<string, string> = {
-  proposta: "Proposta / CRM",
-  supervisor: "Supervisor",
-  rpc: "RPC / Execução",
-  execucao: "RPC / Execução",
-  matricula: "Matrícula / Dados",
-  ensalamento: "PCP",
-  pcp: "PCP",
-  faturamento: "Faturamento",
-  finalizado: "Finalizado",
+// Mapeamento entidade → funcao do backoffice responsável
+const BACKOFFICE_POR_ENTIDADE: Record<string, string[]> = {
+  "SESI Saúde":    ["Backoffice SESI Saúde"],
+  "SESI Educação": ["Backoffice SESI Educação"],
+  "SENAI":         ["Backoffice SENAI"],
+  "SESI":          ["Backoffice SESI Saúde"],
 };
 
 function mask(s: string): string {
@@ -27,412 +20,334 @@ function mask(s: string): string {
   return s.length <= 6 ? s.slice(0, 2) + "***" : s.slice(0, 6) + "...";
 }
 
-/**
- * Formata número BR de forma estrita.
- * - Remove não-dígitos
- * - Prefixa 55 se faltar
- * - Insere o "9" de celular quando vier com 12 dígitos (55 + DDD + 8)
- * - Aceita 12 (fixo) ou 13 (celular) dígitos finais
- */
-function formatPhoneBR(raw: string | null | undefined): string | null {
-  let digits = (raw ?? "").replace(/\D/g, "");
-  if (!digits) return null;
+function formatarNumero(raw: string): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) return digits;
+  if (digits.length === 11) return `55${digits}`;
+  if (digits.length === 10) return `55${digits}`;
+  if (digits.length === 9)  return `5547${digits}`;
+  return null;
+}
 
-  if (!digits.startsWith("55")) digits = "55" + digits;
+async function isDuplicado(
+  supabase: any,
+  contratoId: string,
+  etapaDestino: string,
+  numero: string,
+): Promise<boolean> {
+  const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from("notificacoes_whatsapp")
+    .select("id")
+    .eq("contrato_id", contratoId)
+    .eq("etapa_destino", etapaDestino)
+    .eq("numero_destinatario", numero)
+    .eq("status", "enviado")
+    .gte("created_at", cincoMinAtras)
+    .limit(1);
+  return (data ?? []).length > 0;
+}
 
-  if (digits.length === 12) {
-    const ddd = parseInt(digits.slice(2, 4), 10);
-    if (ddd >= 11 && ddd <= 99) {
-      digits = digits.slice(0, 4) + "9" + digits.slice(4);
+async function enviarZAPI(
+  numero: string,
+  mensagem: string,
+): Promise<{ ok: boolean; erro?: string }> {
+  const instanceId  = Deno.env.get("ZAPI_INSTANCE_ID");
+  const token       = Deno.env.get("ZAPI_TOKEN");
+  const clientToken = Deno.env.get("ZAPI_CLIENT_TOKEN");
+
+  if (!instanceId || !token) {
+    return { ok: false, erro: "Variáveis ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configuradas" };
+  }
+
+  const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(clientToken ? { "Client-Token": clientToken } : {}),
+      },
+      body: JSON.stringify({ phone: numero, message: mensagem }),
+    });
+
+    const body = await res.json().catch(() => ({}));
+    console.log("[Z-API] HTTP", res.status, "body:", JSON.stringify(body).slice(0, 500));
+
+    if (!res.ok) {
+      return { ok: false, erro: `Z-API HTTP ${res.status}: ${JSON.stringify(body).slice(0, 300)}` };
     }
-  }
-
-  if (digits.length < 12 || digits.length > 13) return null;
-  return digits;
-}
-
-function brl(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "Não informado";
-  return Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-type Dest = { nome: string; whatsapp: string | null; funcao: string };
-
-async function buildDestinatarios(
-  supabase: ReturnType<typeof createClient>,
-  etapa: string,
-  entidadeRaw: string,
-): Promise<Dest[]> {
-  const ent = (entidadeRaw || "").toLowerCase();
-  const isSaude = ent.includes("saúde") || ent.includes("saude");
-  const isSenai = ent.includes("senai");
-  // Default SESI (não-saúde) = SESI Educação / Expansão
-
-  const fetchByFuncao = async (funcoes: string[]): Promise<Dest[]> => {
-    if (funcoes.length === 0) return [];
-    const { data } = await supabase
-      .from("responsaveis")
-      .select("nome, whatsapp, funcao")
-      .eq("ativo", true)
-      .in("funcao", funcoes);
-    return (data ?? []) as Dest[];
-  };
-
-  const fetchByFuncaoLike = async (pattern: string): Promise<Dest[]> => {
-    const { data } = await supabase
-      .from("responsaveis")
-      .select("nome, whatsapp, funcao")
-      .eq("ativo", true)
-      .ilike("funcao", pattern);
-    return (data ?? []) as Dest[];
-  };
-
-  const fetchByFuncaoAndNome = async (funcoes: string[], nome: string): Promise<Dest[]> => {
-    const { data } = await supabase
-      .from("responsaveis")
-      .select("nome, whatsapp, funcao")
-      .eq("ativo", true)
-      .in("funcao", funcoes)
-      .ilike("nome", `%${nome}%`);
-    return (data ?? []) as Dest[];
-  };
-
-  const analistas = () => fetchByFuncao(["Analista Comercial"]);
-  const secretaria = () => fetchByFuncao(["Secretaria Escolar"]);
-  const interlocutora = () => fetchByFuncao(["Interlocutora de Faturamento"]);
-  const coordComercial = () => fetchByFuncao(["Coordenador Comercial SENAI"]);
-
-  const backoffice = () => {
-    // Cargo segmentado por entidade. SESI Educação e SENAI são cobertos por
-    // pessoas/cargos diferentes; aqui consultamos apenas o cargo correto.
-    const cargoSegmentado = isSenai
-      ? "Backoffice SENAI"
-      : isSaude
-      ? "Backoffice SESI Saúde"
-      : "Backoffice SESI Educação";
-    return fetchByFuncao([cargoSegmentado]);
-  };
-
-  const coordEntidade = () => {
-    const cargo = isSenai
-      ? "Coordenador SENAI"
-      : isSaude
-      ? "Coordenador SESI Saúde"
-      : "Coordenador SESI Expansão";
-    return fetchByFuncao([cargo]);
-  };
-
-  const supervisorEntidade = () => {
-    const prefixo = isSenai
-      ? "Supervisor SENAI%"
-      : isSaude
-      ? "Supervisor SESI Saúde%"
-      : "Supervisor SESI Educação%";
-    return fetchByFuncaoLike(prefixo);
-  };
-
-  const pcpEntidade = () => {
-    const cargo = isSenai ? "PCP SENAI" : "PCP SESI";
-    return fetchByFuncao([cargo]);
-  };
-
-  switch (etapa) {
-    case "proposta": // Visita concluída → Proposta/CRM
-      return [...(await backoffice()), ...(await analistas())];
-    case "supervisor": // Proposta/CRM concluída → Supervisor
-      return [...(await supervisorEntidade()), ...(await coordEntidade())];
-    case "rpc":
-    case "execucao":
-      // Etapa 4 RPC/Execução: Backoffice + Analista + Coordenador + Secretaria + Interlocutora
-      return [
-        ...(await backoffice()),
-        ...(await analistas()),
-        ...(await coordEntidade()),
-        ...(await secretaria()),
-        ...(await interlocutora()),
-      ];
-    case "matricula":
-      // Etapa 5 Matrícula: PCP da entidade + Supervisor + Analista + Interlocutora
-      return [
-        ...(await pcpEntidade()),
-        ...(await supervisorEntidade()),
-        ...(await analistas()),
-        ...(await interlocutora()),
-      ];
-    case "ensalamento":
-    case "pcp":
-      // Etapa 6 PCP: Analista Comercial + Interlocutora de Faturamento
-      return [...(await analistas()), ...(await interlocutora())];
-    case "faturamento": // PCP concluído → Faturamento
-      return [...(await analistas()), ...(await interlocutora())];
-    case "finalizado": // Faturamento concluído → Finalizado
-      return [...(await analistas()), ...(await coordComercial()), ...(await coordEntidade())];
-    default:
-      return [];
+    if (body?.zaapId || body?.messageId || body?.id) {
+      return { ok: true };
+    }
+    return { ok: false, erro: `Resposta inesperada Z-API: ${JSON.stringify(body).slice(0, 300)}` };
+  } catch (err: any) {
+    return { ok: false, erro: `Erro de rede Z-API: ${err?.message ?? String(err)}` };
   }
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    // ========================================================================
-    // GET ?action=status — diagnóstico Z-API sem autenticação Supabase
-    // Não envia mensagem; só consulta o status da instância e dos secrets.
-    // ========================================================================
-    const reqUrl = new URL(req.url);
-    if (req.method === "GET" || reqUrl.searchParams.get("action") === "status") {
-      const secretsLoaded = {
-        ZAPI_INSTANCE_ID: !!ZAPI_INSTANCE_ID,
-        ZAPI_TOKEN: !!ZAPI_TOKEN,
-        ZAPI_CLIENT_TOKEN: !!ZAPI_CLIENT_TOKEN,
-      };
-      const secretsPreview = {
-        ZAPI_INSTANCE_ID: mask(ZAPI_INSTANCE_ID),
-        ZAPI_TOKEN: mask(ZAPI_TOKEN),
-        ZAPI_CLIENT_TOKEN: mask(ZAPI_CLIENT_TOKEN),
-      };
-      let instanceStatus: unknown = null;
-      let statusHttp = 0;
-      let statusError: string | null = null;
-      if (ZAPI_INSTANCE_ID && ZAPI_TOKEN) {
-        try {
-          const statusUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`;
-          const headers: Record<string, string> = {};
-          if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
-          const r = await fetch(statusUrl, { headers });
-          statusHttp = r.status;
-          instanceStatus = await r.json().catch(() => ({}));
-        } catch (err) {
-          statusError = String(err).slice(0, 500);
-        }
-      } else {
-        statusError = "Secrets ZAPI_INSTANCE_ID/ZAPI_TOKEN ausentes";
-      }
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          secretsLoaded,
-          secretsPreview,
-          httpStatus: statusHttp,
-          instanceStatus,
-          statusError,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // ========================================================================
-    // Check de secrets ANTES de qualquer envio
-    // ========================================================================
-    console.log("[Z-API] Secrets check:", {
-      hasInstanceId: !!ZAPI_INSTANCE_ID,
-      instanceIdPreview: mask(ZAPI_INSTANCE_ID),
-      hasToken: !!ZAPI_TOKEN,
-      tokenPreview: mask(ZAPI_TOKEN),
-      hasClientToken: !!ZAPI_CLIENT_TOKEN,
-      clientTokenPreview: mask(ZAPI_CLIENT_TOKEN),
-    });
-
-    // Autenticação
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: claims, error: authErr } = await authClient.auth.getClaims(token);
-    if (authErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const contrato_id: string | undefined = body.contrato_id ?? body.processo_id;
-    const etapa_destino: string | undefined = body.etapa_destino;
-    const usuario_atual_nome: string = body.usuario_atual_nome ?? "Sistema";
-    const origem: string = body.origem === "manual" ? "manual" : "automatico";
-
-    if (!contrato_id || !etapa_destino) {
-      return new Response(JSON.stringify({ error: "contrato_id e etapa_destino são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Busca contrato
-    const { data: contrato, error: erroProc } = await supabase
-      .from("contratos")
-      .select("id, cliente, entidade, servico_produto, valor, acao_esperada")
-      .eq("id", contrato_id)
-      .single();
-
-    if (erroProc || !contrato) {
-      return new Response(JSON.stringify({ error: "Contrato não encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Config Z-API ausente? loga e sai sem erro
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      await supabase.from("notificacoes_whatsapp").insert({
-        contrato_id,
-        etapa_destino,
-        status: "api_nao_configurada",
-        erro: "ZAPI_INSTANCE_ID/ZAPI_TOKEN não configurados",
-        origem,
-      });
-      return new Response(JSON.stringify({ warning: "Z-API não configurada" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Destinatários por etapa+entidade (regras do fluxo Visita → Finalizado)
-    const brutos = await buildDestinatarios(supabase, etapa_destino, String(contrato.entidade ?? ""));
-
-    // Formata + dedupe por número final
-    const seen = new Set<string>();
-    const destinatarios: Array<{ nome: string; numero: string }> = [];
-    for (const r of brutos) {
-      const numero = formatPhoneBR(r.whatsapp);
-      if (!numero) {
-        console.warn("[Z-API] Telefone inválido descartado:", { nome: r.nome, whatsapp_raw: r.whatsapp });
-        continue;
-      }
-      if (seen.has(numero)) continue;
-      seen.add(numero);
-      destinatarios.push({ nome: r.nome ?? "Responsável", numero });
-    }
-
-    if (destinatarios.length === 0) {
-      await supabase.from("notificacoes_whatsapp").insert({
-        contrato_id,
-        etapa_destino,
-        status: "sem_numero",
-        erro: "Nenhum responsável com WhatsApp cadastrado para esta etapa",
-        origem,
-      });
-      return new Response(JSON.stringify({ warning: "Sem destinatários" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const etapaLabel = ETAPA_LABELS[etapa_destino] ?? etapa_destino;
-    const valorFmt = brl(contrato.valor as number | null);
-
-    // Dedupe: já enviado nos últimos 5 min para mesmo (contrato, etapa, numero)?
-    const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-
-    const resultados: Array<{ numero: string; nome: string; status: string }> = [];
-
-    for (const dest of destinatarios) {
-      const numero = dest.numero;
-
-      const { data: dup } = await supabase
-        .from("notificacoes_whatsapp")
-        .select("id")
-        .eq("contrato_id", contrato_id)
-        .eq("etapa_destino", etapa_destino)
-        .eq("numero_destinatario", numero)
-        .eq("status", "enviado")
-        .gte("created_at", cincoMinAtras)
-        .limit(1)
-        .maybeSingle();
-
-      if (dup) {
-        resultados.push({ numero, nome: dest.nome, status: "duplicado" });
-        continue;
-      }
-
-      const mensagem =
-        `Olá, ${dest.nome}! 👋\n\n` +
-        `O processo *${contrato.cliente}* avançou para a etapa *${etapaLabel}* e está aguardando sua ação.\n\n` +
-        `📋 Detalhes:\n` +
-        `• Entidade: ${contrato.entidade ?? "Não informado"}\n` +
-        `• Serviço: ${contrato.servico_produto ?? "Não informado"}\n` +
-        `• Valor: R$ ${valorFmt}\n` +
-        `• Responsável anterior: ${usuario_atual_nome}\n` +
-        (contrato.acao_esperada ? `\n🎯 *Ação esperada:* ${contrato.acao_esperada}\n` : "") +
-        `\n` +
-        `Acesse o sistema para dar continuidade:\n` +
-        `🔗 https://gestorvendasserra.lovable.app\n\n` +
-        `_FIESC Serra Catarinense — Gestão RPC Serra_`;
-
-      let statusEnvio = "falhou";
-      let erroEnvio: string | null = null;
-      let zaapId: string | null = null;
-
+  // GET ?action=status — diagnóstico Z-API (mantido para o painel existente)
+  const reqUrl = new URL(req.url);
+  if (req.method === "GET" && reqUrl.searchParams.get("action") === "status") {
+    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID") ?? "";
+    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN") ?? "";
+    const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN") ?? "";
+    const secretsLoaded = {
+      ZAPI_INSTANCE_ID: !!ZAPI_INSTANCE_ID,
+      ZAPI_TOKEN: !!ZAPI_TOKEN,
+      ZAPI_CLIENT_TOKEN: !!ZAPI_CLIENT_TOKEN,
+    };
+    const secretsPreview = {
+      ZAPI_INSTANCE_ID: mask(ZAPI_INSTANCE_ID),
+      ZAPI_TOKEN: mask(ZAPI_TOKEN),
+      ZAPI_CLIENT_TOKEN: mask(ZAPI_CLIENT_TOKEN),
+    };
+    let instanceStatus: unknown = null;
+    let statusHttp = 0;
+    let statusError: string | null = null;
+    if (ZAPI_INSTANCE_ID && ZAPI_TOKEN) {
       try {
-        const url = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const statusUrl = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/status`;
+        const headers: Record<string, string> = {};
         if (ZAPI_CLIENT_TOKEN) headers["Client-Token"] = ZAPI_CLIENT_TOKEN;
-
-        const resp = await fetch(url, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ phone: numero, message: mensagem }),
-        });
-        const json = await resp.json().catch(() => ({}));
-
-        // Logs completos para diagnóstico
-        console.log("[Z-API] HTTP Status:", resp.status);
-        console.log("[Z-API] Response body:", JSON.stringify(json));
-        console.log("[Z-API] Phone sent:", numero);
-        console.log("[Z-API] Message preview:", mensagem.slice(0, 80));
-
-        // Z-API retorna 200 mesmo em falha silenciosa.
-        // Sucesso real = HTTP 200 + zaapId presente no body.
-        const realSuccess = resp.ok && !!(json as any)?.zaapId;
-        if (realSuccess) {
-          statusEnvio = "enviado";
-          zaapId = String((json as any).zaapId);
-        } else {
-          erroEnvio = `HTTP ${resp.status} | body=${JSON.stringify(json).slice(0, 800)}`;
-          console.error("[Z-API] Falha (sem zaapId):", erroEnvio);
-        }
+        const r = await fetch(statusUrl, { headers });
+        statusHttp = r.status;
+        instanceStatus = await r.json().catch(() => ({}));
       } catch (err) {
-        erroEnvio = String(err).slice(0, 1000);
-        console.error("[Z-API] Exceção no fetch:", erroEnvio);
+        statusError = String(err).slice(0, 500);
       }
+    } else {
+      statusError = "Secrets ZAPI_INSTANCE_ID/ZAPI_TOKEN ausentes";
+    }
+    return new Response(
+      JSON.stringify({ ok: true, secretsLoaded, secretsPreview, httpStatus: statusHttp, instanceStatus, statusError }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
-      await supabase.from("notificacoes_whatsapp").insert({
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Body JSON inválido" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // Health check — verifica variáveis de ambiente sem expor valores
+  if (body?.action === "health_check") {
+    return new Response(
+      JSON.stringify({
+        zapi_instance_id: !!Deno.env.get("ZAPI_INSTANCE_ID"),
+        zapi_token: !!Deno.env.get("ZAPI_TOKEN"),
+        zapi_client_token: !!Deno.env.get("ZAPI_CLIENT_TOKEN"),
+        supabase_url: !!Deno.env.get("SUPABASE_URL"),
+        service_role_key: !!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+        previews: {
+          ZAPI_INSTANCE_ID: mask(Deno.env.get("ZAPI_INSTANCE_ID") ?? ""),
+          ZAPI_TOKEN: mask(Deno.env.get("ZAPI_TOKEN") ?? ""),
+          ZAPI_CLIENT_TOKEN: mask(Deno.env.get("ZAPI_CLIENT_TOKEN") ?? ""),
+        },
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const {
+    contrato_id,
+    etapa_destino,
+    etapa_anterior = null,
+    usuario_atual_nome = "Sistema",
+    origem = "automatico",
+  } = body;
+
+  if (!contrato_id || !etapa_destino) {
+    return new Response(
+      JSON.stringify({ error: "contrato_id e etapa_destino são obrigatórios" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const { data: contrato, error: contratoErr } = await supabase
+    .from("contratos")
+    .select("id, cliente, entidade, valor, agente_pj_id, etapa_atual")
+    .eq("id", contrato_id)
+    .maybeSingle();
+
+  if (contratoErr || !contrato) {
+    return new Response(
+      JSON.stringify({ error: `Contrato não encontrado: ${contratoErr?.message}` }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const funcoesBackoffice = BACKOFFICE_POR_ENTIDADE[contrato.entidade] ?? [];
+
+  if (funcoesBackoffice.length === 0) {
+    return new Response(
+      JSON.stringify({
+        warning: `Nenhum backoffice mapeado para entidade "${contrato.entidade}"`,
+        resultados: [],
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const { data: destinatarios, error: destErr } = await supabase
+    .from("responsaveis")
+    .select("id, nome, whatsapp, funcao")
+    .in("funcao", funcoesBackoffice)
+    .eq("ativo", true)
+    .not("whatsapp", "is", null)
+    .neq("whatsapp", "");
+
+  if (destErr) {
+    return new Response(
+      JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  let agente: any = null;
+  if (contrato.agente_pj_id) {
+    const { data } = await supabase
+      .from("responsaveis")
+      .select("id, nome, whatsapp, funcao")
+      .eq("id", contrato.agente_pj_id)
+      .eq("ativo", true)
+      .not("whatsapp", "is", null)
+      .neq("whatsapp", "")
+      .maybeSingle();
+    agente = data;
+  }
+
+  const todosDestinatarios = [...(destinatarios ?? [])];
+  if (agente && !todosDestinatarios.find((d: any) => d.id === agente.id)) {
+    todosDestinatarios.push(agente);
+  }
+
+  if (todosDestinatarios.length === 0) {
+    await supabase.from("notificacoes_whatsapp").insert({
+      contrato_id,
+      etapa_destino,
+      destinatario_nome: "NENHUM",
+      numero_destinatario: null,
+      mensagem: null,
+      status: "sem_destinatario",
+      erro: `Backoffice mapeado: ${funcoesBackoffice.join(", ")} — nenhum responsável ativo com whatsapp encontrado`,
+      origem,
+    });
+
+    return new Response(
+      JSON.stringify({
+        warning: `Nenhum responsável ativo com WhatsApp encontrado para "${contrato.entidade}". Funções buscadas: ${funcoesBackoffice.join(", ")}`,
+        resultados: [],
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  const etapaLabel: Record<string, string> = {
+    visita: "Visita",
+    proposta: "Proposta/CRM",
+    supervisor: "Supervisor",
+    rpc: "RPC",
+    execucao: "Execução",
+    matricula: "Matrícula",
+    ensalamento: "Ensalamento",
+    faturamento: "Faturamento",
+    finalizado: "Finalizado",
+  };
+
+  const etapaAnteriorLabel = etapa_anterior ? etapaLabel[etapa_anterior] ?? etapa_anterior : null;
+  const etapaDestinoLabel  = etapaLabel[etapa_destino] ?? etapa_destino;
+  const valorFormatado = contrato.valor
+    ? `R$ ${Number(contrato.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+    : "";
+
+  const mensagem = [
+    `📋 *Atualização de Contrato — ${contrato.entidade}*`,
+    ``,
+    `Cliente: *${contrato.cliente}*`,
+    valorFormatado ? `Valor: *${valorFormatado}*` : null,
+    ``,
+    etapaAnteriorLabel
+      ? `Etapa: ${etapaAnteriorLabel} → *${etapaDestinoLabel}*`
+      : `Etapa atual: *${etapaDestinoLabel}*`,
+    ``,
+    `Movimentado por: ${usuario_atual_nome}`,
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
+
+  const resultados: any[] = [];
+
+  for (const dest of todosDestinatarios) {
+    const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
+
+    if (!numeroFormatado) {
+      const log = {
         contrato_id,
-        numero_destinatario: numero,
-        destinatario_nome: dest.nome,
         etapa_destino,
+        destinatario_nome: dest.nome,
+        numero_destinatario: dest.whatsapp,
         mensagem,
-        status: statusEnvio,
-        erro: erroEnvio,
+        status: "falhou",
+        erro: `Número inválido ou não formatável: "${dest.whatsapp}"`,
         origem,
-      });
-
-      resultados.push({ numero, nome: dest.nome, status: statusEnvio, zaapId: zaapId ?? undefined, erro: erroEnvio ?? undefined } as any);
+      };
+      await supabase.from("notificacoes_whatsapp").insert(log);
+      resultados.push({ destinatario: dest.nome, status: "falhou", erro: log.erro });
+      continue;
     }
 
-    return new Response(JSON.stringify({ ok: true, resultados }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[enviar-whatsapp]", msg);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const duplicado = await isDuplicado(supabase, contrato_id, etapa_destino, numeroFormatado);
+    if (duplicado) {
+      resultados.push({
+        destinatario: dest.nome,
+        status: "duplicado",
+        erro: "Mensagem já enviada nos últimos 5 minutos",
+      });
+      continue;
+    }
+
+    const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+
+    const logEntry = {
+      contrato_id,
+      etapa_destino,
+      destinatario_nome: dest.nome,
+      numero_destinatario: numeroFormatado,
+      mensagem,
+      status: ok ? "enviado" : "falhou",
+      erro: ok ? null : erro,
+      origem,
+    };
+    await supabase.from("notificacoes_whatsapp").insert(logEntry);
+
+    resultados.push({
+      destinatario: dest.nome,
+      numero: numeroFormatado,
+      status: logEntry.status,
+      erro: logEntry.erro,
     });
   }
+
+  return new Response(
+    JSON.stringify({ resultados }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
 });
