@@ -37,6 +37,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { DiagnosticoZapiDialog } from "@/components/DiagnosticoZapiDialog";
 import { DiagnosticoWhatsappDialog } from "@/components/DiagnosticoWhatsappDialog";
 import { MatrizPermissoesEtapas } from "@/components/MatrizPermissoesEtapas";
+import { MatrizNotificacoes } from "@/components/MatrizNotificacoes";
 
 type Responsavel = Tables<"responsaveis">;
 
@@ -45,6 +46,7 @@ function AdminTools() {
   const [zapiOpen, setZapiOpen] = useState(false);
   const [matrizOpen, setMatrizOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
+  const [notifMatrizOpen, setNotifMatrizOpen] = useState(false);
   if (!isAdmin) return null;
   return (
     <>
@@ -57,9 +59,13 @@ function AdminTools() {
       <Button variant="outline" size="sm" onClick={() => setMatrizOpen(true)}>
         <Shield className="mr-2 h-4 w-4" />Permissões por etapa
       </Button>
+      <Button variant="outline" size="sm" onClick={() => setNotifMatrizOpen(true)}>
+        <Smartphone className="mr-2 h-4 w-4" />Notificações por cargo
+      </Button>
       <DiagnosticoZapiDialog open={zapiOpen} onOpenChange={setZapiOpen} />
       <DiagnosticoWhatsappDialog open={diagOpen} onOpenChange={setDiagOpen} />
       <MatrizPermissoesEtapas open={matrizOpen} onOpenChange={setMatrizOpen} />
+      <MatrizNotificacoes open={notifMatrizOpen} onOpenChange={setNotifMatrizOpen} />
     </>
   );
 }

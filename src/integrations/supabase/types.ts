@@ -489,6 +489,36 @@ export type Database = {
           },
         ]
       }
+      notificacao_permissoes: {
+        Row: {
+          ativo: boolean
+          canal: string
+          created_at: string
+          etapa: Database["public"]["Enums"]["etapa_contrato"]
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          canal: string
+          created_at?: string
+          etapa: Database["public"]["Enums"]["etapa_contrato"]
+          funcao: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          created_at?: string
+          etapa?: Database["public"]["Enums"]["etapa_contrato"]
+          funcao?: Database["public"]["Enums"]["funcao_responsavel"]
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           contrato_id: string | null

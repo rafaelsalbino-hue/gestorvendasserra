@@ -7,13 +7,22 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Mapeamento entidade → funcao do backoffice responsável
-const BACKOFFICE_POR_ENTIDADE: Record<string, string[]> = {
-  "SESI Saúde":    ["Backoffice SESI Saúde"],
-  "SESI Educação": ["Backoffice SESI Educação"],
-  "SENAI":         ["Backoffice SENAI"],
-  "SESI":          ["Backoffice SESI Saúde"],
-};
+// Filtro de entidade aplicado SOMENTE a cargos cujo nome depende da entidade
+// (Supervisores SESI/SENAI e Backoffice por entidade). Demais cargos não são filtrados.
+function funcaoCompativelComEntidade(funcao: string, entidade: string | null | undefined): boolean {
+  const ent = (entidade ?? "").trim();
+  const isSenaiContrato = ent === "SENAI";
+  const isSesiContrato  = ent === "SESI" || ent === "SESI Saúde" || ent === "SESI Educação";
+
+  if (funcao.startsWith("Supervisor SENAI") || funcao === "Backoffice SENAI") return isSenaiContrato;
+  if (funcao.startsWith("Supervisor SESI")  || funcao.startsWith("Backoffice SESI")) {
+    // Se for backoffice específico, exige match exato com a entidade
+    if (funcao === "Backoffice SESI Saúde")    return ent === "SESI Saúde" || ent === "SESI";
+    if (funcao === "Backoffice SESI Educação") return ent === "SESI Educação";
+    return isSesiContrato;
+  }
+  return true;
+}
 
 function mask(s: string): string {
   if (!s) return "";
@@ -194,31 +203,41 @@ serve(async (req) => {
     );
   }
 
-  const funcoesBackoffice = BACKOFFICE_POR_ENTIDADE[contrato.entidade] ?? [];
+  // 1) Buscar cargos habilitados para esta etapa+canal na matriz de permissões
+  const { data: perms, error: permsErr } = await supabase
+    .from("notificacao_permissoes")
+    .select("funcao")
+    .eq("etapa", etapa_destino)
+    .eq("canal", "whatsapp")
+    .eq("ativo", true);
 
-  if (funcoesBackoffice.length === 0) {
+  if (permsErr) {
     return new Response(
-      JSON.stringify({
-        warning: `Nenhum backoffice mapeado para entidade "${contrato.entidade}"`,
-        resultados: [],
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: `Erro ao ler permissões: ${permsErr.message}` }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
-  const { data: destinatarios, error: destErr } = await supabase
-    .from("responsaveis")
-    .select("id, nome, whatsapp, funcao")
-    .in("funcao", funcoesBackoffice)
-    .eq("ativo", true)
-    .not("whatsapp", "is", null)
-    .neq("whatsapp", "");
+  const funcoesHabilitadas = Array.from(new Set((perms ?? []).map((p: any) => p.funcao as string)))
+    .filter((f) => funcaoCompativelComEntidade(f, contrato.entidade));
 
-  if (destErr) {
-    return new Response(
-      JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+  let destinatarios: any[] = [];
+  if (funcoesHabilitadas.length > 0) {
+    const { data, error: destErr } = await supabase
+      .from("responsaveis")
+      .select("id, nome, whatsapp, funcao")
+      .in("funcao", funcoesHabilitadas)
+      .eq("ativo", true)
+      .not("whatsapp", "is", null)
+      .neq("whatsapp", "");
+
+    if (destErr) {
+      return new Response(
+        JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    destinatarios = data ?? [];
   }
 
   let agente: any = null;
@@ -247,13 +266,13 @@ serve(async (req) => {
       numero_destinatario: null,
       mensagem: null,
       status: "sem_destinatario",
-      erro: `Backoffice mapeado: ${funcoesBackoffice.join(", ")} — nenhum responsável ativo com whatsapp encontrado`,
+      erro: `Etapa "${etapa_destino}" / entidade "${contrato.entidade}" — cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum)"} — nenhum responsável ativo com WhatsApp encontrado`,
       origem,
     });
 
     return new Response(
       JSON.stringify({
-        warning: `Nenhum responsável ativo com WhatsApp encontrado para "${contrato.entidade}". Funções buscadas: ${funcoesBackoffice.join(", ")}`,
+        warning: `Nenhum destinatário para etapa "${etapa_destino}" / entidade "${contrato.entidade}". Cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum — configure no painel Notificações por cargo)"}`,
         resultados: [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
