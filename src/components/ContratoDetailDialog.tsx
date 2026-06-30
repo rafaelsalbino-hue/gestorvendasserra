@@ -52,19 +52,32 @@ const SGN_URL = "https://sgn.sesisenai.org.br/login.html";
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   "Agente de Mercado PJ": ["dados_basicos", "proposta", "rpc", "execucao"],
-  "Supervisor SESI": ["dados_basicos", "proposta", "supervisor"],
-  "Supervisor SENAI": ["dados_basicos", "proposta", "supervisor"],
-  "Backoffice Comercial": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula"],
-  "Secretaria": ["matricula"],
-  "PCP": ["ensalamento"],
   "Analista Financeiro": ["faturamento"],
   "Interlocutora de Faturamento": ["faturamento"],
-  "Coordenador SESI/SENAI": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  // Backoffices segmentados por entidade — todos com edição ampla até matrícula
+  "Backoffice SESI Saúde": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula"],
+  "Backoffice SESI Educação": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula"],
+  "Backoffice SENAI": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula"],
+  // Coordenadores — acesso total
+  "Coordenador SENAI": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  "Coordenador SESI Saúde": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  "Coordenador SESI Expansão": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  "Coordenador Comercial SENAI": ["dados_basicos", "proposta", "supervisor", "rpc", "execucao", "matricula", "ensalamento", "faturamento"],
+  // Secretaria e PCP segmentados
+  "Secretaria Escolar": ["matricula"],
+  "PCP SESI": ["ensalamento"],
+  "PCP SENAI": ["ensalamento"],
 };
+
+// Supervisores específicos (todos prefixados) recebem permissão de Supervisor.
+const SUPERVISOR_SECTIONS = ["dados_basicos", "proposta", "supervisor"];
 
 function canEditSection(funcao: FuncaoResponsavel | undefined, section: string): boolean {
   if (!funcao) return false;
   if (FUNCOES_GESTOR.includes(funcao as any)) return true;
+  if (typeof funcao === "string" && funcao.startsWith("Supervisor")) {
+    return SUPERVISOR_SECTIONS.includes(section);
+  }
   return ROLE_PERMISSIONS[funcao]?.includes(section) ?? false;
 }
 
