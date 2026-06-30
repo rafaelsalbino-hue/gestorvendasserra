@@ -753,17 +753,11 @@ export type Database = {
         | "finalizado"
       funcao_responsavel:
         | "Agente de Mercado PJ"
-        | "Supervisor SESI"
-        | "Supervisor SENAI"
-        | "Backoffice Comercial"
-        | "Secretaria"
-        | "PCP"
         | "Analista Financeiro"
         | "Coordenador de Mercado"
         | "Analista Comercial"
         | "Gerente Regional"
         | "Interlocutora de Faturamento"
-        | "Coordenador SESI/SENAI"
         | "Supervisor SENAI — Lages Cursos Técnicos"
         | "Supervisor SENAI — Lages Cursos de Qualificação"
         | "Supervisor SENAI — Correia Pinto"
@@ -776,8 +770,7 @@ export type Database = {
         | "Coordenador SENAI"
         | "Coordenador SESI Saúde"
         | "Coordenador SESI Expansão"
-        | "Coordenador Comercial"
-        | "Backoffice"
+        | "Coordenador Comercial SENAI"
         | "Secretaria Escolar"
         | "PCP SESI"
         | "PCP SENAI"
@@ -935,17 +928,11 @@ export const Constants = {
       ],
       funcao_responsavel: [
         "Agente de Mercado PJ",
-        "Supervisor SESI",
-        "Supervisor SENAI",
-        "Backoffice Comercial",
-        "Secretaria",
-        "PCP",
         "Analista Financeiro",
         "Coordenador de Mercado",
         "Analista Comercial",
         "Gerente Regional",
         "Interlocutora de Faturamento",
-        "Coordenador SESI/SENAI",
         "Supervisor SENAI — Lages Cursos Técnicos",
         "Supervisor SENAI — Lages Cursos de Qualificação",
         "Supervisor SENAI — Correia Pinto",
@@ -958,8 +945,7 @@ export const Constants = {
         "Coordenador SENAI",
         "Coordenador SESI Saúde",
         "Coordenador SESI Expansão",
-        "Coordenador Comercial",
-        "Backoffice",
+        "Coordenador Comercial SENAI",
         "Secretaria Escolar",
         "PCP SESI",
         "PCP SENAI",

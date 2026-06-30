@@ -26,6 +26,30 @@ export function usePermissoesEtapa() {
   });
 }
 
+/**
+ * Busca as permissões para uma etapa específica.
+ * Retorna mapa por funcao para consulta O(1) no componente.
+ */
+export function useEtapaPermissoes(etapa: string | null | undefined) {
+  return useQuery({
+    queryKey: ["etapa-cargo-permissoes", etapa],
+    enabled: !!etapa,
+    queryFn: async (): Promise<Record<string, PermissaoEtapa>> => {
+      const { data, error } = await supabase
+        .from("etapa_cargo_permissoes" as any)
+        .select("*")
+        .eq("etapa", etapa as any);
+      if (error) throw error;
+      const map: Record<string, PermissaoEtapa> = {};
+      for (const row of (data ?? []) as any[]) {
+        map[row.funcao as string] = row as PermissaoEtapa;
+      }
+      return map;
+    },
+    staleTime: 1000 * 60,
+  });
+}
+
 export function useTogglePermissaoEtapa() {
   const qc = useQueryClient();
   return useMutation({
