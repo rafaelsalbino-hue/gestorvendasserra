@@ -2,17 +2,11 @@ export type Entidade = "SESI" | "SENAI" | "SESI Saúde";
 
 export type FuncaoResponsavel =
   | "Agente de Mercado PJ"
-  | "Supervisor SESI"
-  | "Supervisor SENAI"
-  | "Backoffice Comercial"
-  | "Secretaria"
-  | "PCP"
   | "Analista Financeiro"
   | "Coordenador de Mercado"
   | "Analista Comercial"
   | "Gerente Regional"
   | "Interlocutora de Faturamento"
-  | "Coordenador SESI/SENAI"
   // Supervisores SENAI
   | "Supervisor SENAI — Lages Cursos Técnicos"
   | "Supervisor SENAI — Lages Cursos de Qualificação"
@@ -29,9 +23,8 @@ export type FuncaoResponsavel =
   | "Coordenador SENAI"
   | "Coordenador SESI Saúde"
   | "Coordenador SESI Expansão"
-  | "Coordenador Comercial"
+  | "Coordenador Comercial SENAI"
   // Outros
-  | "Backoffice"
   | "Secretaria Escolar"
   | "PCP SESI"
   | "PCP SENAI"
@@ -54,29 +47,21 @@ export const FUNCOES_RESPONSAVEL: FuncaoResponsavel[] = [
   // Supervisores SESI Educação
   "Supervisor SESI Educação — ACE",
   "Supervisor SESI Educação — Maker",
-  // Supervisores legados (mantidos para compatibilidade)
-  "Supervisor SESI",
-  "Supervisor SENAI",
   // Coordenadores
   "Coordenador SENAI",
   "Coordenador SESI Saúde",
   "Coordenador SESI Expansão",
-  "Coordenador Comercial",
+  "Coordenador Comercial SENAI",
   "Coordenador de Mercado",
-  "Coordenador SESI/SENAI",
   // Comercial / Backoffice
   "Analista Comercial",
   "Backoffice SESI Saúde",
   "Backoffice SESI Educação",
   "Backoffice SENAI",
-  "Backoffice",
-  "Backoffice Comercial",
   // Operacional
   "Secretaria Escolar",
-  "Secretaria",
   "PCP SESI",
   "PCP SENAI",
-  "PCP",
   // Financeiro
   "Interlocutora de Faturamento",
   "Analista Financeiro",
@@ -117,14 +102,10 @@ export function isNotificavelRole(funcao: string): boolean {
   if (isSupervisorRole(funcao)) return true;
   return [
     "Agente de Mercado PJ",
-    "Backoffice",
-    "Backoffice Comercial",
     "Backoffice SESI Saúde",
     "Backoffice SESI Educação",
     "Backoffice SENAI",
-    "Secretaria",
     "Secretaria Escolar",
-    "PCP",
     "PCP SESI",
     "PCP SENAI",
     "Analista Financeiro",
@@ -132,17 +113,16 @@ export function isNotificavelRole(funcao: string): boolean {
     "Coordenador SENAI",
     "Coordenador SESI Saúde",
     "Coordenador SESI Expansão",
-    "Coordenador Comercial",
+    "Coordenador Comercial SENAI",
     "Coordenador de Mercado",
-    "Coordenador SESI/SENAI",
   ].includes(funcao);
 }
 
 // Funções que podem alterar QUALQUER campo de status (status_*) em qualquer etapa.
 // Secretaria e Interlocutora de Faturamento têm permissão ampliada de status.
 export const FUNCOES_STATUS_AMPLO: FuncaoResponsavel[] = [
-  "Secretaria",
   "Interlocutora de Faturamento",
+  "Secretaria Escolar",
 ];
 
 export type EtapaContrato =
