@@ -308,6 +308,9 @@ serve(async (req) => {
     ? `R$ ${Number(contrato.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
     : "";
 
+  const APP_URL = Deno.env.get("APP_PUBLIC_URL") ?? "https://gestorvendasserra.lovable.app";
+  const linkProcesso = `${APP_URL.replace(/\/$/, "")}/contratos?highlight=${contrato.id}`;
+
   const mensagem = [
     `📋 *Atualização de Contrato — ${contrato.entidade}*`,
     ``,
@@ -319,6 +322,8 @@ serve(async (req) => {
       : `Etapa atual: *${etapaDestinoLabel}*`,
     ``,
     `Movimentado por: ${usuario_atual_nome}`,
+    ``,
+    `🔗 Acessar processo: ${linkProcesso}`,
   ]
     .filter((l) => l !== null)
     .join("\n");

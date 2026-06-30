@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { FUNCOES_RESPONSAVEL, FUNCOES_GESTOR, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import logoSesi from "@/assets/logo-sesi.png";
+import logoSenai from "@/assets/logo-senai.png";
 
 const Auth = () => {
   useDocumentTitle("Entrar");
@@ -79,10 +81,9 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
-          <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
-            </div>
+          <div className="flex justify-center items-center gap-6">
+            <img src={logoSesi} alt="SESI" className="h-10 w-auto object-contain" />
+            <img src={logoSenai} alt="SENAI" className="h-10 w-auto object-contain" />
           </div>
           <CardTitle className="text-xl">Gestão de Contratos</CardTitle>
           <CardDescription>Educação SESI/SENAI</CardDescription>

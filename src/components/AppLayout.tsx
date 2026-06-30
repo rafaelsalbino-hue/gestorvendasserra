@@ -8,6 +8,8 @@ import { useAppSession } from "@/contexts/AppSessionContext";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { Loader2, ShieldAlert, WifiOff, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import logoSesi from "@/assets/logo-sesi.png";
+import logoSenai from "@/assets/logo-senai.png";
 
 const ROUTE_LABEL: Record<string, string> = {
   "/": "Dashboard",
@@ -50,6 +52,10 @@ export function AppLayout({ children }: AppLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2 mr-1 pr-2 border-r border-white/15">
+                <img src={logoSesi} alt="SESI" className="h-6 w-auto object-contain bg-white/95 rounded px-1 py-0.5" />
+                <img src={logoSenai} alt="SENAI" className="h-6 w-auto object-contain bg-white/95 rounded px-1 py-0.5" />
+              </div>
               {!isOnline && (
                 <Badge variant="outline" className="gap-1.5 border-white/30 text-topbar-foreground">
                   <WifiOff className="h-3 w-3" /> Offline
