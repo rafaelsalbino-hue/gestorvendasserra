@@ -14,6 +14,13 @@ import type { Database } from "@/integrations/supabase/types";
 type Funcao = Database["public"]["Enums"]["funcao_responsavel"];
 type Etapa = Database["public"]["Enums"]["etapa_contrato"];
 type Canal = "whatsapp" | "sistema";
+type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde";
+
+const ENTIDADES: { value: Entidade; label: string }[] = [
+  { value: "SENAI", label: "SENAI Ed. Profissional" },
+  { value: "SESI Educação", label: "SESI Educação" },
+  { value: "SESI Saúde", label: "SESI Saúde" },
+];
 
 const ETAPAS: { value: Etapa; label: string }[] = [
   { value: "visita" as Etapa, label: "Visita" },
@@ -33,6 +40,7 @@ type Row = {
   funcao: Funcao;
   canal: Canal;
   ativo: boolean;
+  entidade: Entidade;
 };
 
 export function MatrizNotificacoes({
@@ -43,6 +51,7 @@ export function MatrizNotificacoes({
   onOpenChange: (o: boolean) => void;
 }) {
   const [canal, setCanal] = useState<Canal>("whatsapp");
+  const [entidade, setEntidade] = useState<Entidade>("SENAI");
   const qc = useQueryClient();
 
   // Cargos em uso: a partir dos responsáveis cadastrados (ativos ou não)
@@ -74,10 +83,10 @@ export function MatrizNotificacoes({
   });
 
   const map = new Map<string, Row>();
-  for (const r of rows ?? []) map.set(`${r.canal}|${r.etapa}|${r.funcao}`, r);
+  for (const r of rows ?? []) map.set(`${r.entidade}|${r.canal}|${r.etapa}|${r.funcao}`, r);
 
   const toggle = useMutation({
-    mutationFn: async (v: { etapa: Etapa; funcao: Funcao; canal: Canal; ativo: boolean; id?: string }) => {
+    mutationFn: async (v: { etapa: Etapa; funcao: Funcao; canal: Canal; entidade: Entidade; ativo: boolean; id?: string }) => {
       if (v.id) {
         const { error } = await supabase
           .from("notificacao_permissoes")
@@ -87,7 +96,7 @@ export function MatrizNotificacoes({
       } else {
         const { error } = await supabase
           .from("notificacao_permissoes")
-          .insert({ etapa: v.etapa, funcao: v.funcao, canal: v.canal, ativo: v.ativo });
+          .insert({ etapa: v.etapa, funcao: v.funcao, canal: v.canal, ativo: v.ativo, entidade: v.entidade } as any);
         if (error) throw error;
       }
     },
@@ -105,10 +114,30 @@ export function MatrizNotificacoes({
         <DialogHeader>
           <DialogTitle>Notificações por cargo e etapa</DialogTitle>
           <DialogDescription>
-            Marque os cargos que devem receber notificação em cada etapa. Aplica-se
-            apenas a responsáveis ativos e (no WhatsApp) com número cadastrado.
+            Configure por <strong>entidade</strong> os cargos que recebem notificação
+            em cada etapa. Aplica-se apenas a responsáveis ativos e (no WhatsApp) com
+            número cadastrado. O <strong>Agente de Mercado PJ</strong> notificado é
+            sempre o "Agente PJ Responsável" do contrato.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <span className="text-xs text-muted-foreground mr-1">Entidade:</span>
+          {ENTIDADES.map((e) => (
+            <button
+              key={e.value}
+              type="button"
+              onClick={() => setEntidade(e.value)}
+              className={`px-3 py-1 rounded-md text-sm border transition-colors ${
+                entidade === e.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background hover:bg-muted border-border"
+              }`}
+            >
+              {e.label}
+            </button>
+          ))}
+        </div>
 
         <Tabs value={canal} onValueChange={(v) => setCanal(v as Canal)}>
           <TabsList>
@@ -139,7 +168,7 @@ export function MatrizNotificacoes({
                       <tr key={f} className="border-t hover:bg-muted/20">
                         <td className="p-2">{f}</td>
                         {ETAPAS.map((e) => {
-                          const key = `${canal}|${e.value}|${f}`;
+                          const key = `${entidade}|${canal}|${e.value}|${f}`;
                           const row = map.get(key);
                           const ativo = !!row?.ativo;
                           return (
@@ -153,6 +182,7 @@ export function MatrizNotificacoes({
                                     etapa: e.value,
                                     funcao: f,
                                     canal,
+                                    entidade,
                                     ativo: !!v,
                                   })
                                 }
@@ -168,8 +198,7 @@ export function MatrizNotificacoes({
             )}
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">Dica</Badge>
-              Mudanças entram em vigor imediatamente nas próximas movimentações.
-              {canal === "whatsapp" && " O Agente PJ do contrato sempre recebe (independente da matriz)."}
+              Mudanças entram em vigor imediatamente. A configuração é independente por entidade.
             </div>
           </TabsContent>
         </Tabs>

@@ -494,6 +494,7 @@ export type Database = {
           ativo: boolean
           canal: string
           created_at: string
+          entidade: string
           etapa: Database["public"]["Enums"]["etapa_contrato"]
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id: string
@@ -503,6 +504,7 @@ export type Database = {
           ativo?: boolean
           canal: string
           created_at?: string
+          entidade?: string
           etapa: Database["public"]["Enums"]["etapa_contrato"]
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string
@@ -512,6 +514,7 @@ export type Database = {
           ativo?: boolean
           canal?: string
           created_at?: string
+          entidade?: string
           etapa?: Database["public"]["Enums"]["etapa_contrato"]
           funcao?: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string

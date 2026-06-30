@@ -204,11 +204,18 @@ serve(async (req) => {
   }
 
   // 1) Buscar cargos habilitados para esta etapa+canal na matriz de permissões
+  const entidadePerm =
+    contrato.entidade === "SESI" ? "SESI Educação" :
+    contrato.entidade === "SENAI" ? "SENAI" :
+    contrato.entidade === "SESI Saúde" ? "SESI Saúde" :
+    (contrato.entidade as string);
+
   const { data: perms, error: permsErr } = await supabase
     .from("notificacao_permissoes")
     .select("funcao")
     .eq("etapa", etapa_destino)
     .eq("canal", "whatsapp")
+    .eq("entidade", entidadePerm)
     .eq("ativo", true);
 
   if (permsErr) {
@@ -221,12 +228,16 @@ serve(async (req) => {
   const funcoesHabilitadas = Array.from(new Set((perms ?? []).map((p: any) => p.funcao as string)))
     .filter((f) => funcaoCompativelComEntidade(f, contrato.entidade));
 
+  // "Agente de Mercado PJ" é tratado separadamente: só notifica o agente do contrato
+  const agentePjHabilitado = funcoesHabilitadas.includes("Agente de Mercado PJ");
+  const funcoesParaBuscarBroad = funcoesHabilitadas.filter((f) => f !== "Agente de Mercado PJ");
+
   let destinatarios: any[] = [];
-  if (funcoesHabilitadas.length > 0) {
+  if (funcoesParaBuscarBroad.length > 0) {
     const { data, error: destErr } = await supabase
       .from("responsaveis")
       .select("id, nome, whatsapp, funcao")
-      .in("funcao", funcoesHabilitadas)
+      .in("funcao", funcoesParaBuscarBroad)
       .eq("ativo", true)
       .not("whatsapp", "is", null)
       .neq("whatsapp", "");
@@ -241,7 +252,7 @@ serve(async (req) => {
   }
 
   let agente: any = null;
-  if (contrato.agente_pj_id) {
+  if (contrato.agente_pj_id && agentePjHabilitado) {
     const { data } = await supabase
       .from("responsaveis")
       .select("id, nome, whatsapp, funcao")
