@@ -98,26 +98,19 @@ async function buildDestinatarios(
   };
 
   const analistas = () => fetchByFuncao(["Analista Comercial"]);
-  const secretaria = () => fetchByFuncao(["Secretaria", "Secretaria Escolar"]);
+  const secretaria = () => fetchByFuncao(["Secretaria Escolar"]);
   const interlocutora = () => fetchByFuncao(["Interlocutora de Faturamento"]);
-  const coordComercial = () => fetchByFuncao(["Coordenador Comercial"]);
+  const coordComercial = () => fetchByFuncao(["Coordenador Comercial SENAI"]);
 
   const backoffice = () => {
-    // Cargo segmentado por entidade (Melhoria 3).
-    // Fallback inclui os cargos legados "Backoffice" / "Backoffice Comercial"
-    // filtrados por nome, para garantir compatibilidade enquanto os registros
-    // antigos não forem migrados.
+    // Cargo segmentado por entidade. SESI Educação e SENAI são cobertos por
+    // pessoas/cargos diferentes; aqui consultamos apenas o cargo correto.
     const cargoSegmentado = isSenai
       ? "Backoffice SENAI"
       : isSaude
       ? "Backoffice SESI Saúde"
       : "Backoffice SESI Educação";
-    return fetchByFuncao([cargoSegmentado]).then(async (segmentado) => {
-      if (segmentado.length > 0) return segmentado;
-      // Fallback legado
-      const nome = isSaude ? "Ticyane" : "Deborah";
-      return fetchByFuncaoAndNome(["Backoffice", "Backoffice Comercial"], nome);
-    });
+    return fetchByFuncao([cargoSegmentado]);
   };
 
   const coordEntidade = () => {
@@ -140,7 +133,7 @@ async function buildDestinatarios(
 
   const pcpEntidade = () => {
     const cargo = isSenai ? "PCP SENAI" : "PCP SESI";
-    return fetchByFuncao([cargo, "PCP"]);
+    return fetchByFuncao([cargo]);
   };
 
   switch (etapa) {
