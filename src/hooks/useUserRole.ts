@@ -48,16 +48,25 @@ export function useUserRole() {
 
   const roles = query.data?.roles ?? [];
   const funcao = query.data?.funcao ?? null;
-  const isSupervisor = !!funcao && typeof funcao === "string" && funcao.startsWith("Supervisor");
+  const isSupervisor =
+    (!!funcao && typeof funcao === "string" && funcao.startsWith("Supervisor")) ||
+    roles.includes("operador");
+  const isBackoffice =
+    roles.includes("backoffice") ||
+    (!!funcao && typeof funcao === "string" && funcao.startsWith("Backoffice"));
+  const isCoordenador =
+    roles.includes("coordenador") ||
+    (!!funcao && typeof funcao === "string" && funcao.startsWith("Coordenador"));
+  const isSecretaria = roles.includes("secretaria") || funcao === "Secretaria Escolar";
   return {
     roles,
     funcao,
     isGestor: roles.includes("gestor") || roles.includes("admin"),
     isAdmin: roles.includes("admin") || roles.includes("gestor"),
-    isCoordenador: roles.includes("coordenador"),
-    isBackoffice: roles.includes("backoffice"),
+    isCoordenador,
+    isBackoffice,
     isVendedor: roles.includes("vendedor"),
-    isSecretaria: roles.includes("secretaria"),
+    isSecretaria,
     isInterlocutora: roles.includes("interlocutora"),
     isSupervisor,
     loading: query.isLoading,
