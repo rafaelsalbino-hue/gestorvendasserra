@@ -35,6 +35,7 @@ import { exportResponsaveisToXlsx } from "@/lib/export";
 import type { Tables } from "@/integrations/supabase/types";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DiagnosticoZapiDialog } from "@/components/DiagnosticoZapiDialog";
+import { DiagnosticoWhatsappDialog } from "@/components/DiagnosticoWhatsappDialog";
 import { MatrizPermissoesEtapas } from "@/components/MatrizPermissoesEtapas";
 
 type Responsavel = Tables<"responsaveis">;
@@ -43,16 +44,21 @@ function AdminTools() {
   const { isAdmin } = useUserRole();
   const [zapiOpen, setZapiOpen] = useState(false);
   const [matrizOpen, setMatrizOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
   if (!isAdmin) return null;
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setZapiOpen(true)}>
         <Activity className="mr-2 h-4 w-4" />Diagnosticar Z-API
       </Button>
+      <Button variant="outline" size="sm" onClick={() => setDiagOpen(true)}>
+        <Smartphone className="mr-2 h-4 w-4" />Diagnóstico WhatsApp
+      </Button>
       <Button variant="outline" size="sm" onClick={() => setMatrizOpen(true)}>
         <Shield className="mr-2 h-4 w-4" />Permissões por etapa
       </Button>
       <DiagnosticoZapiDialog open={zapiOpen} onOpenChange={setZapiOpen} />
+      <DiagnosticoWhatsappDialog open={diagOpen} onOpenChange={setDiagOpen} />
       <MatrizPermissoesEtapas open={matrizOpen} onOpenChange={setMatrizOpen} />
     </>
   );
