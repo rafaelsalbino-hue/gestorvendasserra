@@ -24,6 +24,7 @@ import { canFinalizarContrato, canDeleteContratoAt } from "@/lib/permissions";
 import { useContratosHistorico } from "@/hooks/useContratosHistorico";
 import { useContratoComentarios, useAddComentario } from "@/hooks/useContratoComentarios";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useEtapaPermissoes } from "@/hooks/usePermissoesEtapa";
 import { SlaIndicator } from "@/components/SlaIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { ContratoAnexos } from "@/components/ContratoAnexos";
@@ -139,6 +140,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   const { currentUser } = useCurrentUser();
   const role = useUserRole();
   const { data: responsaveis = [] } = useResponsaveis();
+  const { data: etapaPerms = {} } = useEtapaPermissoes(
+    (contrato?.etapa_atual as string | undefined) ?? null,
+  );
   const [form, setForm] = useState<Partial<Contrato>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [showComments, setShowComments] = useState(false);
@@ -183,8 +187,13 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
   if (!contrato) return null;
 
   const funcao = currentUser?.funcao;
-  const canEdit = (section: string) => canEditSection(funcao, section);
-  const canStatus = (section: string) => canEditStatus(funcao, section);
+  // Combina permissão estática (ROLE_PERMISSIONS) com a matriz dinâmica
+  // configurada pelo admin em etapa_cargo_permissoes (OR).
+  const matrixAllowsEdit = !!(funcao && (etapaPerms as any)[funcao]?.pode_editar);
+  const canEdit = (section: string) =>
+    canEditSection(funcao, section) || matrixAllowsEdit;
+  const canStatus = (section: string) =>
+    canEditStatus(funcao, section) || matrixAllowsEdit;
   const isLastEtapa = form.etapa_atual === "faturamento";
   const nextEtapa = form.etapa_atual ? getNextEtapa(form.etapa_atual as EtapaContrato) : null;
 
