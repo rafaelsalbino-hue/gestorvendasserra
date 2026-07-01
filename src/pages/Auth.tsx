@@ -13,6 +13,7 @@ import { FUNCOES_RESPONSAVEL, FUNCOES_GESTOR, ALLOWED_DOMAINS, type FuncaoRespon
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import logoSesi from "@/assets/logo-sesi.png";
 import logoSenai from "@/assets/logo-senai.png";
+import logoTratativa from "@/assets/logo-tratativa.jpg";
 
 const Auth = () => {
   useDocumentTitle("Entrar");
@@ -81,12 +82,15 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
-          <div className="flex justify-center items-center gap-6">
-            <img src={logoSesi} alt="SESI" className="h-10 w-auto object-contain" />
-            <img src={logoSenai} alt="SENAI" className="h-10 w-auto object-contain" />
+          <div className="flex justify-center">
+            <img src={logoTratativa} alt="TratAtiva" className="h-28 w-auto object-contain" />
           </div>
-          <CardTitle className="text-xl">Gestão de Contratos</CardTitle>
-          <CardDescription>Educação SESI/SENAI</CardDescription>
+          <div className="flex justify-center items-center gap-4 opacity-80">
+            <img src={logoSesi} alt="SESI" className="h-7 w-auto object-contain" />
+            <img src={logoSenai} alt="SENAI" className="h-7 w-auto object-contain" />
+          </div>
+          <CardTitle className="text-xl">TratAtiva</CardTitle>
+          <CardDescription>Gestão Comercial — FIESC Serra Catarinense</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">

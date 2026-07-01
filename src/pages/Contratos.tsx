@@ -370,8 +370,9 @@ const Contratos = () => {
           <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
             <TabsList className="w-max">
               <TabsTrigger value="SESI" className="text-xs sm:text-sm">SESI Educação</TabsTrigger>
-              <TabsTrigger value="SENAI" className="text-xs sm:text-sm">SENAI Ed. Profissional</TabsTrigger>
+              <TabsTrigger value="SENAI" className="text-xs sm:text-sm">SENAI</TabsTrigger>
               <TabsTrigger value="SESI Saúde" className="text-xs sm:text-sm">SESI Saúde</TabsTrigger>
+              <TabsTrigger value="REDE" className="text-xs sm:text-sm">REDE</TabsTrigger>
             </TabsList>
           </div>
 

@@ -176,8 +176,9 @@ const Dashboard = () => {
               <SelectContent>
                 <SelectItem value="todas">Todas as Entidades</SelectItem>
                 <SelectItem value="SESI">SESI Educação</SelectItem>
-                <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                <SelectItem value="SENAI">SENAI</SelectItem>
                 <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
+                <SelectItem value="REDE">REDE</SelectItem>
               </SelectContent>
             </Select>
           </div>

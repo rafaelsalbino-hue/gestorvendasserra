@@ -47,6 +47,7 @@ const ENTIDADE_LABEL: Record<string, Entidade> = {
   "SESI Educação": "SESI",
   "SENAI": "SENAI",
   "SENAI Ed. Profissional": "SENAI",
+  "SENAI": "SENAI",
   "SESI Saúde": "SESI Saúde",
   "SESI Saude": "SESI Saúde",
 };

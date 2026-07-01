@@ -14,12 +14,13 @@ import type { Database } from "@/integrations/supabase/types";
 type Funcao = Database["public"]["Enums"]["funcao_responsavel"];
 type Etapa = Database["public"]["Enums"]["etapa_contrato"];
 type Canal = "whatsapp" | "sistema";
-type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde";
+type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde" | "REDE";
 
 const ENTIDADES: { value: Entidade; label: string }[] = [
-  { value: "SENAI", label: "SENAI Ed. Profissional" },
+  { value: "SENAI", label: "SENAI" },
   { value: "SESI Educação", label: "SESI Educação" },
   { value: "SESI Saúde", label: "SESI Saúde" },
+  { value: "REDE", label: "REDE" },
 ];
 
 const ETAPAS: { value: Etapa; label: string }[] = [
