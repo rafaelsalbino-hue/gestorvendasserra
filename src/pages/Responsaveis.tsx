@@ -419,7 +419,36 @@ const Responsaveis = () => {
                     </div>
                   </div>
                 )}
+                {(funcao?.toString().includes("SENAI") || funcao === "Agente de Mercado PJ") && (
+                  <div className="space-y-2">
+                    <Label>Unidade de Atendimento (SENAI)</Label>
+                    <Select value={unidadeAtend || "__none__"} onValueChange={(v) => setUnidadeAtend(v === "__none__" ? "" : v)}>
+                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Não aplicável —</SelectItem>
+                        {UNIDADES_ATENDIMENTO_SENAI.map((u) => (<SelectItem key={u} value={u}>{u}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <WhatsappField id="wa-novo" value={whatsapp} onChange={setWhatsapp} required={isNotificavelRole(funcao)} error={errors.whatsapp} />
+                <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                  <Label className="text-xs">Turnos para envio de notificações WhatsApp</Label>
+                  <div className="flex flex-wrap gap-4 pt-1">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox checked={turnoM} onCheckedChange={(v) => setTurnoM(!!v)} />
+                      Manhã <span className="text-xs text-muted-foreground">(08h–12h)</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox checked={turnoT} onCheckedChange={(v) => setTurnoT(!!v)} />
+                      Tarde <span className="text-xs text-muted-foreground">(13h–18h)</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Checkbox checked={turnoN} onCheckedChange={(v) => setTurnoN(!!v)} />
+                      Noite <span className="text-xs text-muted-foreground">(18h–22h30)</span>
+                    </label>
+                  </div>
+                </div>
               </div>
               <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
@@ -592,7 +621,36 @@ const Responsaveis = () => {
                   </div>
                 </div>
               )}
+              {(editFuncao?.toString().includes("SENAI") || editFuncao === "Agente de Mercado PJ") && (
+                <div className="space-y-2">
+                  <Label>Unidade de Atendimento (SENAI)</Label>
+                  <Select value={editUnidadeAtend || "__none__"} onValueChange={(v) => setEditUnidadeAtend(v === "__none__" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Não aplicável —</SelectItem>
+                      {UNIDADES_ATENDIMENTO_SENAI.map((u) => (<SelectItem key={u} value={u}>{u}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <WhatsappField id="wa-edit" value={editWhatsapp} onChange={setEditWhatsapp} required={isNotificavelRole(editFuncao)} error={editErrors.whatsapp} />
+              <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                <Label className="text-xs">Turnos para envio de notificações WhatsApp</Label>
+                <div className="flex flex-wrap gap-4 pt-1">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={editTurnoM} onCheckedChange={(v) => setEditTurnoM(!!v)} />
+                    Manhã <span className="text-xs text-muted-foreground">(08h–12h)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={editTurnoT} onCheckedChange={(v) => setEditTurnoT(!!v)} />
+                    Tarde <span className="text-xs text-muted-foreground">(13h–18h)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={editTurnoN} onCheckedChange={(v) => setEditTurnoN(!!v)} />
+                    Noite <span className="text-xs text-muted-foreground">(18h–22h30)</span>
+                  </label>
+                </div>
+              </div>
             </div>
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">Cancelar</Button>
