@@ -16,6 +16,7 @@ import { useAddComentario } from "@/hooks/useContratoComentarios";
 import { supabase } from "@/integrations/supabase/client";
 import { validarCNPJ, formatarCNPJ } from "@/lib/cnpj";
 import { SUBDIVISIONS_BY_UNIT } from "@/types/contracts";
+import { UNIDADES_ATENDIMENTO_SENAI } from "@/types/contracts";
 import { formatBRLInput, parseBRL } from "@/lib/currency";
 
 interface NovoContratoDialogProps {
@@ -46,9 +47,12 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
   const [observacoesVisita, setObservacoesVisita] = useState("");
   const [subdivisao, setSubdivisao] = useState<string>("");
   const [subdivisaoError, setSubdivisaoError] = useState("");
+  const [unidadeAtend, setUnidadeAtend] = useState<string>("");
+  const [unidadeAtendError, setUnidadeAtendError] = useState("");
 
   const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
   const exigeSubdivisao = subdivisoesDisponiveis.length > 0;
+  const exigeUnidadeAtend = entidade === "SENAI";
 
   const agentesPJ = responsaveis.filter((r) => r.funcao === "Agente de Mercado PJ");
 
@@ -64,6 +68,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setObservacoesVisita("");
       setSubdivisao("");
       setSubdivisaoError("");
+      setUnidadeAtend("");
+      setUnidadeAtendError("");
     }
   }, [open]);
 
@@ -73,7 +79,11 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setSubdivisao("");
       setSubdivisaoError("");
     }
-  }, [entidade, exigeSubdivisao]);
+    if (!exigeUnidadeAtend && unidadeAtend) {
+      setUnidadeAtend("");
+      setUnidadeAtendError("");
+    }
+  }, [entidade, exigeSubdivisao, exigeUnidadeAtend]);
 
   const handleCnpjChange = (value: string) => {
     const formatted = formatarCNPJ(value);
@@ -104,6 +114,10 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
       setSubdivisaoError("Selecione a área / subdivisão.");
       hasError = true;
     }
+    if (exigeUnidadeAtend && !unidadeAtend) {
+      setUnidadeAtendError("Selecione a unidade de atendimento.");
+      hasError = true;
+    }
     if (hasError) {
       toast({ title: "Verifique os campos destacados", variant: "destructive" });
       return;
@@ -122,6 +136,7 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
         data_visita: dataVisita || null,
         observacoes_visita: observacoesVisita,
         subdivisao: subdivisao || null,
+        unidade_atendimento: unidadeAtend || null,
       } as any,
       {
         onSuccess: async (novo: any) => {
@@ -189,6 +204,8 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
     setObservacoesVisita("");
     setSubdivisao("");
     setSubdivisaoError("");
+    setUnidadeAtend("");
+    setUnidadeAtendError("");
   };
 
   return (
@@ -213,11 +230,31 @@ export function NovoContratoDialog({ open, onOpenChange, entidadeInicial = "SESI
               <SelectTrigger><SelectValue placeholder="Selecione a entidade" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SESI">SESI Educação</SelectItem>
-                <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                <SelectItem value="SENAI">SENAI</SelectItem>
                 <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
+                <SelectItem value="REDE">REDE</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {exigeUnidadeAtend && (
+            <div className="space-y-2">
+              <Label>Unidade de Atendimento *</Label>
+              <Select
+                value={unidadeAtend || undefined}
+                onValueChange={(v) => { setUnidadeAtend(v); if (unidadeAtendError) setUnidadeAtendError(""); }}
+              >
+                <SelectTrigger className={unidadeAtendError ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Selecione a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIDADES_ATENDIMENTO_SENAI.map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {unidadeAtendError && <p className="text-xs text-destructive">{unidadeAtendError}</p>}
+            </div>
+          )}
           {exigeSubdivisao && (
             <div className="space-y-2">
               <Label>Área / Subdivisão *</Label>
