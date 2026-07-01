@@ -83,13 +83,12 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">
-            <img src={logoTratativa} alt="TratAtiva" className="h-28 w-auto object-contain" />
+            <img src={logoTratativa} alt="TratAtiva" className="h-56 w-auto object-contain" />
           </div>
           <div className="flex justify-center items-center gap-4 opacity-80">
             <img src={logoSesi} alt="SESI" className="h-7 w-auto object-contain" />
             <img src={logoSenai} alt="SENAI" className="h-7 w-auto object-contain" />
           </div>
-          <CardTitle className="text-xl">TratAtiva</CardTitle>
           <CardDescription>Gestão Comercial — FIESC Serra Catarinense</CardDescription>
         </CardHeader>
         <CardContent>
