@@ -7,19 +7,21 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type Funcao = Database["public"]["Enums"]["funcao_responsavel"];
 type Etapa = Database["public"]["Enums"]["etapa_contrato"];
 type Canal = "whatsapp" | "sistema";
-type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde";
+type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde" | "REDE";
 
 const ENTIDADES: { value: Entidade; label: string }[] = [
-  { value: "SENAI", label: "SENAI Ed. Profissional" },
+  { value: "SENAI", label: "SENAI" },
   { value: "SESI Educação", label: "SESI Educação" },
   { value: "SESI Saúde", label: "SESI Saúde" },
+  { value: "REDE", label: "REDE" },
 ];
 
 const ETAPAS: { value: Etapa; label: string }[] = [
@@ -52,6 +54,7 @@ export function MatrizNotificacoes({
 }) {
   const [canal, setCanal] = useState<Canal>("whatsapp");
   const [entidade, setEntidade] = useState<Entidade>("SENAI");
+  const [busca, setBusca] = useState("");
   const qc = useQueryClient();
 
   // Cargos em uso: a partir dos responsáveis cadastrados (ativos ou não)
@@ -113,30 +116,40 @@ export function MatrizNotificacoes({
       <DialogContent className="max-w-6xl">
         <DialogHeader>
           <DialogTitle>Notificações por cargo e etapa</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs">
             Configure por <strong>entidade</strong> os cargos que recebem notificação
-            em cada etapa. Aplica-se apenas a responsáveis ativos e (no WhatsApp) com
-            número cadastrado. O <strong>Agente de Mercado PJ</strong> notificado é
+            em cada etapa. O <strong>Agente de Mercado PJ</strong> notificado é
             sempre o "Agente PJ Responsável" do contrato.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <span className="text-xs text-muted-foreground mr-1">Entidade:</span>
-          {ENTIDADES.map((e) => (
-            <button
-              key={e.value}
-              type="button"
-              onClick={() => setEntidade(e.value)}
-              className={`px-3 py-1 rounded-md text-sm border transition-colors ${
-                entidade === e.value
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background hover:bg-muted border-border"
-              }`}
-            >
-              {e.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-xs text-muted-foreground mr-1">Entidade:</span>
+            {ENTIDADES.map((e) => (
+              <button
+                key={e.value}
+                type="button"
+                onClick={() => setEntidade(e.value)}
+                className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                  entidade === e.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border"
+                }`}
+              >
+                {e.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative ml-auto w-full sm:w-64">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="pl-7 h-8 text-sm"
+              placeholder="Buscar cargo…"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
         </div>
 
         <Tabs value={canal} onValueChange={(v) => setCanal(v as Canal)}>
@@ -145,13 +158,13 @@ export function MatrizNotificacoes({
             <TabsTrigger value="sistema">Sistema (sino)</TabsTrigger>
           </TabsList>
 
-          <TabsContent value={canal} className="mt-4">
+          <TabsContent value={canal} className="mt-2">
             {isLoading || !funcoes ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="overflow-auto border rounded-md">
+              <div className="overflow-auto border rounded-md max-h-[60vh]">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40 sticky top-0">
                     <tr>
@@ -164,7 +177,9 @@ export function MatrizNotificacoes({
                     </tr>
                   </thead>
                   <tbody>
-                    {funcoes.map((f) => (
+                    {funcoes
+                      .filter((f) => !busca.trim() || f.toLowerCase().includes(busca.trim().toLowerCase()))
+                      .map((f) => (
                       <tr key={f} className="border-t hover:bg-muted/20">
                         <td className="p-2">{f}</td>
                         {ETAPAS.map((e) => {

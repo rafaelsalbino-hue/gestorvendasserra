@@ -9,7 +9,7 @@ type ContratoInsert = TablesInsert<"contratos">;
 type ContratoUpdate = TablesUpdate<"contratos">;
 type ContractMutationError = { code?: string; message?: string };
 
-export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde") {
+export function useContratos(entidade?: "SESI" | "SENAI" | "SESI Saúde" | "REDE") {
   const qc = useQueryClient();
   const { runGuarded } = useAppSession();
 

@@ -41,7 +41,7 @@ interface LinhaPrevia {
   motivo?: string;
 }
 
-const ENTIDADES_VALIDAS: Entidade[] = ["SESI", "SENAI", "SESI Saúde"];
+const ENTIDADES_VALIDAS: Entidade[] = ["SESI", "SENAI", "SESI Saúde", "REDE"];
 const ENTIDADE_LABEL: Record<string, Entidade> = {
   "SESI": "SESI",
   "SESI Educação": "SESI",
@@ -49,6 +49,7 @@ const ENTIDADE_LABEL: Record<string, Entidade> = {
   "SENAI Ed. Profissional": "SENAI",
   "SESI Saúde": "SESI Saúde",
   "SESI Saude": "SESI Saúde",
+  "REDE": "REDE",
 };
 
 const COLUNAS_MODELO = [

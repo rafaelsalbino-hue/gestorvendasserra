@@ -1,4 +1,4 @@
-export type Entidade = "SESI" | "SENAI" | "SESI Saúde";
+export type Entidade = "SESI" | "SENAI" | "SESI Saúde" | "REDE";
 
 export type FuncaoResponsavel =
   | "Agente de Mercado PJ"
@@ -198,9 +198,21 @@ export type SubdivisaoSaude = "Promoção de Saúde" | "Saúde Assistencial" | "
 
 export const SUBDIVISIONS_BY_UNIT: Record<Entidade, string[]> = {
   "SESI": ["Contraturno", "ACE"],
-  "SENAI": [],
+  "SENAI": ["Cursos Técnicos", "Qualificação Profissional", "Aprendizagem"],
   "SESI Saúde": ["Promoção de Saúde", "Saúde Assistencial", "SST", "NRs"],
+  "REDE": ["Demais Serviços Educação", "IEL", "Inovação", "Profissional", "Superior", "Tecnologia"],
 };
+
+// Unidades de atendimento SENAI
+export const UNIDADES_ATENDIMENTO_SENAI = ["Lages", "Otacílio Costa", "Correia Pinto"] as const;
+export type UnidadeAtendimentoSenai = typeof UNIDADES_ATENDIMENTO_SENAI[number];
+
+// Turnos de trabalho
+export const TURNOS = [
+  { key: "turno_manha", label: "Manhã", horario: "08h00–12h00", start: 8, end: 12 },
+  { key: "turno_tarde", label: "Tarde", horario: "13h00–18h00", start: 13, end: 18 },
+  { key: "turno_noite", label: "Noite", horario: "18h00–22h30", start: 18, endMinutes: 22 * 60 + 30 },
+] as const;
 
 export const SUBDIVISAO_COLORS: Record<string, string> = {
   "Promoção de Saúde": "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-200",

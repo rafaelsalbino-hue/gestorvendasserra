@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -50,9 +50,29 @@ const Dashboard = () => {
   const { currentUser } = useCurrentUser();
   const { isAdmin, isBackoffice, isCoordenador, isVendedor } = useUserRole();
   const navigate = useNavigate();
-  const [filterEntidade, setFilterEntidade] = useState<string>("todas");
-  const [filterPJ, setFilterPJ] = useState<string>("todos");
-  const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
+  // Persistência dos filtros do dashboard entre navegações (sessionStorage)
+  const readStored = <T,>(key: string, fallback: T): T => {
+    try {
+      const raw = sessionStorage.getItem(`dashboard.${key}`);
+      return raw ? (JSON.parse(raw) as T) : fallback;
+    } catch { return fallback; }
+  };
+  const [filterEntidade, setFilterEntidade] = useState<string>(() => readStored("filterEntidade", "todas"));
+  const [filterPJ, setFilterPJ] = useState<string>(() => readStored("filterPJ", "todos"));
+  const [filterSubdivisao, setFilterSubdivisao] = useState<string>(() => readStored("filterSubdivisao", "todas"));
+
+  useEffect(() => { sessionStorage.setItem("dashboard.filterEntidade", JSON.stringify(filterEntidade)); }, [filterEntidade]);
+  useEffect(() => { sessionStorage.setItem("dashboard.filterPJ", JSON.stringify(filterPJ)); }, [filterPJ]);
+  useEffect(() => { sessionStorage.setItem("dashboard.filterSubdivisao", JSON.stringify(filterSubdivisao)); }, [filterSubdivisao]);
+
+  // Restaura scroll ao voltar para o dashboard
+  useEffect(() => {
+    const y = Number(sessionStorage.getItem("dashboard.scrollY") || "0");
+    if (y > 0) window.scrollTo({ top: y, behavior: "auto" });
+    const save = () => sessionStorage.setItem("dashboard.scrollY", String(window.scrollY));
+    window.addEventListener("scroll", save, { passive: true });
+    return () => { save(); window.removeEventListener("scroll", save); };
+  }, []);
 
   const isLoading = loadC || loadR;
 
@@ -176,8 +196,9 @@ const Dashboard = () => {
               <SelectContent>
                 <SelectItem value="todas">Todas as Entidades</SelectItem>
                 <SelectItem value="SESI">SESI Educação</SelectItem>
-                <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                <SelectItem value="SENAI">SENAI</SelectItem>
                 <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
+                <SelectItem value="REDE">REDE</SelectItem>
               </SelectContent>
             </Select>
           </div>

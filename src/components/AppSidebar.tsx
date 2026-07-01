@@ -95,8 +95,8 @@ export function AppSidebar() {
             </div>
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-sidebar-foreground truncate">Gestão RPC</span>
-                <span className="text-[11px] text-sidebar-foreground/60 truncate">Gestão comercial</span>
+                <span className="text-sm font-bold text-sidebar-foreground truncate">TratAtiva</span>
+                <span className="text-[11px] text-sidebar-foreground/60 truncate">Gestão Comercial — FIESC Serra</span>
               </div>
             )}
           </div>

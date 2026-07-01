@@ -244,7 +244,7 @@ const Contratos = () => {
   // Troca a aba para a entidade do contrato vindo da busca global (antes do fetch)
   useEffect(() => {
     const ent = searchParams.get("entidade") as Entidade | null;
-    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde"].includes(ent)) {
+    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde", "REDE"].includes(ent as string)) {
       setEntidade(ent);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -370,8 +370,9 @@ const Contratos = () => {
           <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
             <TabsList className="w-max">
               <TabsTrigger value="SESI" className="text-xs sm:text-sm">SESI Educação</TabsTrigger>
-              <TabsTrigger value="SENAI" className="text-xs sm:text-sm">SENAI Ed. Profissional</TabsTrigger>
+              <TabsTrigger value="SENAI" className="text-xs sm:text-sm">SENAI</TabsTrigger>
               <TabsTrigger value="SESI Saúde" className="text-xs sm:text-sm">SESI Saúde</TabsTrigger>
+              <TabsTrigger value="REDE" className="text-xs sm:text-sm">REDE</TabsTrigger>
             </TabsList>
           </div>
 

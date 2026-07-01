@@ -150,7 +150,8 @@ export default function ArquivoPage() {
                 <SelectContent>
                   <SelectItem value="todas">Todas</SelectItem>
                   <SelectItem value="SESI">SESI Educação</SelectItem>
-                  <SelectItem value="SENAI">SENAI Ed. Profissional</SelectItem>
+                  <SelectItem value="SENAI">SENAI</SelectItem>
+                  <SelectItem value="REDE">REDE</SelectItem>
                   <SelectItem value="SESI Saúde">SESI Saúde</SelectItem>
                 </SelectContent>
               </Select>

@@ -234,6 +234,7 @@ export type Database = {
           sup_sugestao_professor: string | null
           ultima_movimentacao_at: string
           ultima_movimentacao_por: string
+          unidade_atendimento: string | null
           updated_at: string
           valor: number
           valor_total_contrato: number | null
@@ -294,6 +295,7 @@ export type Database = {
           sup_sugestao_professor?: string | null
           ultima_movimentacao_at?: string
           ultima_movimentacao_por?: string
+          unidade_atendimento?: string | null
           updated_at?: string
           valor?: number
           valor_total_contrato?: number | null
@@ -354,6 +356,7 @@ export type Database = {
           sup_sugestao_professor?: string | null
           ultima_movimentacao_at?: string
           ultima_movimentacao_por?: string
+          unidade_atendimento?: string | null
           updated_at?: string
           valor?: number
           valor_total_contrato?: number | null
@@ -560,6 +563,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           destinatario_nome: string | null
+          enviar_a: string | null
           erro: string | null
           etapa_destino: string | null
           id: string
@@ -572,6 +576,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           destinatario_nome?: string | null
+          enviar_a?: string | null
           erro?: string | null
           etapa_destino?: string | null
           id?: string
@@ -584,6 +589,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           destinatario_nome?: string | null
+          enviar_a?: string | null
           erro?: string | null
           etapa_destino?: string | null
           id?: string
@@ -654,6 +660,10 @@ export type Database = {
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id: string
           nome: string
+          turno_manha: boolean
+          turno_noite: boolean
+          turno_tarde: boolean
+          unidade_atendimento: string | null
           updated_at: string
           user_id: string | null
           whatsapp: string | null
@@ -665,6 +675,10 @@ export type Database = {
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string
           nome: string
+          turno_manha?: boolean
+          turno_noite?: boolean
+          turno_tarde?: boolean
+          unidade_atendimento?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
@@ -676,6 +690,10 @@ export type Database = {
           funcao?: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string
           nome?: string
+          turno_manha?: boolean
+          turno_noite?: boolean
+          turno_tarde?: boolean
+          unidade_atendimento?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
@@ -773,7 +791,7 @@ export type Database = {
         | "secretaria"
         | "interlocutora"
         | "coordenador"
-      entidade_type: "SESI" | "SENAI" | "SESI Saúde" | "SESI Educação"
+      entidade_type: "SESI" | "SENAI" | "SESI Saúde" | "SESI Educação" | "REDE"
       etapa_contrato:
         | "visita"
         | "proposta"
@@ -947,7 +965,7 @@ export const Constants = {
         "interlocutora",
         "coordenador",
       ],
-      entidade_type: ["SESI", "SENAI", "SESI Saúde", "SESI Educação"],
+      entidade_type: ["SESI", "SENAI", "SESI Saúde", "SESI Educação", "REDE"],
       etapa_contrato: [
         "visita",
         "proposta",
