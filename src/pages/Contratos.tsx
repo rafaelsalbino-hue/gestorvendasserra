@@ -244,7 +244,7 @@ const Contratos = () => {
   // Troca a aba para a entidade do contrato vindo da busca global (antes do fetch)
   useEffect(() => {
     const ent = searchParams.get("entidade") as Entidade | null;
-    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde"].includes(ent)) {
+    if (ent && ent !== entidade && ["SESI", "SENAI", "SESI Saúde", "REDE"].includes(ent as string)) {
       setEntidade(ent);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
