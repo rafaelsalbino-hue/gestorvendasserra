@@ -25,9 +25,11 @@ import {
   ESPECIALIDADES_POR_ENTIDADE,
   isSupervisorRole,
   isNotificavelRole,
+  UNIDADES_ATENDIMENTO_SENAI,
   type FuncaoResponsavel,
   type EntidadeAtuacao,
 } from "@/types/contracts";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsaveis, useAddResponsavel, useDeleteResponsavel } from "@/hooks/useResponsaveis";
 import { useUpdateResponsavel } from "@/hooks/useUpdateResponsavel";
@@ -174,6 +176,10 @@ const Responsaveis = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [entidade, setEntidade] = useState<EntidadeAtuacao | "">("");
   const [especialidade, setEspecialidade] = useState<string>("");
+  const [unidadeAtend, setUnidadeAtend] = useState<string>("");
+  const [turnoM, setTurnoM] = useState(true);
+  const [turnoT, setTurnoT] = useState(true);
+  const [turnoN, setTurnoN] = useState(false);
   const [filterFuncao, setFilterFuncao] = useState<string>("todas");
 
   const [editNome, setEditNome] = useState("");
@@ -182,6 +188,10 @@ const Responsaveis = () => {
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editEntidade, setEditEntidade] = useState<EntidadeAtuacao | "">("");
   const [editEspecialidade, setEditEspecialidade] = useState<string>("");
+  const [editUnidadeAtend, setEditUnidadeAtend] = useState<string>("");
+  const [editTurnoM, setEditTurnoM] = useState(true);
+  const [editTurnoT, setEditTurnoT] = useState(true);
+  const [editTurnoN, setEditTurnoN] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [editErrors, setEditErrors] = useState<FormErrors>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -212,11 +222,21 @@ const Responsaveis = () => {
     setErrors(v);
     if (Object.keys(v).length > 0) return;
     addMutation.mutate(
-      { nome: nome.trim(), email: email.trim(), funcao: funcao as FuncaoResponsavel, whatsapp: whatsapp || null } as any,
+      {
+        nome: nome.trim(),
+        email: email.trim(),
+        funcao: funcao as FuncaoResponsavel,
+        whatsapp: whatsapp || null,
+        unidade_atendimento: unidadeAtend || null,
+        turno_manha: turnoM,
+        turno_tarde: turnoT,
+        turno_noite: turnoN,
+      } as any,
       {
         onSuccess: () => {
           setNome(""); setEmail(""); setFuncao(""); setWhatsapp("");
           setEntidade(""); setEspecialidade(""); setErrors({});
+          setUnidadeAtend(""); setTurnoM(true); setTurnoT(true); setTurnoN(false);
           setDialogOpen(false);
           toast({ title: "Responsável cadastrado com sucesso!" });
         },
@@ -231,6 +251,10 @@ const Responsaveis = () => {
     setEditEmail(resp.email);
     setEditFuncao(resp.funcao as FuncaoResponsavel);
     setEditWhatsapp(((resp as any).whatsapp as string) ?? "");
+    setEditUnidadeAtend(((resp as any).unidade_atendimento as string) ?? "");
+    setEditTurnoM(((resp as any).turno_manha as boolean) ?? true);
+    setEditTurnoT(((resp as any).turno_tarde as boolean) ?? true);
+    setEditTurnoN(((resp as any).turno_noite as boolean) ?? false);
     // Pré-popula entidade/especialidade se a função for um Supervisor composto
     const f = String(resp.funcao || "");
     const m = f.match(/^Supervisor (SENAI|SESI Saúde|SESI Educação) — (.+)$/);
@@ -251,7 +275,17 @@ const Responsaveis = () => {
     setEditErrors(v);
     if (Object.keys(v).length > 0) return;
     updateMutation.mutate(
-      { id: editingResp.id, nome: editNome.trim(), email: editEmail.trim(), funcao: editFuncao as FuncaoResponsavel, whatsapp: editWhatsapp || null } as any,
+      {
+        id: editingResp.id,
+        nome: editNome.trim(),
+        email: editEmail.trim(),
+        funcao: editFuncao as FuncaoResponsavel,
+        whatsapp: editWhatsapp || null,
+        unidade_atendimento: editUnidadeAtend || null,
+        turno_manha: editTurnoM,
+        turno_tarde: editTurnoT,
+        turno_noite: editTurnoN,
+      } as any,
       {
         onSuccess: () => {
           setEditDialogOpen(false);
