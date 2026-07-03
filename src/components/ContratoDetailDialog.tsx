@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Save, Lock, Trash2, History, ExternalLink, ArrowRight, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 import { STATUS_OPTIONS, ETAPAS, FUNCOES_GESTOR, FUNCOES_STATUS_AMPLO, type EtapaContrato } from "@/types/contracts";
+import { SUBDIVISIONS_BY_UNIT, UNIDADES_ATENDIMENTO_SENAI } from "@/types/contracts";
 import { formatBRL, formatBRLInput, parseBRL } from "@/lib/currency";
 import { validarEtapaParaAvancar } from "@/hooks/useEtapaValidation";
 import { useToast } from "@/hooks/use-toast";
@@ -474,6 +475,47 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canStatus("proposta")} />
               <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canStatus("proposta")} />
             </div>
+            {form.entidade === "SENAI" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-dashed border-muted-foreground/30 p-3 bg-muted/20">
+                <div className="sm:col-span-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Roteamento SENAI (define quem recebe a notificação)
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Unidade de Atendimento *</Label>
+                  <Select
+                    value={(form as any).unidade_atendimento || undefined}
+                    onValueChange={(v) => set("unidade_atendimento" as any, v)}
+                    disabled={!canEdit("proposta")}
+                  >
+                    <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
+                    <SelectContent>
+                      {UNIDADES_ATENDIMENTO_SENAI.map((u) => (
+                        <SelectItem key={u} value={u}>{u}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Área / Subdivisão *</Label>
+                  <Select
+                    value={(form as any).subdivisao || undefined}
+                    onValueChange={(v) => set("subdivisao" as any, v)}
+                    disabled={!canEdit("proposta")}
+                  >
+                    <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione a área" /></SelectTrigger>
+                    <SelectContent>
+                      {(SUBDIVISIONS_BY_UNIT["SENAI"] || []).map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+                  A combinação Unidade + Área direciona a notificação ao Supervisor SENAI correspondente
+                  (Correia Pinto, Otacílio Costa, Lages Cursos Técnicos ou Lages Cursos de Qualificação).
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
               <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
