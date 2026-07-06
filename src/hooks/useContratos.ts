@@ -98,7 +98,15 @@ export function useRestaurarContrato() {
     mutationFn: async (id: string) => runGuarded(async () => {
       const { data, error } = await supabase
         .from("contratos")
-        .update({ deleted_at: null, deleted_by: null, status_proposta_crm: "" } as any)
+        .update({
+          deleted_at: null,
+          deleted_by: null,
+          deleted_reason: null,
+          finalized_at: null,
+          finalized_by: null,
+          finalized_by_nome: null,
+          status_proposta_crm: "",
+        } as any)
         .eq("id", id)
         .select()
         .single();
