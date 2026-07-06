@@ -93,6 +93,16 @@ function supervisorSenaiEsperado(contrato: any): string | null {
   return null;
 }
 
+// Retorna o rótulo específico de supervisor SESI Saúde por subdivisão
+function supervisorSesiSaudeEsperado(contrato: any): string | null {
+  if (contrato?.entidade !== "SESI Saúde") return null;
+  const sub = String(contrato?.subdivisao ?? "");
+  if (/Promo/i.test(sub)) return "Supervisor SESI Saúde — Promoção de Saúde";
+  if (/Assistencial/i.test(sub)) return "Supervisor SESI Saúde — Saúde Assistencial";
+  if (/SST/i.test(sub)) return "Supervisor SESI Saúde — SST";
+  return null;
+}
+
 function mask(s: string): string {
   if (!s) return "";
   return s.length <= 6 ? s.slice(0, 2) + "***" : s.slice(0, 6) + "...";
@@ -328,6 +338,16 @@ serve(async (req) => {
         // Se conseguimos determinar o supervisor esperado, exige match exato
         if (supEsperado) return r.funcao === supEsperado;
         // Caso contrário, mantém o comportamento anterior (broad)
+        return true;
+      });
+    }
+
+    // Roteamento Supervisor SESI Saúde por Subdivisão (Promoção / Assistencial / SST)
+    const supSaudeEsperado = supervisorSesiSaudeEsperado(contrato);
+    if (contrato.entidade === "SESI Saúde") {
+      destinatarios = destinatarios.filter((r: any) => {
+        if (!String(r.funcao).startsWith("Supervisor SESI Saúde")) return true;
+        if (supSaudeEsperado) return r.funcao === supSaudeEsperado;
         return true;
       });
     }
