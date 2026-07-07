@@ -55,12 +55,12 @@ export function getDiasNaProposta(c: Partial<Contrato> & Record<string, any>): n
 }
 
 export function isPropostaVencida(c: Partial<Contrato> & Record<string, any>): boolean {
-  if ((c as any).etapa_atual !== "proposta") return false;
+  if ((c as any).etapa_atual !== "crm") return false;
   return getDiasNaProposta(c) > getPropostaSlaLimit(c);
 }
 
 export function isPropostaProximaVencimento(c: Partial<Contrato> & Record<string, any>): boolean {
-  if ((c as any).etapa_atual !== "proposta") return false;
+  if ((c as any).etapa_atual !== "crm") return false;
   const d = getDiasNaProposta(c);
   const limit = getPropostaSlaLimit(c);
   return d >= limit - 1 && d <= limit;
@@ -101,7 +101,7 @@ export function isSupervisorVencida(c: Partial<Contrato> & Record<string, any>):
  */
 export function isEmAtencao(c: Partial<Contrato> & Record<string, any>): boolean {
   if ((c as any).etapa_atual === "faturamento") return false;
-  if ((c as any).etapa_atual === "proposta") return isPropostaVencida(c);
+  if ((c as any).etapa_atual === "crm") return isPropostaVencida(c);
   if ((c as any).etapa_atual === "supervisor") return isSupervisorVencida(c);
   return getDiasParado(c) > 5;
 }
