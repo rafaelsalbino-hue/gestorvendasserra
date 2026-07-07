@@ -95,24 +95,43 @@ export function useRestaurarContrato() {
   const qc = useQueryClient();
   const { runGuarded } = useAppSession();
   return useMutation({
-    mutationFn: async (id: string) => runGuarded(async () => {
+    mutationFn: async (args: string | { id: string; etapa_atual?: string | null }) => runGuarded(async () => {
+      const id = typeof args === "string" ? args : args.id;
+      let etapaAtual = typeof args === "string" ? null : args.etapa_atual ?? null;
+
+      if (!etapaAtual) {
+        const { data: atual, error: readError } = await supabase
+          .from("contratos")
+          .select("etapa_atual")
+          .eq("id", id)
+          .maybeSingle();
+        if (readError) throw readError;
+        etapaAtual = (atual as any)?.etapa_atual ?? null;
+      }
+
+      const restorePayload: Record<string, unknown> = {
+        deleted_at: null,
+        deleted_by: null,
+        deleted_reason: null,
+        finalized_at: null,
+        finalized_by: null,
+        finalized_by_nome: null,
+        status_proposta_crm: "",
+      };
+
+      if (etapaAtual === "finalizado") {
+        restorePayload.etapa_atual = "faturamento";
+      }
+
       const { data, error } = await supabase
         .from("contratos")
-        .update({
-          deleted_at: null,
-          deleted_by: null,
-          deleted_reason: null,
-          finalized_at: null,
-          finalized_by: null,
-          finalized_by_nome: null,
-          status_proposta_crm: "",
-        } as any)
+        .update(restorePayload as any)
         .eq("id", id)
         .select()
         .single();
       if (error) throw error;
       return data as Contrato;
-    }, { operation: `contratos.restore.${id}`, timeoutMs: 15000 }),
+    }, { operation: `contratos.restore.${typeof args === "string" ? args : args.id}`, timeoutMs: 15000 }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contratos"] });
     },
