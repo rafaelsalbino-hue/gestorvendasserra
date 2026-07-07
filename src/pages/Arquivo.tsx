@@ -74,9 +74,9 @@ export default function ArquivoPage() {
     return arr;
   }, [itens, busca, filterEntidade, filterMotivo, filterEtapa, dataDe, dataAte, sortBy]);
 
-  const handleRestore = (id: string, cliente: string) => {
-    restoreMutation.mutate(id, {
-      onSuccess: () => toast({ title: `"${cliente}" restaurado ao pipeline` }),
+  const handleRestore = (contrato: any) => {
+    restoreMutation.mutate({ id: contrato.id, etapa_atual: contrato.etapa_atual }, {
+      onSuccess: () => toast({ title: `"${contrato.cliente}" restaurado ao pipeline` }),
       onError: (e) => toast({ title: "Erro ao restaurar", description: e.message, variant: "destructive" }),
     });
   };
@@ -273,7 +273,7 @@ export default function ArquivoPage() {
                           size="sm"
                           variant="outline"
                           className="w-full"
-                          onClick={() => handleRestore(c.id, c.cliente)}
+                          onClick={() => handleRestore(c)}
                           disabled={restoreMutation.isPending}
                         >
                           <RotateCcw className="mr-2 h-3.5 w-3.5" />
