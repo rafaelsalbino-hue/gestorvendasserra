@@ -104,7 +104,7 @@ const Dashboard = () => {
   // Mapa rápido para nome do agente PJ
   const respMap = new Map(responsaveis.map((r) => [r.id, r.nome]));
   const responsavelNome = (c: any): string => {
-    if (c.etapa_atual === "visita" || c.etapa_atual === "proposta") {
+    if (c.etapa_atual === "visita" || c.etapa_atual === "crm" || c.etapa_atual === "proposta") {
       return (c.agente_pj_id && respMap.get(c.agente_pj_id)) || "Agente PJ";
     }
     return ETAPAS.find((e) => e.id === c.etapa_atual)?.responsavel || "—";
@@ -333,7 +333,7 @@ const Dashboard = () => {
                     {contratosAtrasados.map((c) => {
                       const dias = getDiasParado(c as any);
                       const etapaLabel = ETAPAS.find((e) => e.id === c.etapa_atual)?.label;
-                      const isProposta = c.etapa_atual === "proposta";
+                      const isProposta = c.etapa_atual === "crm";
                       const diasProp = isProposta ? getDiasNaProposta(c as any) : 0;
                       const limitProp = isProposta ? getPropostaSlaLimit(c as any) : 0;
                       return (
