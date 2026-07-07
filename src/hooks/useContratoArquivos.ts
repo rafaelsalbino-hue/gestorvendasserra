@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type ArquivoCategoria = "chamado_faturamento" | "planilha_alunos" | "turmas_adicionais";
+export type ArquivoCategoria = "chamado_faturamento" | "planilha_alunos" | "turmas_adicionais" | "proposta_comercial";
 
 const BUCKET = "contratos-arquivos";
 
