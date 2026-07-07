@@ -16,12 +16,16 @@ const REGRAS_POR_ETAPA: Record<EtapaContrato, { campo: keyof Contrato; label: st
   visita: [
     { campo: "cliente", label: "Cliente" },
   ],
-  proposta: [
-    { campo: "dados_proposta", label: "Dados para Proposta" },
+  crm: [
     { campo: "status_proposta_crm", label: "Status Proposta CRM" },
+    { campo: "crm" as any, label: "Número do CRM" },
   ],
   supervisor: [
     { campo: "sup_finalizado" as any, label: "Marcar etapa Supervisor como Finalizada", check: (v) => v === true },
+  ],
+  proposta: [
+    { campo: "dados_proposta", label: "Dados para Proposta" },
+    { campo: "valor_final_proposta" as any, label: "Valor final da proposta (R$)" },
   ],
   rpc: [
     { campo: "numero_rpc", label: "Nº RPC" },
