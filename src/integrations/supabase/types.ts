@@ -182,6 +182,7 @@ export type Database = {
           abertura_chamado: string
           acao_esperada: string | null
           agente_pj_id: string | null
+          arquivo_proposta_url: string | null
           cadastro_estudantes: string
           cliente: string
           cnpj: string
@@ -212,8 +213,11 @@ export type Database = {
           numero_chamado: string
           numero_rpc: string
           observacao_terceiro: string
+          observacoes_crm: string | null
+          observacoes_proposta: string | null
           observacoes_visita: string
           planilha_info_gerais: string
+          prazo_crm_dias: number | null
           servico_produto: string
           status_proposta_crm: string
           status_rpc: string
@@ -237,12 +241,14 @@ export type Database = {
           unidade_atendimento: string | null
           updated_at: string
           valor: number
+          valor_final_proposta: number | null
           valor_total_contrato: number | null
         }
         Insert: {
           abertura_chamado?: string
           acao_esperada?: string | null
           agente_pj_id?: string | null
+          arquivo_proposta_url?: string | null
           cadastro_estudantes?: string
           cliente: string
           cnpj?: string
@@ -273,8 +279,11 @@ export type Database = {
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
+          observacoes_crm?: string | null
+          observacoes_proposta?: string | null
           observacoes_visita?: string
           planilha_info_gerais?: string
+          prazo_crm_dias?: number | null
           servico_produto?: string
           status_proposta_crm?: string
           status_rpc?: string
@@ -298,12 +307,14 @@ export type Database = {
           unidade_atendimento?: string | null
           updated_at?: string
           valor?: number
+          valor_final_proposta?: number | null
           valor_total_contrato?: number | null
         }
         Update: {
           abertura_chamado?: string
           acao_esperada?: string | null
           agente_pj_id?: string | null
+          arquivo_proposta_url?: string | null
           cadastro_estudantes?: string
           cliente?: string
           cnpj?: string
@@ -334,8 +345,11 @@ export type Database = {
           numero_chamado?: string
           numero_rpc?: string
           observacao_terceiro?: string
+          observacoes_crm?: string | null
+          observacoes_proposta?: string | null
           observacoes_visita?: string
           planilha_info_gerais?: string
+          prazo_crm_dias?: number | null
           servico_produto?: string
           status_proposta_crm?: string
           status_rpc?: string
@@ -359,6 +373,7 @@ export type Database = {
           unidade_atendimento?: string | null
           updated_at?: string
           valor?: number
+          valor_final_proposta?: number | null
           valor_total_contrato?: number | null
         }
         Relationships: [
@@ -794,8 +809,9 @@ export type Database = {
       entidade_type: "SESI" | "SENAI" | "SESI Saúde" | "SESI Educação" | "REDE"
       etapa_contrato:
         | "visita"
-        | "proposta"
+        | "crm"
         | "supervisor"
+        | "proposta"
         | "rpc"
         | "execucao"
         | "matricula"
@@ -968,8 +984,9 @@ export const Constants = {
       entidade_type: ["SESI", "SENAI", "SESI Saúde", "SESI Educação", "REDE"],
       etapa_contrato: [
         "visita",
-        "proposta",
+        "crm",
         "supervisor",
+        "proposta",
         "rpc",
         "execucao",
         "matricula",

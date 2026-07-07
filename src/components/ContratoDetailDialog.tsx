@@ -447,7 +447,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <div className="space-y-1.5"><Label className="text-xs">CRM</Label><Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("dados_basicos")} /></div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Etapa Atual</Label>
-                <Select value={form.etapa_atual || "proposta"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
+                <Select value={form.etapa_atual || "crm"} onValueChange={(v) => set("etapa_atual", v)} disabled={!canEdit("dados_basicos")}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{ETAPAS.map((e) => <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>)}</SelectContent>
                 </Select>
@@ -465,15 +465,25 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             </div>
           </div>
 
-          {/* Etapa 1 - Proposta */}
+          {/* Etapa 1 - CRM */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">1. Proposta / CRM</h3>
-              <SectionLock locked={!canEdit("proposta")} />
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">1. CRM</h3>
+              <SectionLock locked={!canEdit("crm")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canStatus("proposta")} />
-              <StatusSelect label="Status Proposta CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canStatus("proposta")} />
+              <StatusSelect label="Status CRM" value={form.status_proposta_crm || ""} options={STATUS_OPTIONS.status_proposta_crm} onChange={(v) => set("status_proposta_crm", v)} disabled={!canStatus("crm")} />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Número do CRM</Label>
+                <Input className="h-9 text-sm" value={form.crm || ""} onChange={(e) => set("crm", e.target.value)} disabled={!canEdit("crm")} />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">Observações CRM</Label>
+                <Textarea className="text-sm min-h-[60px]" value={(form as any).observacoes_crm || ""} onChange={(e) => set("observacoes_crm" as any, e.target.value)} disabled={!canEdit("crm")} />
+              </div>
+              <p className="sm:col-span-2 text-[11px] text-muted-foreground">
+                Prazo desta etapa: <b>{(form as any).prazo_crm_dias ?? 4} dias</b> (SESI Saúde, SENAI e SESI Educação).
+              </p>
             </div>
             {form.entidade === "SENAI" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-dashed border-muted-foreground/30 p-3 bg-muted/20">
@@ -485,7 +495,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   <Select
                     value={(form as any).unidade_atendimento || undefined}
                     onValueChange={(v) => set("unidade_atendimento" as any, v)}
-                    disabled={!canEdit("proposta")}
+                    disabled={!canEdit("crm")}
                   >
                     <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                     <SelectContent>
@@ -500,7 +510,7 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                   <Select
                     value={(form as any).subdivisao || undefined}
                     onValueChange={(v) => set("subdivisao" as any, v)}
-                    disabled={!canEdit("proposta")}
+                    disabled={!canEdit("crm")}
                   >
                     <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecione a área" /></SelectTrigger>
                     <SelectContent>
@@ -518,9 +528,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
             )}
             <div className="space-y-1.5">
               <Label className="text-xs">Planilha Informações Gerais (link)</Label>
-              <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("proposta")} />
+              <Input className="h-9 text-sm" value={form.planilha_info_gerais || ""} onChange={(e) => set("planilha_info_gerais", e.target.value)} placeholder="https://..." disabled={!canEdit("crm")} />
             </div>
-            <NotifyEtapaBlock contratoId={contrato.id} etapa="proposta" etapaLabel="Proposta / CRM" />
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="crm" etapaLabel="CRM" />
           </div>
 
           {/* Anexos da Proposta */}
@@ -608,9 +618,9 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
                         sup_finalizado: true,
                         sup_finalizado_at: new Date().toISOString(),
                         sup_finalizado_by: user?.id ?? null,
-                        etapa_atual: "rpc",
+                        etapa_atual: "proposta",
                       } as any));
-                      toast({ title: "Etapa Supervisor finalizada", description: "Avançando para RPC / Execução ao salvar." });
+                      toast({ title: "Etapa Supervisor finalizada", description: "Avançando para Proposta ao salvar." });
                     } else {
                       setForm((p) => ({ ...p, sup_finalizado: false, sup_finalizado_at: null, sup_finalizado_by: null } as any));
                     }
@@ -621,6 +631,43 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               </label>
             </div>
             <NotifyEtapaBlock contratoId={contrato.id} etapa="supervisor" etapaLabel="Supervisor" disabled={!canEdit("supervisor")} />
+          </div>
+
+          {/* Etapa Proposta (nova) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">3. Proposta</h3>
+              <SectionLock locked={!canEdit("proposta")} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <StatusSelect label="Dados para Proposta" value={form.dados_proposta || ""} options={STATUS_OPTIONS.dados_proposta} onChange={(v) => set("dados_proposta", v)} disabled={!canStatus("proposta")} />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor final da proposta (R$)</Label>
+                <Input
+                  type="number" min={0} step="0.01"
+                  className="h-9 text-sm"
+                  value={(form as any).valor_final_proposta ?? ""}
+                  onChange={(e) => set("valor_final_proposta" as any, e.target.value === "" ? null : Number(e.target.value))}
+                  disabled={!canEdit("proposta")}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">Arquivo da proposta</Label>
+                <ContratoArquivos
+                  contratoId={contrato.id}
+                  categoria="proposta_comercial"
+                  label="Anexar arquivo da proposta"
+                  singleFile
+                  disabled={!canEdit("proposta")}
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs">Observações da Proposta</Label>
+                <Textarea className="text-sm min-h-[60px]" value={(form as any).observacoes_proposta || ""} onChange={(e) => set("observacoes_proposta" as any, e.target.value)} disabled={!canEdit("proposta")} />
+              </div>
+            </div>
+            <NotifyEtapaBlock contratoId={contrato.id} etapa="proposta" etapaLabel="Proposta" disabled={!canEdit("proposta")} />
           </div>
 
           {/* Etapa 3 - RPC */}

@@ -26,12 +26,13 @@ const ENTIDADES: { value: Entidade; label: string }[] = [
 
 const ETAPAS: { value: Etapa; label: string }[] = [
   { value: "visita" as Etapa, label: "Visita" },
-  { value: "proposta" as Etapa, label: "Proposta" },
+  { value: "crm" as Etapa, label: "CRM" },
   { value: "supervisor" as Etapa, label: "Supervisor" },
-  { value: "rpc" as Etapa, label: "RPC" },
-  { value: "execucao" as Etapa, label: "Execução" },
+  { value: "proposta" as Etapa, label: "Proposta" },
+  { value: "rpc" as Etapa, label: "RPC / Execução" },
+  { value: "execucao" as Etapa, label: "Status RPC" },
   { value: "matricula" as Etapa, label: "Matrícula" },
-  { value: "ensalamento" as Etapa, label: "Ensalamento" },
+  { value: "ensalamento" as Etapa, label: "PCP" },
   { value: "faturamento" as Etapa, label: "Faturamento" },
   { value: "finalizado" as Etapa, label: "Finalizado" },
 ];

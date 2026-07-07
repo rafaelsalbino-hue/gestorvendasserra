@@ -47,7 +47,7 @@ export function canDeleteContratoAt(
   if (r.isBackoffice) {
     const etapa = (contrato.etapa_atual ?? "").toString();
     // Backoffice pode excluir/arquivar até a etapa Supervisor (etapas 1-3).
-    return etapa === "visita" || etapa === "proposta" || etapa === "supervisor";
+    return etapa === "visita" || etapa === "crm" || etapa === "proposta" || etapa === "supervisor";
   }
   return false;
 }

@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const ETAPAS = [
-  "visita", "proposta", "supervisor", "rpc", "execucao",
+  "visita", "crm", "supervisor", "proposta", "rpc", "execucao",
   "matricula", "ensalamento", "faturamento", "finalizado",
 ] as const;
 

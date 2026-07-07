@@ -171,7 +171,7 @@ function DraggableCard({ contrato, onClick }: { contrato: Contrato; onClick: () 
               etapaUpdatedAt={ultimaMov}
               compact
               limit={
-                contrato.etapa_atual === "proposta"
+                contrato.etapa_atual === "crm"
                   ? getPropostaSlaLimit(contrato as any)
                   : contrato.etapa_atual === "supervisor"
                   ? getSupervisorSlaLimit(contrato as any)

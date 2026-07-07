@@ -1,76 +1,55 @@
-# Onda 4 + Diagnóstico Z-API
+# Plano de implementação — Separação CRM / Proposta + melhorias
 
-Duas frentes na mesma rodada.
+## 1. Migração de banco (uma migration SQL)
 
-## Frente A — Debug Z-API (mensagens não chegam)
+**Renomear enum + adicionar novo valor:**
+- `ALTER TYPE etapa_contrato RENAME VALUE 'proposta' TO 'crm'` — os 37 registros atuais em 'proposta' passam a 'crm' automaticamente (a UI atual "Proposta / CRM" corresponde à etapa CRM).
+- `ALTER TYPE etapa_contrato ADD VALUE 'proposta' AFTER 'supervisor'` — nova etapa 4 (fica vazia).
 
-Hoje `enviar-whatsapp` grava `status='enviado'` sempre que HTTP=200, mas a Z-API retorna 200 mesmo quando não enfileira a mensagem (sem `zaapId`). Por isso o app diz "enviado" e nada chega.
+**Novas colunas em `contratos`:**
+- `observacoes_crm text`
+- `prazo_crm_dias int default 4`
+- `valor_final_proposta numeric`
+- `arquivo_proposta_url text`
+- `observacoes_proposta text`
 
-Mudanças na função `supabase/functions/enviar-whatsapp/index.ts`:
+**Ajustes em funções/triggers que referenciam literal 'proposta':**
+- `compute_acao_esperada()` — adicionar case 'crm' e ajustar 'proposta' para nova descrição.
+- `registrar_entrada_proposta()` / `registrar_entrada_proposta_ins()` — passar a monitorar 'crm' (mantém coluna `data_entrada_etapa_proposta` — só semântica, agora rastreia CRM SLA de 4 dias).
+- `auto_advance_visita_proposta()` — agora avança visita → 'crm'.
+- `notify_contrato_change()` — nenhuma mudança estrutural (opera por etapa_atual dinâmica).
 
-1. **Check de secrets no topo** com preview mascarado dos 3 (ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN). Retorna 500 se faltar algum.
-2. **Logs completos por destinatário** antes do envio: status HTTP, body bruto, telefone formatado, preview da mensagem.
-3. **Sucesso real = HTTP 200 + `zaapId` presente.** Sem `zaapId` → grava `status='falhou'`, erro inclui o body retornado pela Z-API.
-4. **`formatPhoneBR` estrito**: remove não-dígitos, prefixa `55`, insere o `9` quando vier com 12 dígitos (celular BR), valida 12–13 dígitos, retorna `null` se inválido. Substitui o `onlyDigits`+`ensureDdi55` atual.
-5. **Endpoint GET `?action=status`**: chama `https://api.z-api.io/instances/{id}/token/{tok}/status` com `Client-Token` e devolve `{ instanceStatus, smartphoneConnected, secretsLoaded }`. Sem auth (mantém `verify_jwt=false`).
-6. **Retorno enriquecido**: por destinatário devolve `{ numero, nome, status, zaapId?, erro? }` para o frontend exibir.
+## 2. Frontend — tipos e labels (1 arquivo central)
 
-Frontend:
+`src/types/contracts.ts`:
+- `EtapaContrato` adiciona `"crm"`, mantém `"proposta"` (nova posição 4).
+- `ETAPAS` reordenado com 9 entradas: visita, crm, supervisor, proposta, rpc, execucao, matricula, ensalamento, faturamento (labels: "CRM", "Proposta", "PCP" etc. conforme spec).
 
-- `src/lib/whatsappNotify.ts`: deixa de ser totalmente silencioso. Após cada `invoke`, conta `enviados` / `falhou` / `duplicado` e dispara `toast.success` ou `toast.error` com resumo "X enviados, Y falharam" (link "ver detalhes" abre console). Mantém try/catch para nunca quebrar fluxo.
-- Novo botão **"Diagnosticar Z-API"** no topo da página `/responsaveis` (só para admin/gestor): chama o GET `?action=status` via `supabase.functions.invoke('enviar-whatsapp', { method: 'GET' })`, abre `Dialog` mostrando: status da instância, smartphoneConnected, e check (✅/❌) de cada secret carregado.
+## 3. Validação de etapas
+`src/hooks/useEtapaValidation.ts` — regras para `crm` (status_proposta_crm, numero_rpc/CRM) e nova `proposta` (dados_proposta, valor_final_proposta).
 
-## Frente B — Matriz admin de permissões por etapa
+## 4. Componente de detalhe do contrato
+`src/components/ContratoDetailDialog.tsx` — separar bloco CRM (Status, Nº CRM, prazo 4d, observações) do bloco Proposta (dados, valor final, upload arquivo, observações). Aba SENAI já existente permanece.
 
-Hoje as permissões estão hard-coded em `src/lib/permissions.ts` + funções SQL. O admin precisa ligar/desligar cargos por etapa sem nova deploy.
+## 5. Matriz de notificações (UI)
+`src/components/MatrizNotificacoes.tsx` — array `ETAPAS` local ganha `{ value: "crm", label: "CRM" }` na posição 2 e mantém `{ value: "proposta", label: "Proposta" }` na 4. Nenhum schema muda (a tabela `notificacao_permissoes` já usa o enum).
 
-**Modelo (granular como sugerido):** uma linha por (etapa, função) com 3 flags `pode_criar`, `pode_editar`, `pode_avancar`. Cobre os 3 verbos sem explodir em tabelas separadas.
+`src/components/MatrizPermissoesEtapas.tsx` — mesmo tratamento.
 
-Nova migration:
+## 6. WhatsApp — Edge function `enviar-whatsapp`
+Atualizar o roteamento por etapa conforme mapeamento da Melhoria 2 (visita→backoffice, crm→supervisor+coord+comercial, supervisor→backoffice+..., proposta→backoffice+..., rpc→agente+supervisor+..., matricula→PCP+..., ensalamento(PCP)→interlocutora+..., faturamento→analista+coord).
 
-```sql
-CREATE TABLE public.etapa_cargo_permissoes (
-  id uuid PK,
-  etapa etapa_contrato NOT NULL,
-  funcao funcao_responsavel NOT NULL,
-  pode_criar boolean DEFAULT false,
-  pode_editar boolean DEFAULT false,
-  pode_avancar boolean DEFAULT false,
-  UNIQUE(etapa, funcao)
-);
-```
+## 7. Kanban / Dashboard / Arquivo
+- `src/pages/Contratos.tsx` — passar a montar 9 colunas a partir de ETAPAS; contador `(N)` em cada header (Melhoria 4c); barra de progresso etapa X/9 no rodapé do card (4a); tooltip nos badges de prazo excedido (4b); filtro Unidade de Atendimento visível quando entidade = SENAI ou "Todas" (4d).
+- `src/pages/Dashboard.tsx` — mesmo filtro de Unidade + atualizar labels das etapas.
+- `src/pages/Arquivo.tsx`, `NovoContratoDialog`, `ImportarVisitasDialog`, `GlobalSearch`, `DiagnosticoWhatsappDialog`, `useContratos.ts` — apenas ajuste de labels/refs onde referem etapa "Proposta / CRM".
 
-- GRANT padrão + `service_role` + `anon` negado.
-- RLS: SELECT para `authenticated`; INSERT/UPDATE/DELETE só para `is_admin(auth.uid())`.
-- Seed: replica permissões atuais (todos supervisores+coordenadores com `pode_criar/editar/avancar` em `visita` e `supervisor`; backoffice em rpc/execucao; secretaria em matricula; PCP em ensalamento; financeiro em faturamento; agente PJ em visita/proposta).
+## 8. Backfill / Dados
+- Nenhum UPDATE necessário: `ALTER TYPE RENAME VALUE` reaproveita os 37 registros existentes como 'crm'.
 
-Funções SQL:
+## Entrega
+Ao final, listarei:
+- A migration SQL gerada.
+- Todos os arquivos alterados.
 
-- `public.pode_lancar_etapa(_user_id uuid, _etapa etapa_contrato, _acao text)` — consulta a matriz pela `funcao` do usuário em `responsaveis`. SECURITY DEFINER.
-- `can_edit_contrato` atualizada: admin/gestor/backoffice/agente-dono continuam liberados (compatibilidade); demais usam `pode_lancar_etapa(uid, etapa_atual, 'editar')`. Mantém `is_supervisor` como atalho.
-
-Frontend:
-
-- `src/hooks/usePermissoesEtapa.ts` — query + mutations (toggle flag).
-- `src/lib/permissions.ts` — `canCreateVisita` e `canEditContrato` passam a aceitar matriz (carregada em `useUserRole`); fallback para regras atuais se matriz vazia.
-- Nova aba **"Permissões"** dentro de `/responsaveis` (segmento ao lado da lista): grid Cargos (linhas, todas as `FUNCOES_RESPONSAVEL`) × Etapas (colunas, as 8 do pipeline). Cada célula é um `Popover` com 3 `Switch` (criar/editar/avançar). Header mostra contagem "X cargos ativos nesta etapa". Só admin/gestor vê e edita.
-- Toast confirma cada alteração; mutation invalida cache.
-
-## Plano de execução
-
-1. Migration matriz (Frente B SQL) → aguarda aprovação.
-2. Após approve: edge function `enviar-whatsapp` reescrita + `whatsappNotify.ts` + botão diagnóstico (Frente A completa).
-3. Hook `usePermissoesEtapa` + `permissions.ts` atualizado + aba Permissões em `/responsaveis` (Frente B UI).
-4. Smoke test: envio WhatsApp (verifica zaapId nos logs), toggle de permissão (cargo desligado perde botão de editar).
-
-## Arquivos afetados
-
-- `supabase/migrations/<novo>.sql` (matriz + seed + função `pode_lancar_etapa` + update `can_edit_contrato`)
-- `supabase/functions/enviar-whatsapp/index.ts` (reescrita)
-- `src/lib/whatsappNotify.ts` (toast com resumo)
-- `src/hooks/usePermissoesEtapa.ts` (novo)
-- `src/hooks/useUserRole.ts` (expor matriz se necessário)
-- `src/lib/permissions.ts` (consulta matriz)
-- `src/pages/Responsaveis.tsx` (botão diagnóstico + aba Permissões)
-- `src/components/DiagnosticoZapiDialog.tsx` (novo)
-- `src/components/MatrizPermissoesEtapas.tsx` (novo)
+Confirma para eu executar?
