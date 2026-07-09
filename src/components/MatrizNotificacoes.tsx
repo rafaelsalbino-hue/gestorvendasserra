@@ -16,6 +16,7 @@ type Funcao = Database["public"]["Enums"]["funcao_responsavel"];
 type Etapa = Database["public"]["Enums"]["etapa_contrato"];
 type Canal = "whatsapp" | "sistema";
 type Entidade = "SESI Educação" | "SENAI" | "SESI Saúde" | "REDE";
+type Rota = "padrao" | "crm_direto";
 
 const ENTIDADES: { value: Entidade; label: string }[] = [
   { value: "SENAI", label: "SENAI" },
@@ -44,6 +45,7 @@ type Row = {
   canal: Canal;
   ativo: boolean;
   entidade: Entidade;
+  rota: Rota;
 };
 
 export function MatrizNotificacoes({
@@ -55,6 +57,7 @@ export function MatrizNotificacoes({
 }) {
   const [canal, setCanal] = useState<Canal>("whatsapp");
   const [entidade, setEntidade] = useState<Entidade>("SENAI");
+  const [rota, setRota] = useState<Rota>("padrao");
   const [busca, setBusca] = useState("");
   const qc = useQueryClient();
 
@@ -87,10 +90,10 @@ export function MatrizNotificacoes({
   });
 
   const map = new Map<string, Row>();
-  for (const r of rows ?? []) map.set(`${r.entidade}|${r.canal}|${r.etapa}|${r.funcao}`, r);
+  for (const r of rows ?? []) map.set(`${r.rota ?? "padrao"}|${r.entidade}|${r.canal}|${r.etapa}|${r.funcao}`, r);
 
   const toggle = useMutation({
-    mutationFn: async (v: { etapa: Etapa; funcao: Funcao; canal: Canal; entidade: Entidade; ativo: boolean; id?: string }) => {
+    mutationFn: async (v: { etapa: Etapa; funcao: Funcao; canal: Canal; entidade: Entidade; rota: Rota; ativo: boolean; id?: string }) => {
       if (v.id) {
         const { error } = await supabase
           .from("notificacao_permissoes")
@@ -100,7 +103,7 @@ export function MatrizNotificacoes({
       } else {
         const { error } = await supabase
           .from("notificacao_permissoes")
-          .insert({ etapa: v.etapa, funcao: v.funcao, canal: v.canal, ativo: v.ativo, entidade: v.entidade } as any);
+          .insert({ etapa: v.etapa, funcao: v.funcao, canal: v.canal, ativo: v.ativo, entidade: v.entidade, rota: v.rota } as any);
         if (error) throw error;
       }
     },
@@ -139,6 +142,26 @@ export function MatrizNotificacoes({
                 }`}
               >
                 {e.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-xs text-muted-foreground mr-1">Rota:</span>
+            {([
+              { value: "padrao" as Rota, label: "Padrão" },
+              { value: "crm_direto" as Rota, label: "CRM → Proposta (direto)" },
+            ]).map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setRota(r.value)}
+                className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                  rota === r.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted border-border"
+                }`}
+              >
+                {r.label}
               </button>
             ))}
           </div>
@@ -184,14 +207,16 @@ export function MatrizNotificacoes({
                       <tr key={f} className="border-t hover:bg-muted/20">
                         <td className="p-2">{f}</td>
                         {ETAPAS.map((e) => {
-                          const key = `${entidade}|${canal}|${e.value}|${f}`;
+                          const key = `${rota}|${entidade}|${canal}|${e.value}|${f}`;
                           const row = map.get(key);
                           const ativo = !!row?.ativo;
+                          const disabledCell =
+                            rota === "crm_direto" && e.value !== ("proposta" as Etapa);
                           return (
                             <td key={e.value} className="p-2 text-center">
                               <Checkbox
                                 checked={ativo}
-                                disabled={toggle.isPending}
+                                disabled={toggle.isPending || disabledCell}
                                 onCheckedChange={(v) =>
                                   toggle.mutate({
                                     id: row?.id,
@@ -199,6 +224,7 @@ export function MatrizNotificacoes({
                                     funcao: f,
                                     canal,
                                     entidade,
+                                    rota,
                                     ativo: !!v,
                                   })
                                 }
@@ -214,7 +240,7 @@ export function MatrizNotificacoes({
             )}
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">Dica</Badge>
-              Mudanças entram em vigor imediatamente. A configuração é independente por entidade.
+              Mudanças entram em vigor imediatamente. A rota <b>CRM → Proposta (direto)</b> se aplica quando um contrato é encaminhado direto a partir do CRM, pulando a etapa Supervisor — só a coluna "Proposta" fica habilitada nesse modo.
             </div>
           </TabsContent>
         </Tabs>

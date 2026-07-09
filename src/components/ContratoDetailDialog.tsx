@@ -298,6 +298,10 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               contratoId: contrato.id,
               novaEtapa: finalForm.etapa_atual as string,
               etapaAnterior: contrato.etapa_atual,
+              rota:
+                contrato.etapa_atual === "crm" && (finalForm.etapa_atual as string) === "proposta"
+                  ? "crm_direto"
+                  : "padrao",
             });
           }
         },
