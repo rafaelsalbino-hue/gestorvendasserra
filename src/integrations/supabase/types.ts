@@ -392,6 +392,7 @@ export type Database = {
           contrato_id: string
           created_at: string
           id: string
+          rota_escolhida: string | null
           usuario_funcao: string | null
           usuario_nome: string | null
           valor_anterior: string | null
@@ -402,6 +403,7 @@ export type Database = {
           contrato_id: string
           created_at?: string
           id?: string
+          rota_escolhida?: string | null
           usuario_funcao?: string | null
           usuario_nome?: string | null
           valor_anterior?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           contrato_id?: string
           created_at?: string
           id?: string
+          rota_escolhida?: string | null
           usuario_funcao?: string | null
           usuario_nome?: string | null
           valor_anterior?: string | null
@@ -516,6 +519,7 @@ export type Database = {
           etapa: Database["public"]["Enums"]["etapa_contrato"]
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id: string
+          rota: string
           updated_at: string
         }
         Insert: {
@@ -526,6 +530,7 @@ export type Database = {
           etapa: Database["public"]["Enums"]["etapa_contrato"]
           funcao: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string
+          rota?: string
           updated_at?: string
         }
         Update: {
@@ -536,6 +541,7 @@ export type Database = {
           etapa?: Database["public"]["Enums"]["etapa_contrato"]
           funcao?: Database["public"]["Enums"]["funcao_responsavel"]
           id?: string
+          rota?: string
           updated_at?: string
         }
         Relationships: []
