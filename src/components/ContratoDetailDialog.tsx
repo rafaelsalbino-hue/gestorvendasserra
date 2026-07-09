@@ -323,6 +323,34 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
     doSave({ etapa_atual: nextEtapa });
   };
 
+  // Avanço direto CRM → Proposta (pula a etapa Supervisor).
+  // Registra a rota no histórico do contrato e sinaliza para o WhatsApp usar
+  // a matriz de permissões configurada para rota "crm_direto".
+  const handleSkipSupervisorToProposta = async () => {
+    if (form.etapa_atual !== "crm") return;
+    const faltantes = validarEtapaParaAvancar(form, "crm" as EtapaContrato);
+    if (faltantes.length > 0) {
+      toast({
+        title: "Não é possível encaminhar direto",
+        description: "Preencha antes: " + faltantes.map((f) => f.label).join(", "),
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await supabase.from("contratos_historico").insert({
+        contrato_id: contrato.id,
+        campo: "rota_escolhida",
+        valor_anterior: null as any,
+        valor_novo: "CRM → Proposta (pulou Supervisor)",
+        usuario_nome: currentUser?.nome || "Desconhecido",
+        usuario_funcao: currentUser?.funcao || "",
+        rota_escolhida: "crm_direto",
+      } as any);
+    } catch { /* histórico é best-effort */ }
+    doSave({ etapa_atual: "proposta" as any });
+  };
+
   const handleFinalize = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     doSave({
@@ -1043,6 +1071,18 @@ export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoD
               <Button onClick={handleSaveAndNext} disabled={updateMutation.isPending || !currentUser} className="w-full sm:w-auto">
                 <ArrowRight className="mr-2 h-4 w-4" />
                 Salvar e Seguir
+              </Button>
+            )}
+            {form.etapa_atual === "crm" && (
+              <Button
+                variant="secondary"
+                onClick={handleSkipSupervisorToProposta}
+                disabled={updateMutation.isPending || !currentUser}
+                className="w-full sm:w-auto"
+                title="Pula a etapa Supervisor e vai direto para Proposta"
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Encaminhar direto para Proposta
               </Button>
             )}
             {(isLastEtapa || canFinalizarContrato(role)) && canFinalizarContrato(role) && !(contrato as any).finalized_at && (
