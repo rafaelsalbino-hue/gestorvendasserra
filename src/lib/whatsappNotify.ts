@@ -11,6 +11,7 @@ export async function notifyEtapaWhatsapp(params: {
   etapaAnterior?: string | null;
   origem?: "automatico" | "manual";
   silent?: boolean;
+  rota?: "padrao" | "crm_direto";
 }) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -31,6 +32,7 @@ export async function notifyEtapaWhatsapp(params: {
           etapa_anterior: params.etapaAnterior ?? null,
           usuario_atual_nome: nome || user?.email || "Sistema",
           origem: params.origem ?? "automatico",
+          rota: params.rota ?? "padrao",
         },
       })
       .catch((err) => {

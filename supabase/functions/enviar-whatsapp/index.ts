@@ -260,6 +260,7 @@ serve(async (req) => {
     etapa_anterior = null,
     usuario_atual_nome = "Sistema",
     origem = "automatico",
+    rota: rotaBody = null,
   } = body;
 
   if (!contrato_id || !etapa_destino) {
@@ -282,6 +283,13 @@ serve(async (req) => {
     );
   }
 
+  // Rota da notificação: se veio de CRM direto para Proposta (pulou Supervisor),
+  // usa a configuração "crm_direto" da matriz; caso contrário "padrao".
+  const rota: "padrao" | "crm_direto" =
+    rotaBody === "crm_direto" || rotaBody === "padrao"
+      ? (rotaBody as "padrao" | "crm_direto")
+      : (etapa_anterior === "crm" && etapa_destino === "proposta" ? "crm_direto" : "padrao");
+
   // 1) Buscar cargos habilitados para esta etapa+canal na matriz de permissões
   const entidadePerm =
     contrato.entidade === "SESI" ? "SESI Educação" :
@@ -296,6 +304,7 @@ serve(async (req) => {
     .eq("etapa", etapa_destino)
     .eq("canal", "whatsapp")
     .eq("entidade", entidadePerm)
+    .eq("rota", rota)
     .eq("ativo", true);
 
   if (permsErr) {
