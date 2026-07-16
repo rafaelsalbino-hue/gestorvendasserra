@@ -24,6 +24,8 @@ export interface ContratoDash {
   etapa_updated_at: string | null;
   finalized_at: string | null;
   deleted_at: string | null;
+  subdivisao: string | null;
+  unidade_atendimento: string | null;
 }
 
 export function useDashboardData(periodo: PeriodoDashboard) {
@@ -34,7 +36,7 @@ export function useDashboardData(periodo: PeriodoDashboard) {
       const { data, error } = await supabase
         .from("contratos")
         .select(
-          "id,cliente,entidade,etapa_atual,valor,valor_total_contrato,created_at,etapa_updated_at,finalized_at,deleted_at"
+          "id,cliente,entidade,etapa_atual,valor,valor_total_contrato,created_at,etapa_updated_at,finalized_at,deleted_at,subdivisao,unidade_atendimento"
         );
       if (error) throw error;
       const contratos = (data || []) as unknown as ContratoDash[];

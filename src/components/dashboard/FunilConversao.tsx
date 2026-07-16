@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from "recharts";
+import { useNavigate } from "react-router-dom";
 import type { ContratoDash } from "@/hooks/useDashboardData";
 
 const ETAPAS_ORDEM: { id: string; label: string }[] = [
@@ -22,11 +23,14 @@ const CORES = ["#3b82f6", "#4f8ff0", "#5c9de0", "#5fa9c9", "#4fb2ac", "#3fb995",
 interface Props {
   contratos: ContratoDash[];
   isLoading: boolean;
+  filtroQS?: string;
 }
 
-export function FunilConversao({ contratos, isLoading }: Props) {
+export function FunilConversao({ contratos, isLoading, filtroQS = "" }: Props) {
+  const navigate = useNavigate();
   const dados = ETAPAS_ORDEM.map((e, i) => ({
     etapa: e.label,
+    etapaId: e.id,
     count: contratos.filter((c) => !c.deleted_at && c.etapa_atual === e.id).length,
     fill: CORES[i],
   }));
@@ -51,7 +55,15 @@ export function FunilConversao({ contratos, isLoading }: Props) {
                 contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
                 cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }}
               />
-              <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+              <Bar
+                dataKey="count"
+                radius={[0, 6, 6, 0]}
+                cursor="pointer"
+                onClick={(d: any) => {
+                  const sep = filtroQS ? "&" : "?";
+                  navigate(`/contratos${filtroQS}${sep}etapa=${d.etapaId}`);
+                }}
+              >
                 {dados.map((d, i) => (
                   <Cell key={i} fill={d.fill} />
                 ))}

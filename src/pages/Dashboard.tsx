@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { useDashboardData, type PeriodoDashboard } from "@/hooks/useDashboardData";
@@ -10,14 +9,8 @@ import { FunilConversao } from "@/components/dashboard/FunilConversao";
 import { ContratosPorEntidade } from "@/components/dashboard/ContratosPorEntidade";
 import { ValorPorMes } from "@/components/dashboard/ValorPorMes";
 import { SlaRiscoTable } from "@/components/dashboard/SlaRiscoTable";
-
-const PERIODOS: { value: PeriodoDashboard; label: string }[] = [
-  { value: "30d", label: "Últimos 30 dias" },
-  { value: "60d", label: "Últimos 60 dias" },
-  { value: "90d", label: "Últimos 90 dias" },
-  { value: "mes", label: "Este mês" },
-  { value: "ano", label: "Este ano" },
-];
+import { DashboardFilters, DEFAULT_FILTERS, type DashFilters } from "@/components/dashboard/DashboardFilters";
+import { SituacoesVerificar } from "@/components/dashboard/SituacoesVerificar";
 
 function initials(nome?: string) {
   if (!nome) return "?";
@@ -25,12 +18,43 @@ function initials(nome?: string) {
   return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
 }
 
+function inicioPeriodo(p: DashFilters["periodo"]): Date | null {
+  if (p === "todos") return null;
+  const now = new Date();
+  if (p === "mes") return new Date(now.getFullYear(), now.getMonth(), 1);
+  if (p === "ano") return new Date(now.getFullYear(), 0, 1);
+  const dias = p === "30d" ? 30 : p === "60d" ? 60 : 90;
+  const d = new Date(now); d.setDate(d.getDate() - dias); return d;
+}
+
 export default function Dashboard() {
   useDocumentTitle("Dashboard");
   const { currentUser } = useCurrentUser();
-  const [periodo, setPeriodo] = useState<PeriodoDashboard>("30d");
-  const { data, isLoading } = useDashboardData(periodo);
-  const contratos = data?.contratos ?? [];
+  const [filters, setFilters] = useState<DashFilters>(DEFAULT_FILTERS);
+  // Sempre buscamos "ano" e filtramos client-side pelo período escolhido para
+  // permitir cálculo de variação mês a mês independente do período do filtro.
+  const { data, isLoading } = useDashboardData("ano" as PeriodoDashboard);
+  const contratosAll = data?.contratos ?? [];
+
+  const contratos = useMemo(() => {
+    const inicio = inicioPeriodo(filters.periodo);
+    return contratosAll.filter((c) => {
+      if (inicio && new Date(c.created_at) < inicio) return false;
+      if (filters.entidade !== "todas" && c.entidade !== filters.entidade) return false;
+      if (filters.subdivisao !== "todas" && c.subdivisao !== filters.subdivisao) return false;
+      if (filters.etapa !== "todas" && c.etapa_atual !== filters.etapa) return false;
+      return true;
+    });
+  }, [contratosAll, filters]);
+
+  const filtroQS = useMemo(() => {
+    const p = new URLSearchParams();
+    if (filters.entidade !== "todas") p.set("entidade", filters.entidade);
+    if (filters.subdivisao !== "todas") p.set("subdivisao", filters.subdivisao);
+    if (filters.etapa !== "todas") p.set("etapa", filters.etapa);
+    const s = p.toString();
+    return s ? `?${s}` : "";
+  }, [filters]);
 
   return (
     <AppLayout>
@@ -41,40 +65,35 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-sm text-muted-foreground">Visão Geral</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoDashboard)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODOS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {currentUser && (
-              <div className="flex items-center gap-2 pl-3 border-l">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                    {initials(currentUser.nome)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <div className="text-sm font-semibold leading-tight">{currentUser.nome}</div>
-                  <div className="text-xs text-muted-foreground leading-tight">{currentUser.funcao}</div>
-                </div>
+          {currentUser && (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  {initials(currentUser.nome)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:block">
+                <div className="text-sm font-semibold leading-tight">{currentUser.nome}</div>
+                <div className="text-xs text-muted-foreground leading-tight">{currentUser.funcao}</div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
+        {/* Filtros */}
+        <DashboardFilters filters={filters} onChange={setFilters} />
+
         {/* KPIs */}
-        <KpiCards contratos={contratos} isLoading={isLoading} />
+        <KpiCards contratos={contratos} isLoading={isLoading} filtroQS={filtroQS} />
 
         {/* Funil + Entidade */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <FunilConversao contratos={contratos} isLoading={isLoading} />
-          <ContratosPorEntidade contratos={contratos} isLoading={isLoading} />
+          <FunilConversao contratos={contratos} isLoading={isLoading} filtroQS={filtroQS} />
+          <ContratosPorEntidade
+            contratos={contratos}
+            isLoading={isLoading}
+            onSelectEntidade={(e) => setFilters({ ...filters, entidade: e, subdivisao: "todas" })}
+          />
         </div>
 
         {/* Valor + SLA */}
@@ -82,6 +101,9 @@ export default function Dashboard() {
           <ValorPorMes contratos={contratos} isLoading={isLoading} />
           <SlaRiscoTable contratos={contratos} isLoading={isLoading} />
         </div>
+
+        {/* Situações a Verificar */}
+        <SituacoesVerificar contratos={contratos} isLoading={isLoading} />
       </div>
     </AppLayout>
   );

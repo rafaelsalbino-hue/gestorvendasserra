@@ -1,19 +1,22 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileText, DollarSign, AlertTriangle, CheckCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { ContratoDash } from "@/hooks/useDashboardData";
 import { formatBRLCompact } from "@/hooks/useDashboardData";
 
 interface KpiCardsProps {
   contratos: ContratoDash[];
   isLoading: boolean;
+  filtroQS?: string;
 }
 
 function daysBetween(a: Date, b: Date) {
   return Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function KpiCards({ contratos, isLoading }: KpiCardsProps) {
+export function KpiCards({ contratos, isLoading, filtroQS = "" }: KpiCardsProps) {
+  const navigate = useNavigate();
   const now = new Date();
   const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
   const inicioMesAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -53,6 +56,7 @@ export function KpiCards({ contratos, isLoading }: KpiCardsProps) {
       badgeColor: variacao >= 0 ? "text-emerald-600" : "text-red-600",
       icon: FileText,
       iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300",
+      onClick: () => navigate(`/contratos${filtroQS}`),
     },
     {
       label: "Valor Total Pipeline",
@@ -69,6 +73,7 @@ export function KpiCards({ contratos, isLoading }: KpiCardsProps) {
       badgeColor: slaRisco > 0 ? "text-orange-600" : "text-emerald-600",
       icon: AlertTriangle,
       iconBg: "bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-300",
+      onClick: () => navigate(`/contratos?sla=risco${filtroQS ? "&" + filtroQS.slice(1) : ""}`),
     },
     {
       label: "Finalizados no Mês",
@@ -94,8 +99,13 @@ export function KpiCards({ contratos, isLoading }: KpiCardsProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((c) => {
         const Icon = c.icon;
+        const clickable = !!(c as any).onClick;
         return (
-          <Card key={c.label} className="p-6 shadow-sm rounded-xl">
+          <Card
+            key={c.label}
+            className={`p-6 shadow-sm rounded-xl transition ${clickable ? "cursor-pointer hover:shadow-md hover:-translate-y-0.5" : ""}`}
+            onClick={(c as any).onClick}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className={`w-11 h-11 rounded-full flex items-center justify-center ${c.iconBg}`}>
                 <Icon className="w-5 h-5" />
