@@ -14,9 +14,10 @@ const CORES_ENTIDADE: Record<string, string> = {
 interface Props {
   contratos: ContratoDash[];
   isLoading: boolean;
+  onSelectEntidade?: (entidade: string) => void;
 }
 
-export function ContratosPorEntidade({ contratos, isLoading }: Props) {
+export function ContratosPorEntidade({ contratos, isLoading, onSelectEntidade }: Props) {
   const ativos = contratos.filter((c) => !c.deleted_at && c.etapa_atual !== "finalizado");
   const mapa = new Map<string, number>();
   ativos.forEach((c) => mapa.set(c.entidade, (mapa.get(c.entidade) || 0) + 1));
@@ -45,7 +46,12 @@ export function ContratosPorEntidade({ contratos, isLoading }: Props) {
           <>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                <Pie
+                  data={data} dataKey="value" nameKey="name"
+                  innerRadius={55} outerRadius={90} paddingAngle={2}
+                  cursor={onSelectEntidade ? "pointer" : undefined}
+                  onClick={(d: any) => onSelectEntidade?.(d?.name)}
+                >
                   {data.map((d, i) => (
                     <Cell key={i} fill={CORES_ENTIDADE[d.name] || `hsl(${i * 60},70%,55%)`} />
                   ))}
