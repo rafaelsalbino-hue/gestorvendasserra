@@ -219,6 +219,7 @@ export type Database = {
           planilha_info_gerais: string
           prazo_crm_dias: number | null
           servico_produto: string
+          status_negociacao: string | null
           status_proposta_crm: string
           status_rpc: string
           subdivisao: string | null
@@ -285,6 +286,7 @@ export type Database = {
           planilha_info_gerais?: string
           prazo_crm_dias?: number | null
           servico_produto?: string
+          status_negociacao?: string | null
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null
@@ -351,6 +353,7 @@ export type Database = {
           planilha_info_gerais?: string
           prazo_crm_dias?: number | null
           servico_produto?: string
+          status_negociacao?: string | null
           status_proposta_crm?: string
           status_rpc?: string
           subdivisao?: string | null

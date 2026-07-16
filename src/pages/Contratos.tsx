@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Download, Filter, GripVertical, X, Inbox } from "lucide-react";
+import { LayoutGrid, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ETAPAS, type Entidade, STATUS_OPTIONS, SUBDIVISIONS_BY_UNIT, SUBDIVISAO_COLORS } from "@/types/contracts";
@@ -26,6 +27,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { getUltimaMovimentacaoAt, isEmAtencao, isPropostaVencida, getDiasNaProposta, getPropostaSlaLimit, isSupervisorVencida, getDiasNoSupervisor, getSupervisorSlaLimit } from "@/lib/sla";
 import { notifyEtapaWhatsapp } from "@/lib/whatsappNotify";
 import { useSaldoEspeciais } from "@/hooks/useSaldoEspeciais";
+import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -237,9 +240,20 @@ const Contratos = () => {
   const [filterSubdivisao, setFilterSubdivisao] = useState<string>("todas");
   const [filterStatusCrm, setFilterStatusCrm] = useState<string>("todos");
   const [onlyAtencao, setOnlyAtencao] = useState(false);
+  const [viewMode, setViewMode] = useState<"padrao" | "rapido">(() => {
+    if (typeof window === "undefined") return "padrao";
+    return (localStorage.getItem("contratos_view_mode") as any) === "rapido" ? "rapido" : "padrao";
+  });
+  const [filterResponsavel, setFilterResponsavel] = useState<string>("todos");
+
+  useEffect(() => {
+    localStorage.setItem("contratos_view_mode", viewMode);
+  }, [viewMode]);
 
   const { data: contratos = [], isLoading } = useContratos(entidade);
   const updateMutation = useUpdateContrato();
+  const { data: responsaveis = [] } = useResponsaveis();
+  const responsavelMap = new Map(responsaveis.map((r) => [r.id, r.nome]));
 
   // Troca a aba para a entidade do contrato vindo da busca global (antes do fetch)
   useEffect(() => {
@@ -283,8 +297,19 @@ const Contratos = () => {
     if (filterValorMax && c.valor > parseFloat(filterValorMax)) return false;
     if (filterSubdivisao !== "todas" && (c as any).subdivisao !== filterSubdivisao) return false;
     if (onlyAtencao && !isEmAtencao(c as any)) return false;
+    if (filterResponsavel !== "todos" && (c as any).agente_pj_id !== filterResponsavel) return false;
     return true;
   });
+
+  const filteredWithNames = filtered.map((c) => ({
+    ...c,
+    responsavel_nome: (c as any).agente_pj_id ? responsavelMap.get((c as any).agente_pj_id) ?? null : null,
+  }));
+
+  const pipelineTotal = filtered.reduce(
+    (acc, c) => acc + Number((c as any).valor_total_contrato ?? c.valor ?? 0),
+    0,
+  );
 
   const byEtapa = (etapaId: string) => filtered.filter((c) => c.etapa_atual === etapaId);
 
@@ -330,8 +355,15 @@ const Contratos = () => {
   if (filterValorMax) activeFilters.push({ key: "max", label: `≤ R$ ${filterValorMax}`, clear: () => setFilterValorMax("") });
   if (filterSubdivisao !== "todas") activeFilters.push({ key: "sub", label: `Área: ${filterSubdivisao}`, clear: () => setFilterSubdivisao("todas") });
   if (onlyAtencao) activeFilters.push({ key: "atencao", label: "⚠ Somente em atenção", clear: () => setOnlyAtencao(false) });
+  if (filterResponsavel !== "todos") {
+    activeFilters.push({
+      key: "resp",
+      label: `Responsável: ${responsavelMap.get(filterResponsavel) ?? "—"}`,
+      clear: () => setFilterResponsavel("todos"),
+    });
+  }
   const clearAllFilters = () => {
-    setSearch(""); setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); setOnlyAtencao(false);
+    setSearch(""); setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); setOnlyAtencao(false); setFilterResponsavel("todos");
   };
 
   const subdivisoesDisponiveis = SUBDIVISIONS_BY_UNIT[entidade] || [];
@@ -350,6 +382,30 @@ const Contratos = () => {
             <p className="text-muted-foreground text-sm">Gerencie os contratos firmados de educação</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <div className="inline-flex rounded-md border border-border overflow-hidden">
+              <Button
+                type="button"
+                variant={viewMode === "padrao" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none h-9 px-3"
+                onClick={() => setViewMode("padrao")}
+                title="Kanban com arrastar-e-soltar"
+              >
+                <LayoutGrid className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Padrão</span>
+              </Button>
+              <Button
+                type="button"
+                variant={viewMode === "rapido" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none h-9 px-3"
+                onClick={() => setViewMode("rapido")}
+                title="Kanban rápido com edição inline de status"
+              >
+                <Zap className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Rápido</span>
+              </Button>
+            </div>
             <Button variant="outline" size="sm" onClick={() => exportContratosToXlsx(filtered, `contratos_${entidade}.xlsx`)}>
               <Download className="mr-2 h-4 w-4" />Exportar
             </Button>
@@ -396,6 +452,17 @@ const Contratos = () => {
               </Button>
             </div>
 
+            {pipelineTotal > 0 && (
+              <div className="mb-3">
+                <Badge variant="outline" className="text-xs">
+                  Pipeline: <span className="font-semibold ml-1 tabular-nums">
+                    R$ {pipelineTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="ml-2 text-muted-foreground">({filtered.length} contratos)</span>
+                </Badge>
+              </div>
+            )}
+
             {showFilters && (
               <div className="flex flex-wrap gap-3 mb-4 p-3 bg-muted/50 rounded-lg">
                 <div className="space-y-1 flex-1 min-w-[140px]">
@@ -438,6 +505,20 @@ const Contratos = () => {
                     </Select>
                   </div>
                 )}
+                <div className="space-y-1 flex-1 min-w-[160px]">
+                  <label className="text-xs font-medium text-muted-foreground">Responsável</label>
+                  <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+                    <SelectTrigger className="w-full sm:w-56 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {responsaveis
+                        .filter((r) => r.ativo)
+                        .map((r) => (
+                          <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex items-end">
                   <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFilterStatus("todos"); setFilterStatusCrm("todos"); setFilterValorMin(""); setFilterValorMax(""); setFilterSubdivisao("todas"); }}>
                     Limpar
@@ -486,6 +567,9 @@ const Contratos = () => {
               </div>
               </div>
             ) : (
+              viewMode === "rapido" ? (
+                <KanbanBoard contratos={filteredWithNames as any} onOpen={(c) => setSelected(c as any)} />
+              ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <div className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0">
                 <div
@@ -538,6 +622,7 @@ const Contratos = () => {
                 </div>
                 </div>
               </DndContext>
+              )
             )}
           </div>
         </Tabs>
