@@ -41,7 +41,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Contrato = Tables<"contratos">;
 type FuncaoResponsavel = Tables<"responsaveis">["funcao"];
 
-interface ContratoDetailDialogProps {
+interface ContratoEditDialogProps {
   contrato: Contrato | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -134,7 +134,7 @@ function getNextEtapa(current: EtapaContrato): EtapaContrato | null {
   return idx >= 0 && idx < ETAPA_ORDER.length - 1 ? ETAPA_ORDER[idx + 1] : null;
 }
 
-export function ContratoDetailDialog({ contrato, open, onOpenChange }: ContratoDetailDialogProps) {
+export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEditDialogProps) {
   const { toast } = useToast();
   const updateMutation = useUpdateContrato();
   const deleteMutation = useSoftDeleteContrato();
