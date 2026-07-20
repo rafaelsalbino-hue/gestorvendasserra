@@ -151,9 +151,9 @@ export function ContratoDetailResumo({
                 size="sm"
                 onClick={() =>
                   update.mutate(
-                    { id: contrato.id, observacoes: obs } as any,
+                    { id: contrato.id, observacoes: obs, etapa_updated_at: new Date().toISOString() } as any,
                     {
-                      onSuccess: () => toast.success("Observações salvas"),
+                      onSuccess: () => toast.success("Observações salvas", { description: "SLA da etapa foi reiniciado." }),
                       onError: (e: any) =>
                         toast.error("Erro ao salvar", { description: e?.message }),
                     },
