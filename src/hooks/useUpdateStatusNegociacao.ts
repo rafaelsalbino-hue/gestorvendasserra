@@ -15,6 +15,7 @@ export function useUpdateStatusNegociacao() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contratos"] });
+      qc.invalidateQueries({ queryKey: ["contrato-detail"] });
       toast.success("Status atualizado");
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro ao atualizar status"),
