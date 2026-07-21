@@ -31,6 +31,7 @@ export function useAvancarEtapa() {
     },
     onSuccess: (prox) => {
       qc.invalidateQueries({ queryKey: ["contratos"] });
+      qc.invalidateQueries({ queryKey: ["contrato-detail"] });
       const label = ETAPAS.find((e) => e.id === prox)?.label ?? prox;
       toast.success(`Avançado para ${label}`);
     },
