@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/currency";
-import { useUpdateContrato } from "@/hooks/useContratos";
 import { useAddComentario } from "@/hooks/useContratoComentarios";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { useCurrentUser } from "@/contexts/CurrentUserContext";
@@ -57,7 +56,6 @@ export function ContratoDetailResumo({
   onClose: () => void;
 }) {
   const c = contrato as any;
-  const update = useUpdateContrato();
   const addComentario = useAddComentario();
   const { currentUser } = useCurrentUser();
   const { data: responsaveis = [] } = useResponsaveis();
@@ -65,7 +63,7 @@ export function ContratoDetailResumo({
   const [obs, setObs] = useState<string>("");
   useEffect(() => setObs(""), [c.id]);
   const dirty = obs.trim().length > 0;
-  const savingObs = addComentario.isPending || update.isPending;
+  const savingObs = addComentario.isPending;
 
   const agente = responsaveis.find((r: any) => r.id === c.agente_pj_id) as any;
 
@@ -81,10 +79,6 @@ export function ContratoDetailResumo({
         autor_funcao: currentUser?.funcao || "",
         silent: true,
       });
-      await update.mutateAsync({
-        id: contrato.id,
-        etapa_updated_at: new Date().toISOString(),
-      } as any);
       setObs("");
       toast.success("Observação registrada nos comentários", {
         description: "SLA da etapa foi reiniciado.",

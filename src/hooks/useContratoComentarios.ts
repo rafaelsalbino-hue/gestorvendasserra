@@ -49,7 +49,8 @@ export function useAddComentario() {
       qc.invalidateQueries({ queryKey: ["contratos"] });
       if (!vars.is_system && !vars.silent) toast.success("Comentário registrado com sucesso");
     },
-    onError: (err: any) => {
+    onError: (err: any, vars) => {
+      if (vars?.silent) return;
       toast.error("Não foi possível salvar o comentário", {
         description: err?.message || "Tente novamente em instantes.",
       });
