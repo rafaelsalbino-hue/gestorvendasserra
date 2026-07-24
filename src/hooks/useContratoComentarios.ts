@@ -23,7 +23,7 @@ export function useContratoComentarios(contratoId: string | undefined) {
 export function useAddComentario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (comment: { contrato_id: string; texto: string; autor_nome: string; autor_funcao: string; is_system?: boolean }) => {
+    mutationFn: async (comment: { contrato_id: string; texto: string; autor_nome: string; autor_funcao: string; is_system?: boolean; silent?: boolean }) => {
       if (!comment.contrato_id) throw new Error("ID do processo ausente.");
       if (!comment.texto?.trim()) throw new Error("O comentário não pode ficar em branco.");
       const { data: { user } } = await supabase.auth.getUser();
@@ -45,9 +45,12 @@ export function useAddComentario() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["contrato_comentarios", vars.contrato_id] });
-      if (!vars.is_system) toast.success("Comentário registrado com sucesso");
+      qc.invalidateQueries({ queryKey: ["contrato-detail", vars.contrato_id] });
+      qc.invalidateQueries({ queryKey: ["contratos"] });
+      if (!vars.is_system && !vars.silent) toast.success("Comentário registrado com sucesso");
     },
-    onError: (err: any) => {
+    onError: (err: any, vars) => {
+      if (vars?.silent) return;
       toast.error("Não foi possível salvar o comentário", {
         description: err?.message || "Tente novamente em instantes.",
       });

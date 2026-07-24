@@ -1,30 +1,23 @@
-## Problema
+## Plano
 
-Ao salvar a observação no dialog de detalhes, aparece o erro:
-`Could not find the 'observacoes' column of 'contratos' in the schema cache`
+1. **Trocar o destino do campo Observações no resumo do contrato**
+   - Manter o campo visual no mesmo lugar do modal de detalhes.
+   - Ao clicar em **Salvar**, inserir o texto em `contrato_comentarios` em vez de atualizar colunas `observacoes_*` da tabela de contratos.
+   - Usar o autor logado já disponível no sistema (`currentUser`) para registrar nome e função.
 
-A tabela `contratos` não tem coluna `observacoes`. Existem apenas colunas por etapa:
-- `observacoes_visita`
-- `observacoes_crm`
-- `observacoes_proposta`
-- `observacao_terceiro`
+2. **Resetar o SLA ao salvar a observação como comentário**
+   - Após criar o comentário, atualizar `etapa_updated_at` do contrato para o horário atual.
+   - Manter o feedback visual: toast informando que a observação foi registrada nos comentários e que o SLA foi reiniciado.
 
-O `ContratoDetailResumo.tsx` estava lendo/escrevendo em `c.observacoes` (inexistente), então nunca carregava valor e o save falhava.
+3. **Atualizar a tela após salvar**
+   - Limpar o campo de Observações depois do salvamento.
+   - Invalidar/refrescar as queries de `contrato_comentarios`, `contratos` e `contrato-detail`, para que o comentário apareça na aba **Histórico** / comentários sem depender de recarregar a página.
 
-## Correção
+4. **Remover o caminho que causava o erro**
+   - O botão do resumo não enviará mais payload com `observacoes` nem dependerá das colunas de observação do contrato.
+   - Assim, o erro de schema cache relacionado a `observacoes` deixa de ocorrer nesse fluxo.
 
-Ajustar `src/components/contrato-detail/ContratoDetailResumo.tsx` para mapear pela etapa atual do contrato:
+## Arquivos previstos
 
-- `visita` → `observacoes_visita`
-- `crm` → `observacoes_crm`
-- demais etapas (`supervisor`, `proposta`, `rpc`, `execucao`, `matricula`, `ensalamento`, `faturamento`, `finalizado`) → `observacoes_proposta` (é o campo geral do processo comercial já usado no `ContratoEditDialog`)
-
-Mudanças:
-
-1. Derivar `obsField` a partir de `c.etapa_atual` com o mapeamento acima.
-2. Inicializar/atualizar o `useState` lendo `c[obsField]` em vez de `c.observacoes`.
-3. Na label da seção, mostrar de forma discreta em qual etapa a observação será salva (ex.: "Observações (Proposta)") para o usuário entender o contexto.
-4. No `update.mutate`, enviar `{ id, [obsField]: obs, etapa_updated_at: new Date().toISOString() }` — mantém o reset de SLA já existente.
-5. Ajustar `ContratoDetailAcoes.tsx` (duplicar contrato) para copiar os três campos `observacoes_visita`, `observacoes_crm`, `observacoes_proposta` em vez de `observacoes`.
-
-Sem alterações de schema, sem mudanças em outros componentes.
+- `src/components/contrato-detail/ContratoDetailResumo.tsx`
+- Possível ajuste pequeno em `src/hooks/useContratoComentarios.ts`, caso seja necessário reutilizar melhor a mutação de comentários no resumo.

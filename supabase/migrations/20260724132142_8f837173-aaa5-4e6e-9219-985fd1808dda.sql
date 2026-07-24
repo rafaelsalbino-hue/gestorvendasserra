@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS tg_reset_sla_on_contrato_comentario ON public.contrato_comentarios;
