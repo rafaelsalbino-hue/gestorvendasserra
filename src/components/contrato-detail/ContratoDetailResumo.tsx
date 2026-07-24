@@ -13,6 +13,20 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
 
+const OBS_FIELD_BY_ETAPA: Record<string, "observacoes_visita" | "observacoes_crm" | "observacoes_proposta"> = {
+  visita: "observacoes_visita",
+  crm: "observacoes_crm",
+};
+const OBS_LABEL_BY_FIELD: Record<string, string> = {
+  observacoes_visita: "Visita",
+  observacoes_crm: "CRM",
+  observacoes_proposta: "Proposta",
+};
+function obsFieldFor(etapa: string | null | undefined) {
+  if (!etapa) return "observacoes_proposta" as const;
+  return OBS_FIELD_BY_ETAPA[etapa] ?? ("observacoes_proposta" as const);
+}
+
 function getInitials(name?: string | null) {
   if (!name) return "?";
   return name
@@ -58,9 +72,11 @@ export function ContratoDetailResumo({
   const update = useUpdateContrato();
   const { data: responsaveis = [] } = useResponsaveis();
 
-  const [obs, setObs] = useState<string>(c.observacoes ?? "");
-  useEffect(() => setObs(c.observacoes ?? ""), [c.id, c.observacoes]);
-  const dirty = obs !== (c.observacoes ?? "");
+  const obsField = obsFieldFor(c.etapa_atual);
+  const currentObs = (c[obsField] ?? "") as string;
+  const [obs, setObs] = useState<string>(currentObs);
+  useEffect(() => setObs(currentObs), [c.id, obsField, currentObs]);
+  const dirty = obs !== currentObs;
 
   const agente = responsaveis.find((r: any) => r.id === c.agente_pj_id) as any;
 
@@ -137,7 +153,7 @@ export function ContratoDetailResumo({
 
         <section>
           <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            Observações
+            Observações <span className="normal-case font-normal text-muted-foreground/80">({OBS_LABEL_BY_FIELD[obsField]})</span>
           </h3>
           <Textarea
             value={obs}
@@ -151,7 +167,7 @@ export function ContratoDetailResumo({
                 size="sm"
                 onClick={() =>
                   update.mutate(
-                    { id: contrato.id, observacoes: obs, etapa_updated_at: new Date().toISOString() } as any,
+                    { id: contrato.id, [obsField]: obs, etapa_updated_at: new Date().toISOString() } as any,
                     {
                       onSuccess: () => toast.success("Observações salvas", { description: "SLA da etapa foi reiniciado." }),
                       onError: (e: any) =>
