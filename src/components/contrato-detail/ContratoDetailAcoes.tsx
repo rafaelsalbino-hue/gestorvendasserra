@@ -49,7 +49,9 @@ export function ContratoDetailAcoes({
       agente_pj_id: c.agente_pj_id ?? null,
       etapa_atual: "visita",
       status_negociacao: "sem_status",
-      observacoes: c.observacoes ?? null,
+      observacoes_visita: c.observacoes_visita ?? null,
+      observacoes_crm: c.observacoes_crm ?? null,
+      observacoes_proposta: c.observacoes_proposta ?? null,
     };
     try {
       await addContrato.mutateAsync(clone as any);
