@@ -254,6 +254,170 @@ serve(async (req) => {
     );
   }
 
+  // ============================================================
+  // Modo COMENTÁRIO: notifica Backoffice(s) da entidade do contrato
+  // sempre que um comentário é adicionado (exceto quando o autor
+  // já é o próprio Backoffice destinatário).
+  // ============================================================
+  if (body?.tipo === "comentario") {
+    const {
+      contrato_id: cId,
+      autor_id = null,
+      autor_nome = "Usuário",
+      texto = "",
+    } = body;
+
+    if (!cId) {
+      return new Response(
+        JSON.stringify({ error: "contrato_id é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { data: contrato, error: contratoErr } = await supabase
+      .from("contratos")
+      .select("id, cliente, entidade, etapa_atual")
+      .eq("id", cId)
+      .maybeSingle();
+
+    if (contratoErr || !contrato) {
+      return new Response(
+        JSON.stringify({ error: `Contrato não encontrado: ${contratoErr?.message}` }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Mapa entidade → função Backoffice esperada
+    const ent = String(contrato.entidade ?? "");
+    const funcaoBackoffice =
+      ent === "SENAI" ? "Backoffice SENAI" :
+      ent === "SESI Saúde" ? "Backoffice SESI Saúde" :
+      ent === "REDE" ? "Backoffice REDE" :
+      "Backoffice SESI Educação"; // SESI / SESI Educação → Educação
+
+    const { data: destRaw, error: destErr } = await supabase
+      .from("responsaveis")
+      .select("id, nome, whatsapp, funcao, user_id, turno_manha, turno_tarde, turno_noite")
+      .eq("funcao", funcaoBackoffice)
+      .eq("ativo", true)
+      .not("whatsapp", "is", null)
+      .neq("whatsapp", "");
+
+    if (destErr) {
+      return new Response(
+        JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Exclui o autor do comentário (se ele mesmo for Backoffice)
+    const destinatarios = (destRaw ?? []).filter((r: any) =>
+      !autor_id || r.user_id !== autor_id
+    );
+
+    if (destinatarios.length === 0) {
+      return new Response(
+        JSON.stringify({
+          warning: `Nenhum Backoffice ${ent} elegível (autor pode ser o único backoffice).`,
+          resultados: [],
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const etapaLabelMap: Record<string, string> = {
+      visita: "Visita", crm: "CRM", proposta: "Proposta", supervisor: "Supervisor",
+      rpc: "RPC", execucao: "Execução", matricula: "Matrícula",
+      ensalamento: "Ensalamento", faturamento: "Faturamento", finalizado: "Finalizado",
+    };
+    const etapaLbl = etapaLabelMap[String(contrato.etapa_atual)] ?? String(contrato.etapa_atual ?? "");
+
+    const APP_URL = Deno.env.get("APP_PUBLIC_URL") ?? "https://gestorvendasserra.lovable.app";
+    const linkProcesso = `${APP_URL.replace(/\/$/, "")}/contratos?highlight=${contrato.id}`;
+
+    const textoLimpo = String(texto ?? "").trim();
+    const preview = textoLimpo.length > 240 ? textoLimpo.slice(0, 240) + "…" : textoLimpo;
+
+    const mensagem = [
+      `🗒️ *Novo comentário — ${ent}*`,
+      ``,
+      `Cliente: *${contrato.cliente}*`,
+      `Etapa: *${etapaLbl}*`,
+      `Autor: ${autor_nome}`,
+      preview ? `` : null,
+      preview ? `"${preview}"` : null,
+      ``,
+      `🔗 Acessar processo: ${linkProcesso}`,
+    ].filter((l) => l !== null).join("\n");
+
+    const etapaDestinoLog = `comentario:${contrato.etapa_atual ?? "?"}`;
+    const resultados: any[] = [];
+
+    for (const dest of destinatarios) {
+      const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
+      if (!numeroFormatado) {
+        await supabase.from("notificacoes_whatsapp").insert({
+          contrato_id: cId,
+          etapa_destino: etapaDestinoLog,
+          destinatario_nome: dest.nome,
+          numero_destinatario: dest.whatsapp,
+          mensagem,
+          status: "falhou",
+          erro: `Número inválido: "${dest.whatsapp}"`,
+          origem: "comentario",
+        });
+        resultados.push({ destinatario: dest.nome, status: "falhou" });
+        continue;
+      }
+
+      const duplicado = await isDuplicado(supabase, cId, etapaDestinoLog, numeroFormatado);
+      if (duplicado) {
+        resultados.push({ destinatario: dest.nome, status: "duplicado" });
+        continue;
+      }
+
+      if (!dentroDeTurno(dest)) {
+        const enviarA = proximoInicioTurno(dest);
+        await supabase.from("notificacoes_whatsapp").insert({
+          contrato_id: cId,
+          etapa_destino: etapaDestinoLog,
+          destinatario_nome: dest.nome,
+          numero_destinatario: numeroFormatado,
+          mensagem,
+          status: "agendado",
+          erro: null,
+          enviar_a: enviarA,
+          origem: "comentario",
+        });
+        resultados.push({ destinatario: dest.nome, status: "agendado", enviar_a: enviarA });
+        continue;
+      }
+
+      const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+      await supabase.from("notificacoes_whatsapp").insert({
+        contrato_id: cId,
+        etapa_destino: etapaDestinoLog,
+        destinatario_nome: dest.nome,
+        numero_destinatario: numeroFormatado,
+        mensagem,
+        status: ok ? "enviado" : "falhou",
+        erro: ok ? null : erro,
+        origem: "comentario",
+      });
+      resultados.push({
+        destinatario: dest.nome,
+        numero: numeroFormatado,
+        status: ok ? "enviado" : "falhou",
+        erro: ok ? null : erro,
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ resultados }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const {
     contrato_id,
     etapa_destino,
