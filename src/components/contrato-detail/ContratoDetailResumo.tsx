@@ -5,27 +5,15 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/currency";
 import { useUpdateContrato } from "@/hooks/useContratos";
+import { useAddComentario } from "@/hooks/useContratoComentarios";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { ContratoDetailTimeline } from "./ContratoDetailTimeline";
 import { ContratoDetailSLA } from "./ContratoDetailSLA";
 import { ContratoDetailAcoes } from "./ContratoDetailAcoes";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Contrato = Tables<"contratos">;
-
-const OBS_FIELD_BY_ETAPA: Record<string, "observacoes_visita" | "observacoes_crm" | "observacoes_proposta"> = {
-  visita: "observacoes_visita",
-  crm: "observacoes_crm",
-};
-const OBS_LABEL_BY_FIELD: Record<string, string> = {
-  observacoes_visita: "Visita",
-  observacoes_crm: "CRM",
-  observacoes_proposta: "Proposta",
-};
-function obsFieldFor(etapa: string | null | undefined) {
-  if (!etapa) return "observacoes_proposta" as const;
-  return OBS_FIELD_BY_ETAPA[etapa] ?? ("observacoes_proposta" as const);
-}
 
 function getInitials(name?: string | null) {
   if (!name) return "?";
@@ -70,15 +58,41 @@ export function ContratoDetailResumo({
 }) {
   const c = contrato as any;
   const update = useUpdateContrato();
+  const addComentario = useAddComentario();
+  const { currentUser } = useCurrentUser();
   const { data: responsaveis = [] } = useResponsaveis();
 
-  const obsField = obsFieldFor(c.etapa_atual);
-  const currentObs = (c[obsField] ?? "") as string;
-  const [obs, setObs] = useState<string>(currentObs);
-  useEffect(() => setObs(currentObs), [c.id, obsField, currentObs]);
-  const dirty = obs !== currentObs;
+  const [obs, setObs] = useState<string>("");
+  useEffect(() => setObs(""), [c.id]);
+  const dirty = obs.trim().length > 0;
+  const savingObs = addComentario.isPending || update.isPending;
 
   const agente = responsaveis.find((r: any) => r.id === c.agente_pj_id) as any;
+
+  const handleSaveObservation = async () => {
+    const texto = obs.trim();
+    if (!texto) return;
+
+    try {
+      await addComentario.mutateAsync({
+        contrato_id: contrato.id,
+        texto,
+        autor_nome: currentUser?.nome || "Usuário",
+        autor_funcao: currentUser?.funcao || "",
+        silent: true,
+      });
+      await update.mutateAsync({
+        id: contrato.id,
+        etapa_updated_at: new Date().toISOString(),
+      } as any);
+      setObs("");
+      toast.success("Observação registrada nos comentários", {
+        description: "SLA da etapa foi reiniciado.",
+      });
+    } catch (e: any) {
+      toast.error("Erro ao salvar observação", { description: e?.message });
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -153,31 +167,22 @@ export function ContratoDetailResumo({
 
         <section>
           <h3 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            Observações <span className="normal-case font-normal text-muted-foreground/80">({OBS_LABEL_BY_FIELD[obsField]})</span>
+            Observações <span className="normal-case font-normal text-muted-foreground/80">(Comentários)</span>
           </h3>
           <Textarea
             value={obs}
             onChange={(e) => setObs(e.target.value)}
-            placeholder="Adicione observações sobre este contrato..."
+            placeholder="Registre uma observação nos comentários deste contrato..."
             className="min-h-[80px] resize-y text-sm"
           />
           {dirty && (
             <div className="flex justify-end mt-2">
               <Button
                 size="sm"
-                onClick={() =>
-                  update.mutate(
-                    { id: contrato.id, [obsField]: obs, etapa_updated_at: new Date().toISOString() } as any,
-                    {
-                      onSuccess: () => toast.success("Observações salvas", { description: "SLA da etapa foi reiniciado." }),
-                      onError: (e: any) =>
-                        toast.error("Erro ao salvar", { description: e?.message }),
-                    },
-                  )
-                }
-                disabled={update.isPending}
+                onClick={handleSaveObservation}
+                disabled={savingObs}
               >
-                {update.isPending ? (
+                {savingObs ? (
                   <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Save className="mr-2 h-3.5 w-3.5" />

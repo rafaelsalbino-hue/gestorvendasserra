@@ -269,6 +269,7 @@ export function useUpdateContrato() {
         return old.map((c) => (c.id === (atualizado as Contrato).id ? (atualizado as Contrato) : c));
       });
       qc.invalidateQueries({ queryKey: ["contratos"], refetchType: "none" });
+      qc.invalidateQueries({ queryKey: ["contrato-detail", (atualizado as Contrato).id] });
     },
   });
 }
