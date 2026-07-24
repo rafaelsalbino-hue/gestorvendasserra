@@ -48,6 +48,27 @@ export function useAddComentario() {
       qc.invalidateQueries({ queryKey: ["contrato-detail", vars.contrato_id] });
       qc.invalidateQueries({ queryKey: ["contratos"] });
       if (!vars.is_system && !vars.silent) toast.success("Comentário registrado com sucesso");
+
+      // Fire-and-forget: notifica Backoffice da entidade via WhatsApp,
+      // exceto para comentários gerados automaticamente pelo sistema.
+      if (!vars.is_system) {
+        (async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            await supabase.functions.invoke("enviar-whatsapp", {
+              body: {
+                tipo: "comentario",
+                contrato_id: vars.contrato_id,
+                autor_id: user?.id ?? null,
+                autor_nome: vars.autor_nome || "Usuário",
+                texto: vars.texto,
+              },
+            });
+          } catch (err) {
+            console.warn("[comentario→whatsapp] falhou:", err);
+          }
+        })();
+      }
     },
     onError: (err: any, vars) => {
       if (vars?.silent) return;
