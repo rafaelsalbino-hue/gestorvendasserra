@@ -135,6 +135,7 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
                 onClick={() => handleDownload(a)}
                 disabled={downloadingId === a.id}
                 title="Baixar"
+                aria-label={`Baixar ${a.file_name}`}
               >
                 {downloadingId === a.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -148,6 +149,7 @@ export function ContratoAnexos({ contratoId }: { contratoId: string }) {
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={() => setPendingDelete({ id: a.id, storage_path: a.storage_path, file_name: a.file_name })}
                 title="Excluir"
+                aria-label={`Excluir ${a.file_name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

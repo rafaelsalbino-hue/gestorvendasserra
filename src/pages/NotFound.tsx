@@ -13,7 +13,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-4">
+    <main className="min-h-dvh flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full text-center space-y-6 animate-fade-in">
         <div className="mx-auto h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
           <Compass className="h-8 w-8 text-primary" />
