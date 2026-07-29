@@ -35,6 +35,7 @@ export function KanbanAdvanceButton({ contratoId, etapaAtual }: Props) {
         size="icon"
         className="h-6 w-6"
         title={`Avançar para ${proxLabel}`}
+        aria-label={`Avançar para ${proxLabel}`}
         onClick={() => setOpen(true)}
       >
         <ChevronRight className="h-4 w-4" />

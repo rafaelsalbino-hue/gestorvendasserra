@@ -3,7 +3,7 @@ import { Shield, Lock, FileLock2, Users, Mail } from "lucide-react";
 
 export default function Seguranca() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
         <header className="space-y-3">
           <div className="flex items-center gap-3">

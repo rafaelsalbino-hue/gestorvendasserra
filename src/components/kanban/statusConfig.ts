@@ -6,12 +6,12 @@ export interface StatusOption {
 }
 
 export const STATUS_NEGOCIACAO: StatusOption[] = [
-  { value: "sem_status", label: "Sem status", color: "bg-gray-400", text: "text-gray-600 dark:text-gray-300" },
+  { value: "sem_status", label: "Sem status", color: "bg-muted-foreground/60", text: "text-muted-foreground" },
   { value: "em_elaboracao", label: "Em elaboração", color: "bg-blue-500", text: "text-blue-700 dark:text-blue-300" },
   { value: "em_negociacao", label: "Em Negociação", color: "bg-amber-500", text: "text-amber-700 dark:text-amber-300" },
   { value: "ganha", label: "Ganha", color: "bg-green-500", text: "text-green-700 dark:text-green-300" },
   { value: "perdido", label: "Perdido", color: "bg-red-500", text: "text-red-700 dark:text-red-300" },
-  { value: "cancelada", label: "Cancelada", color: "bg-gray-600", text: "text-gray-700 dark:text-gray-300" },
+  { value: "cancelada", label: "Cancelada", color: "bg-muted-foreground", text: "text-muted-foreground" },
 ];
 
 export function getStatus(value: string | null | undefined): StatusOption {

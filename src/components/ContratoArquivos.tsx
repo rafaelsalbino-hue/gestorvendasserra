@@ -143,7 +143,7 @@ export function ContratoArquivos({ contratoId, categoria, label, accept, allowMu
                   {formatSize(a.file_size)} · {a.uploader_nome} · {new Date(a.created_at).toLocaleString("pt-BR")}
                 </p>
               </div>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} disabled={downloadingId === a.id} title="Baixar">
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(a)} disabled={downloadingId === a.id} title="Baixar" aria-label={`Baixar ${a.file_name}`}>
                 {downloadingId === a.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               </Button>
               <Button
@@ -154,6 +154,7 @@ export function ContratoArquivos({ contratoId, categoria, label, accept, allowMu
                 onClick={() => setPendingDelete(a)}
                 disabled={disabled}
                 title="Excluir"
+                aria-label={`Excluir ${a.file_name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
