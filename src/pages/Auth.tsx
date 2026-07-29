@@ -79,7 +79,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-dvh flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">
@@ -97,23 +97,31 @@ const Auth = () => {
               <TabsTrigger value="login" className="flex-1">Entrar</TabsTrigger>
               <TabsTrigger value="signup" className="flex-1">Criar Conta</TabsTrigger>
             </TabsList>
-            <TabsContent value="login" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input type="email" placeholder="seu@email.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Senha</Label>
-                <Input type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-              </div>
-              <Button className="w-full" onClick={handleLogin} disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Entrar
-              </Button>
+            <TabsContent value="login" className="pt-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!loading) handleLogin();
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">E-mail</Label>
+                  <Input id="login-email" type="email" autoComplete="email" placeholder="seu@email.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <Input id="login-password" type="password" autoComplete="current-password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Entrar
+                </Button>
+              </form>
               <div className="text-center">
                 <button
                   type="button"
-                  className="text-xs text-primary hover:underline"
+                  className="mt-3 text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                   onClick={async () => {
                     if (!loginEmail) {
                       toast({ title: "Digite seu e-mail para recuperar a senha", variant: "destructive" });
@@ -137,38 +145,46 @@ const Auth = () => {
                 </button>
               </div>
             </TabsContent>
-            <TabsContent value="signup" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label>Nome completo</Label>
-                <Input placeholder="Seu nome" value={signupNome} onChange={(e) => setSignupNome(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input type="email" placeholder="seu@empresa.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Domínios aceitos: {ALLOWED_DOMAINS.join(", ")}</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Senha</Label>
-                <Input type="password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Função</Label>
-                <Select value={signupFuncao} onValueChange={(v) => setSignupFuncao(v as FuncaoResponsavel)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione sua função" /></SelectTrigger>
-                  <SelectContent>
-                    {SIGNUP_FUNCOES.map((f) => (
-                      <SelectItem key={f} value={f}>{f}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Funções de gestão (Coordenador de Mercado, Analista Comercial) são atribuídas posteriormente por um administrador.
-                </p>
-              </div>
-              <Button className="w-full" onClick={handleSignup} disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Criar Conta
-              </Button>
+            <TabsContent value="signup" className="pt-4">
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!loading) handleSignup();
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="signup-nome">Nome completo</Label>
+                  <Input id="signup-nome" autoComplete="name" placeholder="Seu nome" value={signupNome} onChange={(e) => setSignupNome(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">E-mail</Label>
+                  <Input id="signup-email" type="email" autoComplete="email" placeholder="seu@empresa.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Domínios aceitos: {ALLOWED_DOMAINS.join(", ")}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Senha</Label>
+                  <Input id="signup-password" type="password" autoComplete="new-password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-funcao">Função</Label>
+                  <Select value={signupFuncao} onValueChange={(v) => setSignupFuncao(v as FuncaoResponsavel)}>
+                    <SelectTrigger id="signup-funcao"><SelectValue placeholder="Selecione sua função" /></SelectTrigger>
+                    <SelectContent>
+                      {SIGNUP_FUNCOES.map((f) => (
+                        <SelectItem key={f} value={f}>{f}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Funções de gestão (Coordenador de Mercado, Analista Comercial) são atribuídas posteriormente por um administrador.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Criar Conta
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
         </CardContent>
