@@ -549,7 +549,7 @@ const Contratos = () => {
 
             {isLoading ? (
               <div
-                className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0"
+                className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0"
               >
               <div
                 className="grid gap-3"
@@ -571,7 +571,7 @@ const Contratos = () => {
                 <KanbanBoard contratos={filteredWithNames as any} onOpen={(c) => setSelected(c as any)} />
               ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <div className="overflow-x-auto md:overflow-visible -mx-3 px-3 sm:mx-0 sm:px-0">
+                <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
                 <div
                   className="grid gap-3"
                   style={{ gridTemplateColumns: `repeat(${ETAPAS.length}, minmax(160px, 1fr))` }}
