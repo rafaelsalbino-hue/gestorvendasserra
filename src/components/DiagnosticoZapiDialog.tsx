@@ -51,7 +51,7 @@ export function DiagnosticoZapiDialog({ open, onOpenChange }: { open: boolean; o
       <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-[#003DA5]" />
+            <Activity className="h-5 w-5 text-primary" />
             Diagnóstico Z-API
           </DialogTitle>
           <DialogDescription>Verifica conexão da instância e secrets configurados.</DialogDescription>
