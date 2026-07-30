@@ -346,8 +346,8 @@ export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEdi
         )}
 
         {(contrato as any).acao_esperada && (
-          <div className="rounded-md border-l-4 border-[#003DA5] bg-[#003DA5]/5 dark:bg-[#003DA5]/10 px-3 py-2 text-sm">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[#003DA5]">Ação esperada agora</div>
+          <div className="rounded-md border-l-4 border-primary bg-primary/5 dark:bg-primary/10 px-3 py-2 text-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-primary">Ação esperada agora</div>
             <div className="mt-0.5 text-foreground">{(contrato as any).acao_esperada}</div>
           </div>
         )}
@@ -488,9 +488,9 @@ export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEdi
           <ContratoAnexos contratoId={contrato.id} />
 
           {/* Etapa Supervisor */}
-          <div className="space-y-3 rounded-md border-l-4 border-[#003DA5] bg-[#003DA5]/5 dark:bg-[#003DA5]/10 p-3">
+          <div className="space-y-3 rounded-md border-l-4 border-primary bg-primary/5 dark:bg-primary/10 p-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-[#003DA5] uppercase tracking-wider">2. Supervisor</h3>
+              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">2. Supervisor</h3>
               <SectionLock locked={!canEdit("supervisor")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -522,7 +522,7 @@ export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEdi
                 <label className="flex items-start gap-2 text-xs">
                   <input
                     type="checkbox"
-                    className="mt-0.5 h-4 w-4 accent-[#003DA5]"
+                    className="mt-0.5 h-4 w-4 accent-primary"
                     checked={!!(form as any).sup_avaliacao_frequencia_nota}
                     onChange={(e) => setForm((p) => ({ ...p, sup_avaliacao_frequencia_nota: e.target.checked } as any))}
                     disabled={!canEdit("supervisor")}
@@ -532,7 +532,7 @@ export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEdi
                 <label className="flex items-start gap-2 text-xs">
                   <input
                     type="checkbox"
-                    className="mt-0.5 h-4 w-4 accent-[#003DA5]"
+                    className="mt-0.5 h-4 w-4 accent-primary"
                     checked={!!(form as any).sup_avaliacao_frequencia}
                     onChange={(e) => setForm((p) => ({ ...p, sup_avaliacao_frequencia: e.target.checked } as any))}
                     disabled={!canEdit("supervisor")}
@@ -554,11 +554,11 @@ export function ContratoEditDialog({ contrato, open, onOpenChange }: ContratoEdi
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-[#003DA5]/20">
-              <label className="flex items-center gap-2 text-xs font-semibold text-[#003DA5]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-primary/20">
+              <label className="flex items-center gap-2 text-xs font-semibold text-primary">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-[#003DA5]"
+                  className="h-4 w-4 accent-primary"
                   checked={!!(form as any).sup_finalizado}
                   onChange={async (e) => {
                     const finalizado = e.target.checked;
