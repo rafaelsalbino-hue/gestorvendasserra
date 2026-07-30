@@ -394,7 +394,7 @@ const Responsaveis = () => {
                   {errors.funcao && <p className="text-xs text-destructive">{errors.funcao}</p>}
                 </div>
                 {isSupervisorRole(funcao) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-[#003DA5]/30 bg-[#003DA5]/5 p-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
                     <div className="space-y-2">
                       <Label>Entidade de atuação *</Label>
                       <Select value={entidade} onValueChange={(v) => { setEntidade(v as EntidadeAtuacao); setEspecialidade(""); }}>
@@ -596,7 +596,7 @@ const Responsaveis = () => {
                 {editErrors.funcao && <p className="text-xs text-destructive">{editErrors.funcao}</p>}
               </div>
               {isSupervisorRole(editFuncao) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-[#003DA5]/30 bg-[#003DA5]/5 p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-primary/30 bg-primary/5 p-3">
                   <div className="space-y-2">
                     <Label>Entidade de atuação *</Label>
                     <Select value={editEntidade} onValueChange={(v) => { setEditEntidade(v as EntidadeAtuacao); setEditEspecialidade(""); }}>
