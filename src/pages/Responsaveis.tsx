@@ -90,7 +90,7 @@ function WhatsappField({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Label htmlFor={id} className="flex items-center gap-1">
-          <Smartphone className="h-3.5 w-3.5 text-[#003DA5]" />
+          <Smartphone className="h-3.5 w-3.5 text-primary" />
           WhatsApp para notificações{required ? " *" : ""}
         </Label>
         <TooltipProvider>
