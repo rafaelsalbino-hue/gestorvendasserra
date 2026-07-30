@@ -117,7 +117,7 @@ export function MatrizNotificacoes({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl">
+      <DialogContent className="max-w-[95vw] w-[1100px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Notificações por cargo e etapa</DialogTitle>
           <DialogDescription className="text-xs">
