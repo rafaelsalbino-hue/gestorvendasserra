@@ -445,7 +445,7 @@ const Contratos = () => {
                 variant={onlyAtencao ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOnlyAtencao((v) => !v)}
-                className={`w-full sm:w-auto ${onlyAtencao ? "bg-orange-600 hover:bg-orange-700" : ""}`}
+                className={`w-full sm:w-auto ${onlyAtencao ? "bg-brand-orange text-brand-orange-foreground hover:bg-brand-orange/90" : ""}`}
                 title="Mostrar apenas processos com prazo excedido ou parados acima do limite"
               >
                 ⚠ Somente em atenção
