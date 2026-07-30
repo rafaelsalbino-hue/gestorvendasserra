@@ -48,7 +48,7 @@ export function DiagnosticoZapiDialog({ open, onOpenChange }: { open: boolean; o
         if (v && !data && !loading) fetchStatus();
       }}
     >
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-[#003DA5]" />
