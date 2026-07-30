@@ -276,7 +276,7 @@ serve(async (req) => {
 
     const { data: contrato, error: contratoErr } = await supabase
       .from("contratos")
-      .select("id, cliente, entidade, etapa_atual")
+      .select("id, cliente, entidade, etapa_atual, agente_pj_id, unidade_atendimento, subdivisao")
       .eq("id", cId)
       .maybeSingle();
 
@@ -295,9 +295,13 @@ serve(async (req) => {
       ent === "REDE" ? "Backoffice REDE" :
       "Backoffice SESI Educação"; // SESI / SESI Educação → Educação
 
-    const { data: destRaw, error: destErr } = await supabase
+    const selectResp =
+      "id, nome, whatsapp, funcao, user_id, unidade_atendimento, subdivisao, turno_manha, turno_tarde, turno_noite";
+
+    // 1) Backoffice da entidade
+    const { data: backRaw, error: destErr } = await supabase
       .from("responsaveis")
-      .select("id, nome, whatsapp, funcao, user_id, turno_manha, turno_tarde, turno_noite")
+      .select(selectResp)
       .eq("funcao", funcaoBackoffice)
       .eq("ativo", true)
       .not("whatsapp", "is", null)
@@ -310,15 +314,56 @@ serve(async (req) => {
       );
     }
 
-    // Exclui o autor do comentário (se ele mesmo for Backoffice)
-    const destinatarios = (destRaw ?? []).filter((r: any) =>
-      !autor_id || r.user_id !== autor_id
-    );
+    const candidatos: any[] = [...(backRaw ?? [])];
+
+    // 2) Agente de Mercado PJ responsável pelo contrato
+    if (contrato.agente_pj_id) {
+      const { data: pj } = await supabase
+        .from("responsaveis")
+        .select(selectResp)
+        .eq("id", contrato.agente_pj_id)
+        .eq("ativo", true)
+        .not("whatsapp", "is", null)
+        .neq("whatsapp", "")
+        .maybeSingle();
+      if (pj) candidatos.push(pj);
+    }
+
+    // 3) Supervisor responsável (por unidade/subdivisão quando aplicável)
+    const supLabel =
+      supervisorSenaiEsperado(contrato) ?? supervisorSesiSaudeEsperado(contrato);
+    let supQuery = supabase
+      .from("responsaveis")
+      .select(selectResp)
+      .eq("ativo", true)
+      .not("whatsapp", "is", null)
+      .neq("whatsapp", "");
+    if (supLabel) {
+      supQuery = supQuery.eq("funcao", supLabel);
+    } else if (ent === "SENAI") {
+      supQuery = supQuery.like("funcao", "Supervisor SENAI%");
+    } else if (ent === "SESI Saúde") {
+      supQuery = supQuery.like("funcao", "Supervisor SESI Saúde%");
+    } else {
+      supQuery = supQuery.like("funcao", "Supervisor SESI Educação%");
+    }
+    const { data: supRaw } = await supQuery;
+    for (const s of supRaw ?? []) candidatos.push(s);
+
+    // Deduplica por id e exclui o autor do comentário
+    const vistos = new Set<string>();
+    const destinatarios = candidatos.filter((r: any) => {
+      if (!r) return false;
+      if (autor_id && r.user_id === autor_id) return false;
+      if (vistos.has(r.id)) return false;
+      vistos.add(r.id);
+      return true;
+    });
 
     if (destinatarios.length === 0) {
       return new Response(
         JSON.stringify({
-          warning: `Nenhum Backoffice ${ent} elegível (autor pode ser o único backoffice).`,
+          warning: `Nenhum destinatário elegível para ${ent} (Backoffice / PJ / Supervisor).`,
           resultados: [],
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
