@@ -436,6 +436,9 @@ serve(async (req) => {
     for (const dest of destinatarios) {
       const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
       if (!numeroFormatado) {
+        console.error("[comentario→whatsapp] número inválido", {
+          responsavel_id: dest.id, responsavel: dest.nome, whatsapp: dest.whatsapp,
+        });
         await supabase.from("notificacoes_whatsapp").insert({
           contrato_id: cId,
           etapa_destino: etapaDestinoLog,
@@ -473,7 +476,7 @@ serve(async (req) => {
         continue;
       }
 
-      const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+      const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem, { id: dest.id, nome: dest.nome });
       await supabase.from("notificacoes_whatsapp").insert({
         contrato_id: cId,
         etapa_destino: etapaDestinoLog,
