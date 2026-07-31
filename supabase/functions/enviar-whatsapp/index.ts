@@ -545,16 +545,41 @@ serve(async (req) => {
     contrato.entidade === "REDE" ? "REDE" :
     (contrato.entidade as string);
 
-  const { data: perms, error: permsErr } = await supabase
-    .from("notificacao_permissoes")
-    .select("funcao")
-    .eq("etapa", etapa_destino)
-    .eq("canal", "whatsapp")
-    .eq("entidade", entidadePerm)
-    .eq("rota", rota)
-    .eq("ativo", true);
+  const buscarPerms = async (r: string) =>
+    await supabase
+      .from("notificacao_permissoes")
+      .select("funcao")
+      .eq("etapa", etapa_destino)
+      .eq("canal", "whatsapp")
+      .eq("entidade", entidadePerm)
+      .eq("rota", r)
+      .eq("ativo", true);
+
+  let { data: perms, error: permsErr } = await buscarPerms(rota);
+  let rotaUsada = rota;
+
+  // Fallback: se a rota específica (ex.: "crm_direto") não tem nenhuma
+  // configuração na matriz, usa "padrao" em vez de não notificar ninguém.
+  if (!permsErr && (perms ?? []).length === 0 && rota !== "padrao") {
+    console.warn(`[etapa→whatsapp] matriz sem configuração para rota "${rota}" — usando "padrao"`, {
+      contrato_id, etapa_destino, entidade: entidadePerm,
+    });
+    const fb = await buscarPerms("padrao");
+    if (!fb.error) { perms = fb.data; rotaUsada = "padrao"; }
+  }
 
   if (permsErr) {
+    console.error("[etapa→whatsapp] erro ao ler permissões", permsErr.message, { contrato_id, etapa_destino });
+    await supabase.from("notificacoes_whatsapp").insert({
+      contrato_id,
+      etapa_destino,
+      destinatario_nome: "NENHUM",
+      numero_destinatario: null,
+      mensagem: null,
+      status: "falhou",
+      erro: `Erro ao ler matriz de permissões: ${permsErr.message}`,
+      origem,
+    });
     return new Response(
       JSON.stringify({ error: `Erro ao ler permissões: ${permsErr.message}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
