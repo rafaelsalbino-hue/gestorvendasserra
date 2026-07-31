@@ -26,7 +26,8 @@ export function useAvancarEtapa() {
         })
         .eq("id", id);
       if (error) throw error;
-      notifyEtapaWhatsapp({ contratoId: id, novaEtapa: prox, etapaAnterior: etapaAtual });
+      // Aguarda a notificação para que falhas apareçam ao usuário (o avanço já está salvo).
+      await notifyEtapaWhatsapp({ contratoId: id, novaEtapa: prox, etapaAnterior: etapaAtual });
       return prox;
     },
     onSuccess: (prox) => {
