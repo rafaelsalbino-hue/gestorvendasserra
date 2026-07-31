@@ -604,6 +604,17 @@ serve(async (req) => {
       .neq("whatsapp", "");
 
     if (destErr) {
+      console.error("[etapa→whatsapp] erro ao buscar destinatários", destErr.message, { contrato_id, etapa_destino });
+      await supabase.from("notificacoes_whatsapp").insert({
+        contrato_id,
+        etapa_destino,
+        destinatario_nome: "NENHUM",
+        numero_destinatario: null,
+        mensagem: null,
+        status: "falhou",
+        erro: `Erro ao buscar destinatários: ${destErr.message}`,
+        origem,
+      });
       return new Response(
         JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -660,13 +671,13 @@ serve(async (req) => {
       numero_destinatario: null,
       mensagem: null,
       status: "sem_destinatario",
-      erro: `Etapa "${etapa_destino}" / entidade "${contrato.entidade}" — cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum)"} — nenhum responsável ativo com WhatsApp encontrado`,
+      erro: `Etapa "${etapa_destino}" / entidade "${contrato.entidade}" / rota "${rotaUsada}" — cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum)"} — nenhum responsável ativo com WhatsApp encontrado`,
       origem,
     });
 
     return new Response(
       JSON.stringify({
-        warning: `Nenhum destinatário para etapa "${etapa_destino}" / entidade "${contrato.entidade}". Cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum — configure no painel Notificações por cargo)"}`,
+        warning: `Nenhum destinatário para etapa "${etapa_destino}" / entidade "${contrato.entidade}" (rota "${rotaUsada}"). Cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum — configure no painel Notificações por cargo)"}`,
         resultados: [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -717,6 +728,9 @@ serve(async (req) => {
     const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
 
     if (!numeroFormatado) {
+      console.error("[etapa→whatsapp] número inválido", {
+        responsavel_id: dest.id, responsavel: dest.nome, whatsapp: dest.whatsapp, contrato_id, etapa_destino,
+      });
       const log = {
         contrato_id,
         etapa_destino,
@@ -765,7 +779,7 @@ serve(async (req) => {
       continue;
     }
 
-    const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+    const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem, { id: dest.id, nome: dest.nome });
 
     const logEntry = {
       contrato_id,
