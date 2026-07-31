@@ -140,12 +140,14 @@ async function isDuplicado(
 async function enviarZAPI(
   numero: string,
   mensagem: string,
+  destInfo?: { id?: string; nome?: string },
 ): Promise<{ ok: boolean; erro?: string }> {
   const instanceId  = Deno.env.get("ZAPI_INSTANCE_ID");
   const token       = Deno.env.get("ZAPI_TOKEN");
   const clientToken = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
   if (!instanceId || !token) {
+    console.error("[Z-API] secrets ausentes", { responsavel_id: destInfo?.id ?? null, numero });
     return { ok: false, erro: "Variáveis ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configuradas" };
   }
 
@@ -165,13 +167,24 @@ async function enviarZAPI(
     console.log("[Z-API] HTTP", res.status, "body:", JSON.stringify(body).slice(0, 500));
 
     if (!res.ok) {
+      console.error("[Z-API] falha HTTP", {
+        responsavel_id: destInfo?.id ?? null, responsavel: destInfo?.nome ?? null,
+        numero, http: res.status, body: JSON.stringify(body).slice(0, 300),
+      });
       return { ok: false, erro: `Z-API HTTP ${res.status}: ${JSON.stringify(body).slice(0, 300)}` };
     }
     if (body?.zaapId || body?.messageId || body?.id) {
       return { ok: true };
     }
+    console.error("[Z-API] resposta 200 sem confirmação de envio", {
+      responsavel_id: destInfo?.id ?? null, responsavel: destInfo?.nome ?? null,
+      numero, body: JSON.stringify(body).slice(0, 300),
+    });
     return { ok: false, erro: `Resposta inesperada Z-API: ${JSON.stringify(body).slice(0, 300)}` };
   } catch (err: any) {
+    console.error("[Z-API] erro de rede", {
+      responsavel_id: destInfo?.id ?? null, numero, err: String(err?.message ?? err),
+    });
     return { ok: false, erro: `Erro de rede Z-API: ${err?.message ?? String(err)}` };
   }
 }
@@ -296,7 +309,23 @@ serve(async (req) => {
       "Backoffice SESI Educação"; // SESI / SESI Educação → Educação
 
     const selectResp =
-      "id, nome, whatsapp, funcao, user_id, unidade_atendimento, subdivisao, turno_manha, turno_tarde, turno_noite";
+      "id, nome, whatsapp, funcao, user_id, unidade_atendimento, turno_manha, turno_tarde, turno_noite";
+
+    const etapaDestinoLogPre = `comentario:${contrato.etapa_atual ?? "?"}`;
+    // Registra qualquer falha de busca/roteamento para não sumir silenciosamente
+    const logFalha = async (erro: string, status = "falhou") => {
+      console.error("[comentario→whatsapp]", erro, { contrato_id: cId, entidade: ent });
+      await supabase.from("notificacoes_whatsapp").insert({
+        contrato_id: cId,
+        etapa_destino: etapaDestinoLogPre,
+        destinatario_nome: "NENHUM",
+        numero_destinatario: null,
+        mensagem: null,
+        status,
+        erro,
+        origem: "comentario",
+      });
+    };
 
     // 1) Backoffice da entidade
     const { data: backRaw, error: destErr } = await supabase
@@ -308,6 +337,7 @@ serve(async (req) => {
       .neq("whatsapp", "");
 
     if (destErr) {
+      await logFalha(`Erro ao buscar destinatários: ${destErr.message}`);
       return new Response(
         JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -347,7 +377,8 @@ serve(async (req) => {
     } else {
       supQuery = supQuery.like("funcao", "Supervisor SESI Educação%");
     }
-    const { data: supRaw } = await supQuery;
+    const { data: supRaw, error: supErr } = await supQuery;
+    if (supErr) await logFalha(`Erro ao buscar supervisor: ${supErr.message}`, "falhou");
     for (const s of supRaw ?? []) candidatos.push(s);
 
     // Deduplica por id e exclui o autor do comentário
@@ -361,6 +392,10 @@ serve(async (req) => {
     });
 
     if (destinatarios.length === 0) {
+      await logFalha(
+        `Nenhum destinatário elegível para ${ent} (Backoffice "${funcaoBackoffice}" / Agente PJ / Supervisor) — verifique cadastro de WhatsApp e status ativo`,
+        "sem_destinatario",
+      );
       return new Response(
         JSON.stringify({
           warning: `Nenhum destinatário elegível para ${ent} (Backoffice / PJ / Supervisor).`,
@@ -401,6 +436,9 @@ serve(async (req) => {
     for (const dest of destinatarios) {
       const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
       if (!numeroFormatado) {
+        console.error("[comentario→whatsapp] número inválido", {
+          responsavel_id: dest.id, responsavel: dest.nome, whatsapp: dest.whatsapp,
+        });
         await supabase.from("notificacoes_whatsapp").insert({
           contrato_id: cId,
           etapa_destino: etapaDestinoLog,
@@ -438,7 +476,7 @@ serve(async (req) => {
         continue;
       }
 
-      const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+      const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem, { id: dest.id, nome: dest.nome });
       await supabase.from("notificacoes_whatsapp").insert({
         contrato_id: cId,
         etapa_destino: etapaDestinoLog,
@@ -507,16 +545,41 @@ serve(async (req) => {
     contrato.entidade === "REDE" ? "REDE" :
     (contrato.entidade as string);
 
-  const { data: perms, error: permsErr } = await supabase
-    .from("notificacao_permissoes")
-    .select("funcao")
-    .eq("etapa", etapa_destino)
-    .eq("canal", "whatsapp")
-    .eq("entidade", entidadePerm)
-    .eq("rota", rota)
-    .eq("ativo", true);
+  const buscarPerms = async (r: string) =>
+    await supabase
+      .from("notificacao_permissoes")
+      .select("funcao")
+      .eq("etapa", etapa_destino)
+      .eq("canal", "whatsapp")
+      .eq("entidade", entidadePerm)
+      .eq("rota", r)
+      .eq("ativo", true);
+
+  let { data: perms, error: permsErr } = await buscarPerms(rota);
+  let rotaUsada = rota;
+
+  // Fallback: se a rota específica (ex.: "crm_direto") não tem nenhuma
+  // configuração na matriz, usa "padrao" em vez de não notificar ninguém.
+  if (!permsErr && (perms ?? []).length === 0 && rota !== "padrao") {
+    console.warn(`[etapa→whatsapp] matriz sem configuração para rota "${rota}" — usando "padrao"`, {
+      contrato_id, etapa_destino, entidade: entidadePerm,
+    });
+    const fb = await buscarPerms("padrao");
+    if (!fb.error) { perms = fb.data; rotaUsada = "padrao"; }
+  }
 
   if (permsErr) {
+    console.error("[etapa→whatsapp] erro ao ler permissões", permsErr.message, { contrato_id, etapa_destino });
+    await supabase.from("notificacoes_whatsapp").insert({
+      contrato_id,
+      etapa_destino,
+      destinatario_nome: "NENHUM",
+      numero_destinatario: null,
+      mensagem: null,
+      status: "falhou",
+      erro: `Erro ao ler matriz de permissões: ${permsErr.message}`,
+      origem,
+    });
     return new Response(
       JSON.stringify({ error: `Erro ao ler permissões: ${permsErr.message}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -541,6 +604,17 @@ serve(async (req) => {
       .neq("whatsapp", "");
 
     if (destErr) {
+      console.error("[etapa→whatsapp] erro ao buscar destinatários", destErr.message, { contrato_id, etapa_destino });
+      await supabase.from("notificacoes_whatsapp").insert({
+        contrato_id,
+        etapa_destino,
+        destinatario_nome: "NENHUM",
+        numero_destinatario: null,
+        mensagem: null,
+        status: "falhou",
+        erro: `Erro ao buscar destinatários: ${destErr.message}`,
+        origem,
+      });
       return new Response(
         JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -597,13 +671,13 @@ serve(async (req) => {
       numero_destinatario: null,
       mensagem: null,
       status: "sem_destinatario",
-      erro: `Etapa "${etapa_destino}" / entidade "${contrato.entidade}" — cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum)"} — nenhum responsável ativo com WhatsApp encontrado`,
+      erro: `Etapa "${etapa_destino}" / entidade "${contrato.entidade}" / rota "${rotaUsada}" — cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum)"} — nenhum responsável ativo com WhatsApp encontrado`,
       origem,
     });
 
     return new Response(
       JSON.stringify({
-        warning: `Nenhum destinatário para etapa "${etapa_destino}" / entidade "${contrato.entidade}". Cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum — configure no painel Notificações por cargo)"}`,
+        warning: `Nenhum destinatário para etapa "${etapa_destino}" / entidade "${contrato.entidade}" (rota "${rotaUsada}"). Cargos habilitados: ${funcoesHabilitadas.join(", ") || "(nenhum — configure no painel Notificações por cargo)"}`,
         resultados: [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -654,6 +728,9 @@ serve(async (req) => {
     const numeroFormatado = formatarNumero(dest.whatsapp ?? "");
 
     if (!numeroFormatado) {
+      console.error("[etapa→whatsapp] número inválido", {
+        responsavel_id: dest.id, responsavel: dest.nome, whatsapp: dest.whatsapp, contrato_id, etapa_destino,
+      });
       const log = {
         contrato_id,
         etapa_destino,
@@ -702,7 +779,7 @@ serve(async (req) => {
       continue;
     }
 
-    const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem);
+    const { ok, erro } = await enviarZAPI(numeroFormatado, mensagem, { id: dest.id, nome: dest.nome });
 
     const logEntry = {
       contrato_id,

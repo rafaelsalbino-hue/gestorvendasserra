@@ -55,7 +55,7 @@ export function useAddComentario() {
         (async () => {
           try {
             const { data: { user } } = await supabase.auth.getUser();
-            await supabase.functions.invoke("enviar-whatsapp", {
+            const { data, error } = await supabase.functions.invoke("enviar-whatsapp", {
               body: {
                 tipo: "comentario",
                 contrato_id: vars.contrato_id,
@@ -64,8 +64,33 @@ export function useAddComentario() {
                 texto: vars.texto,
               },
             });
+            if (error) throw error;
+            const res: any = data;
+            if (res?.error) {
+              console.error("[comentario→whatsapp] função retornou erro:", res.error, { contrato_id: vars.contrato_id });
+              toast.error("Comentário salvo, mas o WhatsApp não foi enviado", {
+                description: String(res.error).slice(0, 200),
+              });
+              return;
+            }
+            if (res?.warning) {
+              console.warn("[comentario→whatsapp]", res.warning);
+              toast.warning(`WhatsApp: ${res.warning}`);
+              return;
+            }
+            const resultados: any[] = Array.isArray(res?.resultados) ? res.resultados : [];
+            const falhas = resultados.filter((r) => r.status === "falhou");
+            if (falhas.length > 0) {
+              console.error("[comentario→whatsapp] falhas de envio:", falhas);
+              toast.error(`WhatsApp: ${falhas.length} falha(s) ao notificar responsáveis`, {
+                description: falhas[0]?.erro?.slice(0, 180) ?? "Veja o console para detalhes",
+              });
+            }
           } catch (err) {
-            console.warn("[comentario→whatsapp] falhou:", err);
+            console.error("[comentario→whatsapp] falhou:", err, { contrato_id: vars.contrato_id });
+            toast.error("Comentário salvo, mas a notificação WhatsApp falhou", {
+              description: (err as any)?.message?.slice(0, 200) ?? "Erro inesperado",
+            });
           }
         })();
       }
