@@ -140,12 +140,14 @@ async function isDuplicado(
 async function enviarZAPI(
   numero: string,
   mensagem: string,
+  destInfo?: { id?: string; nome?: string },
 ): Promise<{ ok: boolean; erro?: string }> {
   const instanceId  = Deno.env.get("ZAPI_INSTANCE_ID");
   const token       = Deno.env.get("ZAPI_TOKEN");
   const clientToken = Deno.env.get("ZAPI_CLIENT_TOKEN");
 
   if (!instanceId || !token) {
+    console.error("[Z-API] secrets ausentes", { responsavel_id: destInfo?.id ?? null, numero });
     return { ok: false, erro: "Variáveis ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configuradas" };
   }
 
@@ -165,13 +167,24 @@ async function enviarZAPI(
     console.log("[Z-API] HTTP", res.status, "body:", JSON.stringify(body).slice(0, 500));
 
     if (!res.ok) {
+      console.error("[Z-API] falha HTTP", {
+        responsavel_id: destInfo?.id ?? null, responsavel: destInfo?.nome ?? null,
+        numero, http: res.status, body: JSON.stringify(body).slice(0, 300),
+      });
       return { ok: false, erro: `Z-API HTTP ${res.status}: ${JSON.stringify(body).slice(0, 300)}` };
     }
     if (body?.zaapId || body?.messageId || body?.id) {
       return { ok: true };
     }
+    console.error("[Z-API] resposta 200 sem confirmação de envio", {
+      responsavel_id: destInfo?.id ?? null, responsavel: destInfo?.nome ?? null,
+      numero, body: JSON.stringify(body).slice(0, 300),
+    });
     return { ok: false, erro: `Resposta inesperada Z-API: ${JSON.stringify(body).slice(0, 300)}` };
   } catch (err: any) {
+    console.error("[Z-API] erro de rede", {
+      responsavel_id: destInfo?.id ?? null, numero, err: String(err?.message ?? err),
+    });
     return { ok: false, erro: `Erro de rede Z-API: ${err?.message ?? String(err)}` };
   }
 }
