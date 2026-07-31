@@ -309,7 +309,23 @@ serve(async (req) => {
       "Backoffice SESI Educação"; // SESI / SESI Educação → Educação
 
     const selectResp =
-      "id, nome, whatsapp, funcao, user_id, unidade_atendimento, subdivisao, turno_manha, turno_tarde, turno_noite";
+      "id, nome, whatsapp, funcao, user_id, unidade_atendimento, turno_manha, turno_tarde, turno_noite";
+
+    const etapaDestinoLogPre = `comentario:${contrato.etapa_atual ?? "?"}`;
+    // Registra qualquer falha de busca/roteamento para não sumir silenciosamente
+    const logFalha = async (erro: string, status = "falhou") => {
+      console.error("[comentario→whatsapp]", erro, { contrato_id: cId, entidade: ent });
+      await supabase.from("notificacoes_whatsapp").insert({
+        contrato_id: cId,
+        etapa_destino: etapaDestinoLogPre,
+        destinatario_nome: "NENHUM",
+        numero_destinatario: null,
+        mensagem: null,
+        status,
+        erro,
+        origem: "comentario",
+      });
+    };
 
     // 1) Backoffice da entidade
     const { data: backRaw, error: destErr } = await supabase
@@ -321,6 +337,7 @@ serve(async (req) => {
       .neq("whatsapp", "");
 
     if (destErr) {
+      await logFalha(`Erro ao buscar destinatários: ${destErr.message}`);
       return new Response(
         JSON.stringify({ error: `Erro ao buscar destinatários: ${destErr.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -360,7 +377,8 @@ serve(async (req) => {
     } else {
       supQuery = supQuery.like("funcao", "Supervisor SESI Educação%");
     }
-    const { data: supRaw } = await supQuery;
+    const { data: supRaw, error: supErr } = await supQuery;
+    if (supErr) await logFalha(`Erro ao buscar supervisor: ${supErr.message}`, "falhou");
     for (const s of supRaw ?? []) candidatos.push(s);
 
     // Deduplica por id e exclui o autor do comentário
@@ -374,6 +392,10 @@ serve(async (req) => {
     });
 
     if (destinatarios.length === 0) {
+      await logFalha(
+        `Nenhum destinatário elegível para ${ent} (Backoffice "${funcaoBackoffice}" / Agente PJ / Supervisor) — verifique cadastro de WhatsApp e status ativo`,
+        "sem_destinatario",
+      );
       return new Response(
         JSON.stringify({
           warning: `Nenhum destinatário elegível para ${ent} (Backoffice / PJ / Supervisor).`,
