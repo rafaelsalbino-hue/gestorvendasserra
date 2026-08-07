@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { FUNCOES_RESPONSAVEL, FUNCOES_GESTOR, ALLOWED_DOMAINS, type FuncaoResponsavel } from "@/types/contracts";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { formatWhatsapp, onlyDigits, isValidWhatsapp } from "@/lib/phone";
 import logoSesi from "@/assets/logo-sesi.png";
 import logoSenai from "@/assets/logo-senai.png";
 import logoTratativa from "@/assets/logo-tratativa.jpg";
@@ -28,6 +29,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFuncao, setSignupFuncao] = useState<FuncaoResponsavel | "">("");
+  const [signupWhatsapp, setSignupWhatsapp] = useState("");
 
   // Segurança: papéis privilegiados não podem ser auto-atribuídos no cadastro público.
   // A promoção é feita manualmente por um gestor após o cadastro.
@@ -59,6 +61,14 @@ const Auth = () => {
       toast({ title: "Preencha todos os campos", variant: "destructive" });
       return;
     }
+    if (!isValidWhatsapp(signupWhatsapp)) {
+      toast({
+        title: "WhatsApp inválido",
+        description: "Informe o número com DDD, ex: (49) 99999-9999.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!validateDomain(signupEmail)) {
       toast({
         title: "Domínio não permitido",
@@ -69,7 +79,7 @@ const Auth = () => {
     }
     setLoading(true);
     try {
-      await signUp(signupEmail, signupPassword, signupNome, signupFuncao);
+      await signUp(signupEmail, signupPassword, signupNome, signupFuncao, onlyDigits(signupWhatsapp));
       toast({ title: "Conta criada!", description: "Verifique seu e-mail para confirmar o cadastro." });
     } catch (e: any) {
       toast({ title: "Erro ao criar conta", description: e.message, variant: "destructive" });
@@ -165,6 +175,19 @@ const Auth = () => {
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Senha</Label>
                   <Input id="signup-password" type="password" autoComplete="new-password" placeholder="Mínimo 6 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-whatsapp">WhatsApp</Label>
+                  <Input
+                    id="signup-whatsapp"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="(49) 99999-9999"
+                    value={signupWhatsapp}
+                    onChange={(e) => setSignupWhatsapp(formatWhatsapp(e.target.value))}
+                  />
+                  <p className="text-xs text-muted-foreground">Usado para receber as notificações do sistema.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-funcao">Função</Label>
