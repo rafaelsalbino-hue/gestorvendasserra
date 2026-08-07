@@ -13,12 +13,12 @@ export function useAuth() {
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string, nome: string, funcao: string) => {
+  const signUp = async (email: string, password: string, nome: string, funcao: string, whatsapp?: string) => {
     const { error } = await runGuarded(
       () => supabase.auth.signUp({
         email,
         password,
-        options: { data: { nome, funcao }, emailRedirectTo: window.location.origin },
+        options: { data: { nome, funcao, whatsapp: whatsapp ?? "" }, emailRedirectTo: window.location.origin },
       }),
       { operation: "auth.signUp", requiresAuth: false, timeoutMs: 15000 }
     );
