@@ -103,12 +103,14 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const refreshPromiseRef = useRef<Promise<Session> | null>(null);
   const healthCheckTimerRef = useRef<number | null>(null);
+  const hasSessionRef = useRef(false);
 
   const applySession = useCallback((nextSession: Session | null, event: AuthChangeEvent | "MANUAL") => {
 
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
     setLoading(false);
+    hasSessionRef.current = !!nextSession?.user;
 
     if (nextSession?.user) {
       setSessionStatus("authenticated");
@@ -273,7 +275,7 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
     }, 0);
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && hasSessionRef.current) {
         ensureActiveSession().catch((error) => {
           console.warn("[session] visible revalidation failed", error);
         });
@@ -283,6 +285,7 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
     const handleOnline = () => {
       setIsOnline(true);
       setSessionMessage(null);
+      if (!hasSessionRef.current) return;
       ensureActiveSession().catch((error) => {
         console.warn("[session] online recovery failed", error);
       });
@@ -300,6 +303,7 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
 
     healthCheckTimerRef.current = window.setInterval(() => {
       if (document.visibilityState !== "visible") return;
+      if (!hasSessionRef.current) return;
       ensureActiveSession().catch((error) => {
         console.warn("[session] periodic health check failed", error);
       });
