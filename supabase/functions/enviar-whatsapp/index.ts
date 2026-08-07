@@ -302,11 +302,14 @@ serve(async (req) => {
 
     // Mapa entidade → função Backoffice esperada
     const ent = String(contrato.entidade ?? "");
-    const funcaoBackoffice =
-      ent === "SENAI" ? "Backoffice SENAI" :
-      ent === "SESI Saúde" ? "Backoffice SESI Saúde" :
-      ent === "REDE" ? "Backoffice REDE" :
-      "Backoffice SESI Educação"; // SESI / SESI Educação → Educação
+    // IMPORTANTE: só valores existentes no enum funcao_responsavel.
+    // "Backoffice REDE" NÃO existe → REDE notifica os backoffices SESI Educação + SENAI.
+    const funcoesBackoffice: string[] =
+      ent === "SENAI" ? ["Backoffice SENAI"] :
+      ent === "SESI Saúde" ? ["Backoffice SESI Saúde"] :
+      ent === "REDE" ? ["Backoffice SESI Educação", "Backoffice SENAI"] :
+      ["Backoffice SESI Educação"]; // SESI / SESI Educação → Educação
+    const funcaoBackoffice = funcoesBackoffice.join(" / ");
 
     const selectResp =
       "id, nome, whatsapp, funcao, user_id, unidade_atendimento, turno_manha, turno_tarde, turno_noite";
@@ -331,7 +334,7 @@ serve(async (req) => {
     const { data: backRaw, error: destErr } = await supabase
       .from("responsaveis")
       .select(selectResp)
-      .eq("funcao", funcaoBackoffice)
+      .in("funcao", funcoesBackoffice)
       .eq("ativo", true)
       .not("whatsapp", "is", null)
       .neq("whatsapp", "");
@@ -362,23 +365,24 @@ serve(async (req) => {
     // 3) Supervisor responsável (por unidade/subdivisão quando aplicável)
     const supLabel =
       supervisorSenaiEsperado(contrato) ?? supervisorSesiSaudeEsperado(contrato);
-    let supQuery = supabase
+    // NÃO usar .like() em coluna enum (funcao_responsavel) — o Postgres não tem
+    // operador ~~ para enum e a query falha inteira. Filtramos por prefixo em JS.
+    const supPrefixo =
+      ent === "SENAI" ? "Supervisor SENAI" :
+      ent === "SESI Saúde" ? "Supervisor SESI Saúde" :
+      "Supervisor SESI Educação";
+    const supQuery = supabase
       .from("responsaveis")
       .select(selectResp)
       .eq("ativo", true)
       .not("whatsapp", "is", null)
       .neq("whatsapp", "");
-    if (supLabel) {
-      supQuery = supQuery.eq("funcao", supLabel);
-    } else if (ent === "SENAI") {
-      supQuery = supQuery.like("funcao", "Supervisor SENAI%");
-    } else if (ent === "SESI Saúde") {
-      supQuery = supQuery.like("funcao", "Supervisor SESI Saúde%");
-    } else {
-      supQuery = supQuery.like("funcao", "Supervisor SESI Educação%");
-    }
-    const { data: supRaw, error: supErr } = await supQuery;
+    const { data: supAll, error: supErr } = await supQuery;
     if (supErr) await logFalha(`Erro ao buscar supervisor: ${supErr.message}`, "falhou");
+    const supRaw = (supAll ?? []).filter((r: any) => {
+      const f = String(r.funcao ?? "");
+      return supLabel ? f === supLabel : f.startsWith(supPrefixo);
+    });
     for (const s of supRaw ?? []) candidatos.push(s);
 
     // Deduplica por id e exclui o autor do comentário
