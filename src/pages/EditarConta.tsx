@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/contexts/CurrentUserContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { ALLOWED_DOMAINS } from "@/types/contracts";
+import { formatWhatsapp, onlyDigits, isValidWhatsapp } from "@/lib/phone";
 
 const EditarConta = () => {
   useDocumentTitle("Editar Conta");
@@ -21,6 +22,7 @@ const EditarConta = () => {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
@@ -30,19 +32,39 @@ const EditarConta = () => {
   }, [currentUser?.nome]);
 
   useEffect(() => {
+    if (currentUser?.whatsapp) setWhatsapp(formatWhatsapp(currentUser.whatsapp));
+  }, [currentUser?.whatsapp]);
+
+  useEffect(() => {
     if (user?.email) setEmail(user.email);
   }, [user?.email]);
 
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      // Update name in responsaveis table
-      if (currentUser && nome !== currentUser.nome) {
+      const whatsappDigits = onlyDigits(whatsapp);
+      if (whatsappDigits && !isValidWhatsapp(whatsappDigits)) {
+        toast({
+          title: "WhatsApp inválido",
+          description: "Informe o número com DDD, ex: (49) 99999-9999.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Update name / whatsapp in responsaveis table
+      if (currentUser && (nome !== currentUser.nome || whatsappDigits !== (currentUser.whatsapp ?? ""))) {
         const { error } = await supabase
           .from("responsaveis")
-          .update({ nome })
+          .update({ nome, whatsapp: whatsappDigits || null })
           .eq("id", currentUser.id);
         if (error) throw error;
+      }
+
+      // Mantém o perfil sincronizado
+      if (user?.id) {
+        await supabase.from("profiles").update({ nome, whatsapp: whatsappDigits || null }).eq("id", user.id);
       }
 
       // Update email in auth
@@ -120,6 +142,19 @@ const EditarConta = () => {
             <div className="space-y-2">
               <Label>E-mail</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conta-whatsapp">WhatsApp</Label>
+              <Input
+                id="conta-whatsapp"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(49) 99999-9999"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(formatWhatsapp(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">Número usado para receber as notificações do sistema.</p>
             </div>
             <div className="space-y-2">
               <Label>Função</Label>
