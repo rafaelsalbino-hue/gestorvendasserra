@@ -69,9 +69,10 @@ export function DiagnosticoWhatsappDialog({ open, onOpenChange }: { open: boolea
     const { data } = await supabase
       .from("responsaveis")
       .select("nome, funcao, whatsapp, ativo")
-      .like("funcao", "Backoffice%")
       .order("funcao");
-    setBackoffices((data ?? []) as unknown as Responsavel[]);
+    // `funcao` é enum no banco: LIKE/ILIKE quebra a query (sem operador ~~ para enum).
+    const backs = (data ?? []).filter((r: any) => String(r?.funcao ?? "").startsWith("Backoffice"));
+    setBackoffices(backs as unknown as Responsavel[]);
   };
 
   const carregarHealth = async () => {
